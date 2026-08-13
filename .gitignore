@@ -1,0 +1,37 @@
+# ============================================
+# FICHIERS À NE JAMAIS COMMITTER
+# ============================================
+
+# Logs
+*.log
+
+# Temp files
+tmp/
+temp/
+
+# Credentials (IMPORTANT)
+*.credentials
+secrets.json
+passwords.txt
+
+# OS files
+.DS_Store
+Thumbs.db
+$RECYCLE.BIN/
+System Volume Information/
+
+# ============================================
+# INSTALLERS WINGET (trop lourds pour Git)
+# ============================================
+usb-root/_CGLOBAL/installers/
+*.msi
+*.exe
+*.msix
+
+# ============================================
+# AUTRES FICHIERS LOURDS
+# ============================================
+*.iso
+*.img
+*.zip
+*.rar
