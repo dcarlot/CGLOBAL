@@ -3,14 +3,14 @@
 
 $ErrorActionPreference = 'Stop'
 
-$LogFile        = "C:\_CGLOBAL\Logs\Log15_ApplicationsWinget.txt"
+Import-Module "C:\_CGLOBAL\PS1\CGLOBAL.Common.psm1" -Force
+$LogFile = Get-CGlobalLogFile -ScriptPath $MyInvocation.MyCommand.Path
+Initialize-CGlobalLog -LogFile $LogFile
+
 $InstallersRoot = "C:\_CGLOBAL\installers"
 
 $script:RebootRequired      = $false
 $script:OnlineSourceAvailable = $false
-
-Import-Module "C:\_CGLOBAL\PS1\CGLOBAL.Common.psm1" -Force
-Initialize-CGlobalLog -LogFile $LogFile
 
 if (-not (Test-Path $InstallersRoot)) {
     New-Item -Path $InstallersRoot -ItemType Directory -Force | Out-Null

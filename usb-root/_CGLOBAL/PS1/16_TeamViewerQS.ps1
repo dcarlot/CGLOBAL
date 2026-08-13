@@ -3,20 +3,19 @@
 
 $ErrorActionPreference = 'Stop'
 
+Import-Module "C:\_CGLOBAL\PS1\CGLOBAL.Common.psm1" -Force
+$LogFile = Get-CGlobalLogFile -ScriptPath $MyInvocation.MyCommand.Path
+Initialize-CGlobalLog -LogFile $LogFile
+
 # ------------------------------------------------------------------
 # Configuration
 # ------------------------------------------------------------------
-
-$LogFile = "C:\_CGLOBAL\Logs\Log16_TeamViewerQS.txt"
 
 $LocalFolder = "C:\_CGLOBAL"
 $LocalFile   = Join-Path $LocalFolder "TeamViewerQS.exe"
 
 # TeamViewer Custom Design
 $ApiUrl = "https://get.teamviewer.com/api/CustomDesign/Download?id=8m5m8u4"
-
-Import-Module "C:\_CGLOBAL\PS1\CGLOBAL.Common.psm1" -Force
-Initialize-CGlobalLog -LogFile $LogFile
 
 if (-not (Test-Path $LocalFolder)) {
     New-Item `

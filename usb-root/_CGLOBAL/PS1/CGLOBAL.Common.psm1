@@ -1,6 +1,18 @@
 $script:CGLOBAL_LogFolder = "C:\_CGLOBAL\Logs"
 $script:CGLOBAL_LogFile   = $null
 
+function Get-CGlobalLogFile {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ScriptPath
+    )
+
+    $ScriptName = Split-Path -Leaf $ScriptPath
+    $BaseName   = [System.IO.Path]::GetFileNameWithoutExtension($ScriptName)
+
+    return Join-Path $script:CGLOBAL_LogFolder "Log$BaseName.txt"
+}
+
 function Initialize-CGlobalLog {
     param(
         [Parameter(Mandatory = $true)]
@@ -55,4 +67,4 @@ function Write-Log {
     Write-Host $Line -ForegroundColor $Color[$Level]
 }
 
-Export-ModuleMember -Function Initialize-CGlobalLog, Write-Log
+Export-ModuleMember -Function Get-CGlobalLogFile, Initialize-CGlobalLog, Write-Log
