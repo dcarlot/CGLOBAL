@@ -244,13 +244,11 @@ Le script 17 reste volontairement le dernier script fonctionnel avant le script 
 | 13 | `13_NumLockDemarrage.ps1` | Forcer NumLock au démarrage | FIGÉ / COMPORTEMENT ACCEPTÉ | Comportement variable selon le poste |
 | 14 | `14_DesinstallationOffice.ps1` | Détection et désinstallation d’Office | VALIDÉ SUR LES CAS TESTÉS | Gestion MSI / C2R désinstallation |
 | 15 | `15_ApplicationsWinget.ps1` | Installation et mise à jour des applications via WinGet | VALIDÉ, AVEC FIREFOX FR ET NETTOYAGE MIROIR À CONSERVER | Gestion du cache local et synchronisation |
-| 15 v1 | `15_ApplicationsWinget - v1.ps1` | Ancienne version | HISTORIQUE | Version antérieure conservée pour comparaison |
 | 16 | `16_TeamViewerQS.ps1` | Téléchargement et mise à jour de TeamViewer QS | À VALIDER | Conformité de l’API TeamViewer à confirmer |
-| 16 v1 | `16_TeamViewerQS - v1.ps1` | Ancienne version | HISTORIQUE | Script de référence précédent |
 | 17 | `17_VerificationMotDePasseCompteLocal.ps1` | Vérifier un mot de passe local | À VALIDER | À confirmer selon les profils Microsoft / Entra |
 | 99 | `99_FinDeploiement.ps1` | Restauration du mode déploiement | À VALIDER | Détermine la fin du cycle de préparation |
 
-> Le tableau ci-dessus synthétise l’état actuel des scripts, en tenant compte des versions historiques de référence conservées dans le dépôt.
+> Le tableau ci-dessus synthétise l’état actuel des scripts du dépôt.
 
 ---
 
