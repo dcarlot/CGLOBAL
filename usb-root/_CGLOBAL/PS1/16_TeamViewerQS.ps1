@@ -96,29 +96,47 @@ try {
 
     Write-Log "Recuperation URL TeamViewer"
 
-    $ApiResponse = Invoke-RestMethod `
-        -Uri $ApiUrl `
-        -Method Get
+    $DownloadUrl = $null
+    $maxAttempts = 3
 
-    if (-not $ApiResponse.downloadUrl) {
-        throw "URL de telechargement absente"
+    for ($i = 1; $i -le $maxAttempts; $i++) {
+        try {
+            $ApiResponse = Invoke-RestMethod -Uri $ApiUrl -Method Get -ErrorAction Stop
+            if ($ApiResponse -and $ApiResponse.downloadUrl) {
+                $DownloadUrl = $ApiResponse.downloadUrl
+                break
+            }
+            else {
+                Write-Log "API renvoyee mais sans 'downloadUrl'" "WARN"
+                break
+            }
+        }
+        catch {
+            Write-Log "Tentative $i : erreur appel API - $($_.Exception.Message)" "WARN"
+            if ($i -lt $maxAttempts) { Start-Sleep -Seconds (2 * $i) }
+        }
     }
 
-    $DownloadUrl = $ApiResponse.downloadUrl
-
-    Write-Log "Telechargement de TeamViewerQS"
-
-    if (Test-Path $LocalFile) {
-        Remove-Item `
-            -Path $LocalFile `
-            -Force `
-            -ErrorAction SilentlyContinue
+    if (-not $DownloadUrl) {
+        Write-Log "API indisponible ou mal formee, tentative de fallback vers get.teamviewer.com/cglobal" "WARN"
+        $FallbackUrl = 'https://get.teamviewer.com/cglobal'
+        try {
+            if (Test-Path $LocalFile) { Remove-Item -Path $LocalFile -Force -ErrorAction SilentlyContinue }
+            Invoke-WebRequest -Uri $FallbackUrl -OutFile $LocalFile -UseBasicParsing -ErrorAction Stop
+        }
+        catch {
+            throw "Impossible d'obtenir TeamViewer via API ou fallback : $($_.Exception.Message)"
+        }
     }
+    else {
+        Write-Log "Telechargement de TeamViewerQS depuis $DownloadUrl"
 
-    Invoke-WebRequest `
-        -Uri $DownloadUrl `
-        -OutFile $LocalFile `
-        -UseBasicParsing
+        if (Test-Path $LocalFile) {
+            Remove-Item -Path $LocalFile -Force -ErrorAction SilentlyContinue
+        }
+
+        Invoke-WebRequest -Uri $DownloadUrl -OutFile $LocalFile -UseBasicParsing -ErrorAction Stop
+    }
 
     if (-not (Test-Path $LocalFile)) {
         throw "Le fichier n'a pas ete telecharge"
