@@ -3,7 +3,6 @@
 
 $ErrorActionPreference = 'Stop'
 
-$ScriptName = (Split-Path -Leaf $MyInvocation.MyCommand.Path)
 $LogFile = "C:\_CGLOBAL\Logs\Log01_Bureau.txt"
 
 Import-Module "C:\_CGLOBAL\PS1\CGLOBAL.Common.psm1" -Force
