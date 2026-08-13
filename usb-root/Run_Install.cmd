@@ -68,6 +68,10 @@ echo.
 :: =====================================================
 :: Lancement des scripts
 :: =====================================================
+::
+:: Scripts actifs / validés : 00, 01, 02, 03, 04, 05, 06, 07, 10, 12, 13, 14
+:: Scripts actuellement mis de cote / a re-creer : 08, 11
+::
 
 call :RunPS "00_ModeDeploiement.ps1"
 
@@ -78,6 +82,7 @@ call :RunPS "04_ZoneNotification.ps1"
 call :RunPS "05_BarreTachesGauche.ps1"
 call :RunPS "06_RechercheBarreTaches.ps1"
 call :RunPS "07_MasquerVueTaches.ps1"
+::call :RunPS "08_MasquerWidgets.ps1"
 call :RunPS "10_DesactiverReprendre.ps1"
 ::call :RunPS "11_ConfidentialiteLocalisation.ps1"
 call :RunPS "12_ConfigurerProfilParDefaut.ps1"
@@ -115,19 +120,29 @@ exit /b 0
 
 :RunPS
 
+set "ScriptTarget=C:\_CGLOBAL\PS1\%~1"
+
 echo.
 echo ----------------------------------------------------
 echo Lancement %~1
 echo ----------------------------------------------------
 
-powershell.exe -ExecutionPolicy Bypass -File "C:\_CGLOBAL\PS1\%~1"
-
-if errorlevel 1 (
-    echo [WARN] Le script %~1 a retourné une erreur
+if not exist "%ScriptTarget%" (
+    echo [WARN] Fichier introuvable : %ScriptTarget%
+    echo [WARN] Script ignore car il n'est pas present dans le kit.
     echo.
+    exit /b 0
 )
 
-exit /b
+powershell.exe -ExecutionPolicy Bypass -File "%ScriptTarget%"
+
+if errorlevel 1 (
+    echo [WARN] Le script %~1 a retourne une erreur
+    echo.
+    exit /b 0
+)
+
+exit /b 0
 
 :CheckInternet
 
