@@ -1,5 +1,17 @@
 # Projet CGLOBAL
 
+## Sommaire
+
+- [1. Contexte général](#1-contexte-général)
+- [2. Principes techniques retenus](#2-principes-techniques-retenus)
+- [3. Arborescence du kit](#3-arborescence-du-kit)
+- [4. Batch principal : Run_Install.cmd](#4-batch-principal--run_installcmd)
+- [5. Ordre des scripts](#5-ordre-des-scripts)
+- [Glossaire](#glossaire)
+- [Tableau récapitulatif des scripts](#tableau-récapitulatif-des-scripts)
+- [6. État détaillé des scripts](#6-état-détaillé-des-scripts)
+- [7. Particularités Windows 11 25H2 observées](#7-particularités-windows-11-25h2-observées)
+
 ## 1. Contexte général
 
 Projet d’automatisation post-installation pour des postes Windows 11, principalement validé sur Windows 11 25H2, dans un contexte MSP.
@@ -51,6 +63,46 @@ Décision retenue :
 
 - ne pas redémarrer Explorer après chaque script de personnalisation ;
 - prévoir éventuellement un seul redémarrage d’Explorer en fin de séquence une fois tous les scripts d’interface validés.
+
+---
+
+## Glossaire
+
+### UCPD
+User Choice Protection Driver. Pilote de protection de la sélection utilisateur, connu pour bloquer certaines modifications du registre ou de l’interface de Windows 11, notamment sur des valeurs liées à la barre des tâches et aux widgets.
+
+### WinGet
+Outil de gestion des paquets Microsoft pour installer, mettre à jour et désinstaller des applications de manière standardisée à partir de manifests et de sources configurées.
+
+### C2R
+Click-to-Run. Modèle d’installation des applications Microsoft 365 / Office via le mécanisme C2R, souvent observé avec des installations OEM ou Microsoft 365.
+
+### MSI
+Windows Installer. Format d’installation Windows utilisé par de nombreuses applications, exploité via la commande `msiexec.exe`.
+
+### HKCU / HKLM / HKU
+Racines du registre Windows :
+- `HKCU` : paramètres du compte utilisateur courant ;
+- `HKLM` : paramètres système pour le poste ;
+- `HKU` : profil utilisateur chargés / hives utilisateur.
+
+### NTUSER.DAT
+Fichier du profil utilisateur par défaut, utilisé comme modèle pour les futurs profils utilisateurs sur un poste Windows.
+
+### HKEY_USERS\.DEFAULT
+Hive du profil par défaut dans le registre du système. À distinguer du fichier `C:\Users\Default\NTUSER.DAT` utilisé pour les nouveaux profils.
+
+### TeamViewer QS
+TeamViewer QuickSupport. Version légère de TeamViewer destinée au support client et au téléchargement depuis une URL dynamique de configuration CGLOBAL.
+
+### Robocopy
+Outil de synchronisation de fichiers intégré à Windows, utilisé pour recopier et maintenir le dépôt `_CGLOBAL` depuis la clé USB vers le poste cible.
+
+### Log / journalisation
+Fichier de trace produit par chaque script afin de conserver les opérations, avertissements et erreurs dans un journal distinct par script.
+
+### Profil par défaut
+Modèle de configuration utilisé pour les futurs profils créés sur le poste. Les paramètres appliqués ici doivent être conservés sans dépendre de l’état d’un profil existant.
 
 ---
 
@@ -173,7 +225,36 @@ Le script 17 reste volontairement le dernier script fonctionnel avant le script 
 
 ---
 
-# 6. État détaillé des scripts
+## Tableau récapitulatif des scripts
+
+| Script | Fichier | Objectif principal | État | Commentaire |
+|---|---|---|---|---|
+| 00 | `00_ModeDeploiement.ps1` | Préparer le poste avant le déploiement | À VALIDER | Paramétrage énergie / Windows Update |
+| 01 | `01_Bureau.ps1` | Affichage des icônes système sur le bureau | VALIDÉ | Reste limité sur la position exacte |
+| 02 | `02_MenuContextuelClassique.ps1` | Restauration du menu contextuel classique | VALIDÉ POUR L’UTILISATEUR COURANT | Non hérité dans le profil par défaut |
+| 03 | `03_Explorateur.ps1` | Ouvrir l’Explorateur sur Ce PC / extensions visibles | VALIDÉ | Paramètres Explorer validés |
+| 04 | `04_ZoneNotification.ps1` | Affichage des icônes déjà connues dans la zone de notification | VALIDÉ | Les nouvelles icônes restent gérées manuellement |
+| 05 | `05_BarreTachesGauche.ps1` | Alignement de la barre des tâches à gauche | VALIDÉ | Option de suppression de Store non implémentée |
+| 06 | `06_RechercheBarreTaches.ps1` | Affichage uniquement de l’icône recherche | VALIDÉ | Concerne l’interface de recherche |
+| 07 | `07_MasquerVueTaches.ps1` | Masquage du bouton Vue des tâches | VALIDÉ | Valeur enregistrée dans le registre |
+| 08 | `08_MasquerWidgets.ps1` | Masquage du bouton Widgets | À REPRENDRE | Blocage probable par UCPD |
+| 10 | `10_DesactiverReprendre.ps1` | Désactivation de l’option Reprendre | VALIDÉ | Vérifié sur Windows 11 25H2 |
+| 11 | `11_ConfidentialiteLocalisation.ps1` | Paramètres de confidentialité / localisation | VALIDÉ AVEC GESTION DE CLÉ ABSENTE | Gère le cas clé absente |
+| 12 | `12_ConfigurerProfilParDefaut.ps1` | Configuration des futurs profils utilisateurs | VALIDÉ AVEC LIMITATION | Menu contextuel classique non hérité |
+| 13 | `13_NumLockDemarrage.ps1` | Forcer NumLock au démarrage | FIGÉ / COMPORTEMENT ACCEPTÉ | Comportement variable selon le poste |
+| 14 | `14_DesinstallationOffice.ps1` | Détection et désinstallation d’Office | VALIDÉ SUR LES CAS TESTÉS | Gestion MSI / C2R désinstallation |
+| 15 | `15_ApplicationsWinget.ps1` | Installation et mise à jour des applications via WinGet | VALIDÉ, AVEC FIREFOX FR ET NETTOYAGE MIROIR À CONSERVER | Gestion du cache local et synchronisation |
+| 15 v1 | `15_ApplicationsWinget - v1.ps1` | Ancienne version | HISTORIQUE | Version antérieure conservée pour comparaison |
+| 16 | `16_TeamViewerQS.ps1` | Téléchargement et mise à jour de TeamViewer QS | À VALIDER | Conformité de l’API TeamViewer à confirmer |
+| 16 v1 | `16_TeamViewerQS - v1.ps1` | Ancienne version | HISTORIQUE | Script de référence précédent |
+| 17 | `17_VerificationMotDePasseCompteLocal.ps1` | Vérifier un mot de passe local | À VALIDER | À confirmer selon les profils Microsoft / Entra |
+| 99 | `99_FinDeploiement.ps1` | Restauration du mode déploiement | À VALIDER | Détermine la fin du cycle de préparation |
+
+> Le tableau ci-dessus synthétise l’état actuel des scripts, en tenant compte des versions historiques de référence conservées dans le dépôt.
+
+---
+
+## 6. État détaillé des scripts
 
 ## Script 00 : Mode déploiement
 
@@ -1173,7 +1254,7 @@ Le poste conserve le mode déploiement actif afin de permettre :
 C:\_CGLOBAL\Logs\Log99_FinDeploiement.txt
 ```
 
-# 7. Particularités Windows 11 25H2 observées
+## 7. Particularités Windows 11 25H2 observées
 
 ## UCPD
 
