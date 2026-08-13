@@ -15,14 +15,11 @@ $LocalFolder = "C:\_CGLOBAL"
 $LocalFile   = Join-Path $LocalFolder "TeamViewerQS.exe"
 
 # TeamViewer Custom Design
-$ApiUrl = "https://get.teamviewer.com/api/CustomDesign/Download?id=8m5m8u4"
+$TeamViewerConfigId = "u6dx34t"
+$TeamViewerVersion  = "15"
+$TeamViewerApiUrl   = "https://get.teamviewer.com/api/CustomDesign"
 
-if (-not (Test-Path $LocalFolder)) {
-    New-Item `
-        -Path $LocalFolder `
-        -ItemType Directory `
-        -Force | Out-Null
-}
+$MinValidSizeBytes = 1048576  # 1 MB
 
 # ------------------------------------------------------------------
 # Vérification signature TeamViewer
@@ -51,6 +48,45 @@ function Test-TeamViewerSignature {
     }
 
     Write-Log "Signature TeamViewer valide" "OK"
+}
+
+# ------------------------------------------------------------------
+# Récupération URL de téléchargement
+# ------------------------------------------------------------------
+
+function Get-TeamViewerDownloadUrl {
+
+    Write-Log "Recherche du lien reel de telechargement TeamViewer"
+
+    $RequestBody = @{
+        ConfigId       = $TeamViewerConfigId
+        Version        = $TeamViewerVersion
+        IsCustomModule = $true
+        Subdomain      = "1"
+        ConnectionId   = ""
+    } | ConvertTo-Json -Compress
+
+    $Response = Invoke-RestMethod `
+        -Uri $TeamViewerApiUrl `
+        -Method Post `
+        -ContentType "application/json; charset=utf-8" `
+        -Body $RequestBody `
+        -UseBasicParsing
+
+    if ($null -eq $Response) {
+        throw "Reponse vide depuis l'API TeamViewer"
+    }
+
+    $DownloadUrl = $Response.ToString().Trim()
+
+    if ($DownloadUrl -eq "") {
+        throw "URL de telechargement TeamViewer vide"
+    }
+
+    Write-Log "Lien reel detecte"
+    Write-Log $DownloadUrl
+
+    return $DownloadUrl
 }
 
 # ------------------------------------------------------------------
@@ -94,64 +130,40 @@ try {
 
     Write-Log "Debut mise a jour TeamViewerQS"
 
-    Write-Log "Recuperation URL TeamViewer"
+    # Étape 1 : Récupérer l'URL de téléchargement
+    $DownloadUrl = Get-TeamViewerDownloadUrl
 
-    $DownloadUrl = $null
-    $maxAttempts = 3
+    # Étape 2 : Télécharger directement
+    Write-Log "Telechargement de TeamViewerQS depuis $DownloadUrl"
 
-    for ($i = 1; $i -le $maxAttempts; $i++) {
-        try {
-            $ApiResponse = Invoke-RestMethod -Uri $ApiUrl -Method Get -ErrorAction Stop
-            if ($ApiResponse -and $ApiResponse.downloadUrl) {
-                $DownloadUrl = $ApiResponse.downloadUrl
-                break
-            }
-            else {
-                Write-Log "API renvoyee mais sans 'downloadUrl'" "WARN"
-                break
-            }
-        }
-        catch {
-            Write-Log "Tentative $i : erreur appel API - $($_.Exception.Message)" "WARN"
-            if ($i -lt $maxAttempts) { Start-Sleep -Seconds (2 * $i) }
-        }
+    if (Test-Path $LocalFile) {
+        Remove-Item -Path $LocalFile -Force -ErrorAction SilentlyContinue
     }
 
-    if (-not $DownloadUrl) {
-        Write-Log "API indisponible ou mal formee, tentative de fallback vers get.teamviewer.com/cglobal" "WARN"
-        $FallbackUrl = 'https://get.teamviewer.com/cglobal'
-        try {
-            if (Test-Path $LocalFile) { Remove-Item -Path $LocalFile -Force -ErrorAction SilentlyContinue }
-            Invoke-WebRequest -Uri $FallbackUrl -OutFile $LocalFile -UseBasicParsing -ErrorAction Stop
-        }
-        catch {
-            throw "Impossible d'obtenir TeamViewer via API ou fallback : $($_.Exception.Message)"
-        }
-    }
-    else {
-        Write-Log "Telechargement de TeamViewerQS depuis $DownloadUrl"
+    Invoke-WebRequest `
+        -Uri $DownloadUrl `
+        -OutFile $LocalFile `
+        -UseBasicParsing
 
-        if (Test-Path $LocalFile) {
-            Remove-Item -Path $LocalFile -Force -ErrorAction SilentlyContinue
-        }
-
-        Invoke-WebRequest -Uri $DownloadUrl -OutFile $LocalFile -UseBasicParsing -ErrorAction Stop
-    }
-
+    # Étape 3 : Vérifier le fichier téléchargé
     if (-not (Test-Path $LocalFile)) {
         throw "Le fichier n'a pas ete telecharge"
     }
 
-    $SizeMB = [Math]::Round(
-        (Get-Item $LocalFile).Length / 1MB,
-        2
-    )
+    $File = Get-Item $LocalFile
+    Write-Log "Taille fichier telecharge : $($File.Length) octets"
 
+    if ($File.Length -lt $MinValidSizeBytes) {
+        throw "Fichier telecharge invalide : taille anormalement faible"
+    }
+
+    $SizeMB = [Math]::Round($File.Length / 1MB, 2)
     Write-Log "Fichier telecharge : $SizeMB Mo" "OK"
 
-    Test-TeamViewerSignature `
-        -FilePath $LocalFile
+    # Étape 4 : Vérifier la signature
+    Test-TeamViewerSignature -FilePath $LocalFile
 
+    # Étape 5 : Créer le raccourci
     Create-TeamViewerShortcut
 
     Write-Log "TeamViewerQS mis a jour avec succes" "OK"
@@ -161,6 +173,10 @@ try {
 catch {
 
     Write-Log $_.Exception.Message "ERROR"
+
+    if (Test-Path $LocalFile) {
+        Remove-Item -Path $LocalFile -Force -ErrorAction SilentlyContinue
+    }
 
     exit 1
 }
