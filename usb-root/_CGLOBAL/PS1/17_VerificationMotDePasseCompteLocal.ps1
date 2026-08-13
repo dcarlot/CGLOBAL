@@ -1,3 +1,4 @@
+#Requires -Version 5.1
 #Requires -RunAsAdministrator
 
 [CmdletBinding()]
@@ -5,16 +6,10 @@ param()
 
 $ErrorActionPreference = 'Stop'
 
-$LogFolder = "C:\_CGLOBAL\Logs"
-$LogFile   = "$LogFolder\Log17_VerificationMotDePasseCompteLocal.txt"
+$LogFile = "C:\_CGLOBAL\Logs\Log17_VerificationMotDePasseCompteLocal.txt"
 
-if (-not (Test-Path $LogFolder)) {
-
-    New-Item `
-        -Path $LogFolder `
-        -ItemType Directory `
-        -Force | Out-Null
-}
+Import-Module "C:\_CGLOBAL\PS1\CGLOBAL.Common.psm1" -Force
+Initialize-CGlobalLog -LogFile $LogFile
 
 function Write-Log {
 
