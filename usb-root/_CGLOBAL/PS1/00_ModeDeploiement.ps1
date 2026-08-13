@@ -9,52 +9,10 @@ $ErrorActionPreference = 'Stop'
 # Configuration
 # ------------------------------------------------------------------
 
-$LogFolder = "C:\_CGLOBAL\Logs"
-$LogFile   = "$LogFolder\Log00_ModeDeploiement.txt"
+$LogFile = "C:\_CGLOBAL\Logs\Log00_ModeDeploiement.txt"
 
-# ------------------------------------------------------------------
-# Initialisation
-# ------------------------------------------------------------------
-
-if (-not (Test-Path $LogFolder)) {
-    New-Item `
-        -Path $LogFolder `
-        -ItemType Directory `
-        -Force | Out-Null
-}
-
-# ------------------------------------------------------------------
-# Logging
-# ------------------------------------------------------------------
-
-function Write-Log {
-
-    param(
-        [string]$Message,
-
-        [ValidateSet('INFO','OK','WARN','ERROR')]
-        [string]$Level = 'INFO'
-    )
-
-    $Line = "[{0}] [{1,-5}] {2}" -f `
-        (Get-Date -Format "HH:mm:ss"), `
-        $Level, `
-        $Message
-
-    Add-Content `
-        -Path $LogFile `
-        -Value $Line `
-        -Encoding UTF8
-
-    $Color = @{
-        INFO  = 'Cyan'
-        OK    = 'Green'
-        WARN  = 'Yellow'
-        ERROR = 'Red'
-    }
-
-    Write-Host $Line -ForegroundColor $Color[$Level]
-}
+Import-Module "C:\_CGLOBAL\PS1\CGLOBAL.Common.psm1" -Force
+Initialize-CGlobalLog -LogFile $LogFile
 
 # ------------------------------------------------------------------
 # PowerCfg

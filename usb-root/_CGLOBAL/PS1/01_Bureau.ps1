@@ -1,39 +1,13 @@
 #Requires -Version 5.1
+#Requires -RunAsAdministrator
 
 $ErrorActionPreference = 'Stop'
 
-$LogFolder = "C:\_CGLOBAL\Logs"
-$LogFile = "$LogFolder\Log01_Bureau.txt"
+$ScriptName = (Split-Path -Leaf $MyInvocation.MyCommand.Path)
+$LogFile = "C:\_CGLOBAL\Logs\Log01_Bureau.txt"
 
-if (-not (Test-Path $LogFolder)) {
-    New-Item -Path $LogFolder -ItemType Directory -Force | Out-Null
-}
-
-function Write-Log {
-
-    param(
-        [string]$Message,
-
-        [ValidateSet('INFO','OK','WARN','ERROR')]
-        [string]$Level = 'INFO'
-    )
-
-    $Line = "[{0}] [{1,-5}] {2}" -f `
-        (Get-Date -Format "HH:mm:ss"),
-        $Level,
-        $Message
-
-    Add-Content -Path $LogFile -Value $Line -Encoding UTF8
-
-    $Color = @{
-        INFO  = 'Cyan'
-        OK    = 'Green'
-        WARN  = 'Yellow'
-        ERROR = 'Red'
-    }
-
-    Write-Host $Line -ForegroundColor $Color[$Level]
-}
+Import-Module "C:\_CGLOBAL\PS1\CGLOBAL.Common.psm1" -Force
+Initialize-CGlobalLog -LogFile $LogFile
 
 try {
 
