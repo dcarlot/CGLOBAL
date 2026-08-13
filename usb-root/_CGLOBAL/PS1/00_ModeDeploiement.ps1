@@ -10,9 +10,8 @@ $ErrorActionPreference = 'Stop'
 # Configuration
 # ------------------------------------------------------------------
 
-$LogFile = "C:\_CGLOBAL\Logs\Log00_ModeDeploiement.txt"
-
 Import-Module "C:\_CGLOBAL\PS1\CGLOBAL.Common.psm1" -Force
+$LogFile = Get-CGlobalLogFile -ScriptPath $MyInvocation.MyCommand.Path
 Initialize-CGlobalLog -LogFile $LogFile
 
 # ------------------------------------------------------------------
