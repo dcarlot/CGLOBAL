@@ -124,8 +124,8 @@ try {
         throw "Le fichier n'a pas ete telecharge"
     }
 
-    $SizeMB = [Math]::
-        ((Get-Item $LocalFile).Length / 1MB),
+    $SizeMB = [Math]::Round(
+        (Get-Item $LocalFile).Length / 1MB,
         2
     )
 
