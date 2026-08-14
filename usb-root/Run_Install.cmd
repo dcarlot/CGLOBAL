@@ -172,8 +172,8 @@ if %errorlevel% equ 0 (
 :: =====================================================
 
 
-powershell -NoProfile -ExecutionPolicy Bypass ^
--Command "Import-Module 'C:\_CGLOBAL\PS1\CGLOBAL.Common.psm1' -Force; $r = Show-CGlobalPopup -Message 'Aucun acces Internet detecte.`n`nWinget et TeamViewer necessitent une connexion Internet.`n`nVoulez-vous reessayer ?' -Title 'Internet requis' -Buttons 'YesNo' -Icon 'Question'; if ($r -eq 'Yes') { exit 0 } else { exit 1 }"
+powershell -ExecutionPolicy Bypass -NoProfile -Command ^
+"Import-Module 'C:\_CGLOBAL\PS1\CGLOBAL.Common.psm1' -Force -Global; $r = Show-CGlobalPopup -Message \"Aucun acces Internet detecte.`n`nWinget et TeamViewer necessitent une connexion Internet.`n`nVoulez-vous reessayer ?\" -Title \"Internet requis\" -Buttons \"YesNo\" -Icon \"Question\"; if ($r -eq 'Yes') { exit 0 } else { exit 1 }"
 
 
 if %errorlevel% equ 0 (

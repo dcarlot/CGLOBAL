@@ -1,3 +1,6 @@
+# Charger System.Windows.Forms
+Add-Type -AssemblyName System.Windows.Forms -ErrorAction SilentlyContinue
+
 $script:CGLOBAL_LogFolder = "C:\_CGLOBAL\Logs"
 $script:CGLOBAL_LogFile   = $null
 
@@ -85,15 +88,17 @@ function Show-CGlobalPopup {
     )
 
 
-    $result = [System.Windows.Forms.MessageBox]::Show(
+    $dialogResult = [System.Windows.Forms.MessageBox]::Show(
         $Message,
         $Title,
         [System.Windows.Forms.MessageBoxButtons]::$Buttons,
-        [System.Windows.Forms.MessageBoxIcon]::$Icon
+        [System.Windows.Forms.MessageBoxIcon]::$Icon,
+        [System.Windows.Forms.MessageBoxDefaultButton]::Button1,
+        [System.Windows.Forms.MessageBoxOptions]::DefaultDesktopActive
     )
 
 
-    return $result
+    return $dialogResult
 }
 
 Export-ModuleMember -Function Get-CGlobalLogFile, Initialize-CGlobalLog, Write-Log, Show-CGlobalPopup
