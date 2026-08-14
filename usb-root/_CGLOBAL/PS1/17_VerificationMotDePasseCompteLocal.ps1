@@ -10,36 +10,8 @@ Import-Module "C:\_CGLOBAL\PS1\CGLOBAL.Common.psm1" -Force
 $LogFile = Get-CGlobalLogFile -ScriptPath $MyInvocation.MyCommand.Path
 Initialize-CGlobalLog -LogFile $LogFile
 
-function Write-Log {
-
-    param(
-        [string]$Message,
-
-        [ValidateSet('INFO','OK','WARN','ERROR')]
-        [string]$Level = 'INFO'
-    )
-
-    $Line = "[{0}] [{1,-5}] {2}" -f `
-        (Get-Date -Format "HH:mm:ss"), `
-        $Level, `
-        $Message
-
-    Add-Content `
-        -Path $LogFile `
-        -Value $Line `
-        -Encoding UTF8
-
-    $Color = @{
-        INFO  = 'Cyan'
-        OK    = 'Green'
-        WARN  = 'Yellow'
-        ERROR = 'Red'
-    }
-
-    Write-Host $Line -ForegroundColor $Color[$Level]
-}
-
 try {
+
 
     Write-Log "Verification du compte utilisateur courant"
 
@@ -76,20 +48,17 @@ try {
             "Le compte local ne possede pas de mot de passe"
         ) "WARN"
 
-        Write-Host ""
-        Write-Host "==================================================" -ForegroundColor Yellow
-        Write-Host "Le compte local '$CurrentUserName' n'a pas de mot de passe." -ForegroundColor Yellow
-        Write-Host "==================================================" -ForegroundColor Yellow
-        Write-Host ""
-        Write-Host "Souhaitez-vous definir un mot de passe ?" -ForegroundColor Yellow
-        Write-Host ""
-        Write-Host "O = Oui"
-        Write-Host "N = Non"
-        Write-Host ""
+        # ----------------------------------------------------
+        # POPUP : Demande de confirmation
+        # ----------------------------------------------------
+        
+        $Choice = Show-CGlobalPopup `
+            -Message "Le compte local '$CurrentUserName' n'a pas de mot de passe.`n`nSouhaitez-vous definir un mot de passe ?" `
+            -Title "Mot de passe requis" `
+            -Buttons "YesNo" `
+            -Icon "Exclamation"
 
-        $Choice = Read-Host "Votre choix"
-
-        if ($Choice.ToUpper() -ne "O") {
+        if ($Choice -ne "Yes") {
 
             Write-Log (
                 "Creation du mot de passe refusee par l'utilisateur"
@@ -98,40 +67,106 @@ try {
             exit 0
         }
 
+        # ----------------------------------------------------
+        # POPUP : Saisie du mot de passe (2 fois)
+        # ----------------------------------------------------
+        
         do {
+            # Première saisie
+            $PasswordForm1 = New-Object System.Windows.Forms.Form
+            $PasswordForm1.Text = "Definition du mot de passe"
+            $PasswordForm1.Width = 400
+            $PasswordForm1.Height = 200
+            $PasswordForm1.StartPosition = "CenterScreen"
+            $PasswordForm1.TopMost = $true
+            
+            $Label1 = New-Object System.Windows.Forms.Label
+            $Label1.Text = "Entrez le mot de passe :"
+            $Label1.Location = New-Object System.Drawing.Point(20, 20)
+            $Label1.Width = 350
+            $PasswordForm1.Controls.Add($Label1)
+            
+            $TextBox1 = New-Object System.Windows.Forms.TextBox
+            $TextBox1.Location = New-Object System.Drawing.Point(20, 50)
+            $TextBox1.Width = 350
+            $TextBox1.PasswordChar = "*"
+            $TextBox1.UseSystemPasswordChar = $true
+            $PasswordForm1.Controls.Add($TextBox1)
+            
+            $Label2 = New-Object System.Windows.Forms.Label
+            $Label2.Text = "Confirmez le mot de passe :"
+            $Label2.Location = New-Object System.Drawing.Point(20, 90)
+            $Label2.Width = 350
+            $PasswordForm1.Controls.Add($Label2)
+            
+            $TextBox2 = New-Object System.Windows.Forms.TextBox
+            $TextBox2.Location = New-Object System.Drawing.Point(20, 120)
+            $TextBox2.Width = 350
+            $TextBox2.PasswordChar = "*"
+            $TextBox2.UseSystemPasswordChar = $true
+            $PasswordForm1.Controls.Add($TextBox2)
+            
+            $Button = New-Object System.Windows.Forms.Button
+            $Button.Text = "Valider"
+            $Button.Location = New-Object System.Drawing.Point(150, 150)
+            $Button.Width = 100
+            $Button.DialogResult = [System.Windows.Forms.DialogResult]::OK
+            $PasswordForm1.AcceptButton = $Button
+            $PasswordForm1.Controls.Add($Button)
+            
+            $Result = $PasswordForm1.ShowDialog()
+            
+            if ($Result -ne [System.Windows.Forms.DialogResult]::OK) {
+                Write-Log "Saisie du mot de passe annulee" "WARN"
+                exit 0
+            }
+            
+            $Password1 = $TextBox1.Text
+            $Password2 = $TextBox2.Text
 
-            $Password1 = Read-Host `
-                "Entrez le mot de passe" `
-                -AsSecureString
+            if ($Password1 -ne $Password2) {
 
-            $Password2 = Read-Host `
-                "Confirmez le mot de passe" `
-                -AsSecureString
-
-            $Ptr1 = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password1)
-            $Ptr2 = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password2)
-
-            $Plain1 = [Runtime.InteropServices.Marshal]::PtrToStringAuto($Ptr1)
-            $Plain2 = [Runtime.InteropServices.Marshal]::PtrToStringAuto($Ptr2)
-
-            if ($Plain1 -ne $Plain2) {
-
-                Write-Host ""
-                Write-Host "Les mots de passe ne correspondent pas." -ForegroundColor Red
-                Write-Host ""
+                $ErrorForm = New-Object System.Windows.Forms.Form
+                $ErrorForm.Text = "Erreur"
+                $ErrorForm.Width = 350
+                $ErrorForm.Height = 150
+                $ErrorForm.StartPosition = "CenterScreen"
+                
+                $ErrorLabel = New-Object System.Windows.Forms.Label
+                $ErrorLabel.Text = "Les mots de passe ne correspondent pas."
+                $ErrorLabel.Location = New-Object System.Drawing.Point(20, 20)
+                $ErrorLabel.Width = 300
+                $ErrorForm.Controls.Add($ErrorLabel)
+                
+                $ErrorButton = New-Object System.Windows.Forms.Button
+                $ErrorButton.Text = "OK"
+                $ErrorButton.Location = New-Object System.Drawing.Point(130, 80)
+                $ErrorButton.DialogResult = [System.Windows.Forms.DialogResult]::OK
+                $ErrorForm.AcceptButton = $ErrorButton
+                $ErrorForm.Controls.Add($ErrorButton)
+                
+                $ErrorForm.ShowDialog()
             }
 
-        } while ($Plain1 -ne $Plain2)
+        } while ($Password1 -ne $Password2)
+
+        # Convertir en SecureString
+        $SecurePassword = ConvertTo-SecureString `
+            -String $Password1 `
+            -AsPlainText `
+            -Force
 
         Set-LocalUser `
             -Name $CurrentUserName `
-            -Password $Password1
+            -Password $SecurePassword
 
         Write-Log "Mot de passe defini avec succes" "OK"
 
-        Write-Host ""
-        Write-Host "Mot de passe applique." -ForegroundColor Green
-        Write-Host ""
+        Show-CGlobalPopup `
+            -Message "Mot de passe applique avec succes." `
+            -Title "Succes" `
+            -Buttons "OK" `
+            -Icon "Information"
     }
     else {
 

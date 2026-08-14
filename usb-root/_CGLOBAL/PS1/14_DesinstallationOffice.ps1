@@ -1,4 +1,6 @@
+#Requires -Version 5.1
 #Requires -RunAsAdministrator
+
 <#
 .SYNOPSIS
     Liste toutes les versions d'Office installees sur le poste (Click-to-Run et MSI),
@@ -128,11 +130,11 @@ function Invoke-OfficeUninstall {
         if ($cmd -match '^"([^"]+)"\s*(.*)$') {
 
             $exe  = $Matches[1]
-            $args = $Matches[2]
+            $Arguments = $Matches[2]
 
             Start-Process `
                 -FilePath $exe `
-                -ArgumentList $args `
+                -ArgumentList $Arguments `
                 -Wait
 
             Write-Log "$($item.Nom) desinstalle" "OK"
@@ -236,10 +238,15 @@ foreach ($item in $officeInstalls) {
 # ------------------------------------------------------------------
 # Etape 3 : Validation utilisateur
 # ------------------------------------------------------------------
-Write-Host ""
-$reponse = Read-Host "Voulez-vous desinstaller TOUTES ces versions d'Office ? (O/N)"
 
-if ($reponse -notmatch '^[OoYy]') {
+$reponse = Show-CGlobalPopup `
+    -Message "Voulez-vous desinstaller TOUTES ces versions d'Office ?`n`nCette action est irreversible." `
+    -Title "Desinstallation Office" `
+    -Buttons "YesNo" `
+    -Icon "Exclamation"
+
+
+if ($reponse -ne 'Yes') {
     Write-Log "Desinstallation Office annulee par l utilisateur" "WARN"
     exit 0
 }
