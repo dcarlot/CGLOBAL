@@ -158,30 +158,26 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
 "if ((Test-NetConnection download.microsoft.com -InformationLevel Quiet) -and (Test-NetConnection get.teamviewer.com -InformationLevel Quiet)) { exit 0 } else { exit 1 }"
 
 if %errorlevel% equ 0 (
-
     echo [OK] Acces Internet detecte.
     exit /b 0
 )
 
-echo.
-echo ============================================
-echo [WARN] Pas d acces Internet detecte
-echo.
-echo Winget et TeamViewer necessitent Internet.
-echo.
-echo Connectez le PC au reseau puis choisissez :
-echo.
-echo O = Reessayer
-echo N = Quitter le deploiement
-echo ============================================
-echo.
+:: =====================================================
+:: POPUP au lieu de choice
+:: =====================================================
 
-choice /C ON /N /M "Votre choix : "
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+"$result = [System.Windows.Forms.MessageBox]::Show(" ^
+"'Aucun acces Internet detecte.`n`nWinget et TeamViewer necessitent une connexion Internet.`n`nVoulez-vous reessayer ?', " ^
+"'Post-Installation PC - Internet requis', " ^
+"'YesNo', " ^
+"'Question')" ^
+"if ($result -eq 'Yes') { exit 0 } else { exit 1 }"
 
-if errorlevel 2 (
+if %errorlevel% equ 0 (
+    goto :InternetLoop
+) else (
     echo.
     echo Deploiement interrompu.
     exit /b 1
 )
-
-goto :InternetLoop
