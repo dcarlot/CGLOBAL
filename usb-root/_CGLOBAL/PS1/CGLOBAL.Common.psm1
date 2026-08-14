@@ -75,28 +75,21 @@ function Show-CGlobalPopup {
         [Parameter(Mandatory = $true)]
         [string]$Message,
 
-
         [string]$Title = "Post-Installation PC",
-
 
         [ValidateSet('OK', 'OKCancel', 'YesNo', 'YesNoCancel', 'AbortRetryIgnore', 'RetryCancel')]
         [string]$Buttons = 'OK',
-
 
         [ValidateSet('None', 'Question', 'Exclamation', 'Stop', 'Information')]
         [string]$Icon = 'Information'
     )
 
-
     $dialogResult = [System.Windows.Forms.MessageBox]::Show(
         $Message,
         $Title,
         [System.Windows.Forms.MessageBoxButtons]::$Buttons,
-        [System.Windows.Forms.MessageBoxIcon]::$Icon,
-        [System.Windows.Forms.MessageBoxDefaultButton]::Button1,
-        [System.Windows.Forms.MessageBoxOptions]::DefaultDesktopActive
+        [System.Windows.Forms.MessageBoxIcon]::$Icon
     )
-
 
     return $dialogResult
 }
