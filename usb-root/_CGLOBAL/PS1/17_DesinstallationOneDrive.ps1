@@ -10,9 +10,9 @@ Initialize-CGlobalLog -LogFile $LogFile
 try {
     Write-Log "=== DESINSTALLATION ONEDRIVE ===" "INFO"
 
-    # ============================================
+    # --------------------------------------------
     # 1. DÉTECTION DE ONEDRIVE
-    # ============================================
+    # --------------------------------------------
     
     Write-Log "Recherche de OneDrive..." "INFO"
     
@@ -89,9 +89,9 @@ try {
     
     Write-Log "OneDrive detecte via: $($OneDriveDetails -join ', ')" "WARN"
 
-    # ============================================
+    # --------------------------------------------
     # 2. DEMANDE DE CONFIRMATION
-    # ============================================
+    # --------------------------------------------
     
     Write-Log "Demande de confirmation a l'utilisateur" "INFO"
     
@@ -108,9 +108,9 @@ try {
     
     Write-Log "Desinstallation OneDrive validee par l'utilisateur" "OK"
 
-    # ============================================
+    # --------------------------------------------
     # 3. ARRÊT DU PROCESSUS ONEDRIVE
-    # ============================================
+    # --------------------------------------------
     
     Write-Log "Arret des processus OneDrive..." "INFO"
     
@@ -119,9 +119,9 @@ try {
     
     Write-Log "Processus OneDrive arretes" "OK"
 
-    # ============================================
+    # --------------------------------------------
     # 4. DÉSINSTALLATION APPX (si présent)
-    # ============================================
+    # --------------------------------------------
     
     if ($null -ne $OneDriveAppX) {
         Write-Log "Desinstallation du package AppX..." "INFO"
@@ -135,9 +135,9 @@ try {
         }
     }
 
-    # ============================================
+    # --------------------------------------------
     # 5. DÉSINSTALLATION EXE (si présent)
-    # ============================================
+    # --------------------------------------------
     
     if ($OneDriveExe) {
         Write-Log "Desinstallation de OneDrive.exe..." "INFO"
@@ -159,9 +159,9 @@ try {
         }
     }
 
-    # ============================================
+    # --------------------------------------------
     # 5.5 DÉSINSTALLATION VIA REGISTRE (si présent)
-    # ============================================
+    # --------------------------------------------
     
     Write-Log "Recherche de la commande de desinstallation dans le registre..." "INFO"
     
@@ -226,9 +226,9 @@ try {
         }
     }
 
-    # ============================================
+    # --------------------------------------------
     # 6. BLOCAGE POUR LES FUTURS PROFILS
-    # ============================================
+    # --------------------------------------------
     
     Write-Log "Configuration du blocage pour les futurs profils..." "INFO"
     
@@ -281,9 +281,9 @@ try {
         Write-Log "Profil par defaut introuvable (C:\Users\Default\NTUSER.DAT)" "WARN"
     }
 
-    # ============================================
+    # --------------------------------------------
     # 7. SUPPRESSION RACCOURCIS
-    # ============================================
+    # --------------------------------------------
     
     Write-Log "Suppression des raccourcis OneDrive..." "INFO"
     
@@ -299,9 +299,9 @@ try {
         }
     }
 
-    # ============================================
+    # --------------------------------------------
     # 8. MESSAGE DE SUCCÈS
-    # ============================================
+    # --------------------------------------------
     
     Write-Log "=== DESINSTALLATION ONEDRIVE TERMINEE ===" "OK"
     
