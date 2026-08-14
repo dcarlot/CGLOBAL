@@ -27,12 +27,23 @@ try {
         $OneDriveDetails += "AppX: $($OneDriveAppX.Name)"
     }
     
-    # 1.2 Détection OneDrive.exe
+    # 1.2 Détection OneDrive.exe (seul vrai indicateur)
     $OneDriveExe = Test-Path "$env:LOCALAPPDATA\Microsoft\OneDrive\OneDrive.exe"
     if ($OneDriveExe) {
         Write-Log "OneDrive.exe detecte: $env:LOCALAPPDATA\Microsoft\OneDrive\OneDrive.exe" "WARN"
         $OneDriveFound = $true
         $OneDriveDetails += "Exe: OneDrive.exe"
+    }
+    
+    # 1.3 Détection dossier OneDrive (seulement si OneDrive.exe présent)
+    $OneDriveFolder = Test-Path "$env:LOCALAPPDATA\Microsoft\OneDrive"
+    if ($OneDriveFolder -and -not $OneDriveExe) {
+        Write-Log "Dossier OneDrive present mais OneDrive.exe absent (residu)" "INFO"
+        # Ne pas marquer comme installé, juste un dossier résiduel
+    }
+    elseif ($OneDriveFolder -and $OneDriveExe) {
+        Write-Log "Dossier OneDrive detecte: $env:LOCALAPPDATA\Microsoft\OneDrive" "WARN"
+        $OneDriveDetails += "Dossier: $env:LOCALAPPDATA\Microsoft\OneDrive"
     }
     
     # 1.3 Détection registre (Programmes et fonctionnalités)
@@ -61,29 +72,25 @@ try {
         }
     }
     
-    # 1.4 Détection dossier d'installation
-    $InstallPaths = @(
-        "$env:PROGRAMFILES\Microsoft\OneDrive",
-        "$env:PROGRAMFILES(X86)\Microsoft\OneDrive",
-        "$env:LOCALAPPDATA\Microsoft\OneDrive"
-    )
-    
-    foreach ($Path in $InstallPaths) {
-        if (Test-Path $Path) {
-            Write-Log "Dossier OneDrive detecte: $Path" "WARN"
-            $OneDriveFound = $true
-            $OneDriveDetails += "Dossier: $Path"
+    # 1.4 Détection dossier d'installation (seulement si OneDrive.exe présent)
+    if ($OneDriveExe) {
+        $InstallPaths = @(
+            "$env:PROGRAMFILES\Microsoft\OneDrive",
+            "$env:PROGRAMFILES(X86)\Microsoft\OneDrive"
+        )
+        
+        foreach ($Path in $InstallPaths) {
+            if (Test-Path $Path) {
+                Write-Log "Dossier OneDrive detecte: $Path" "WARN"
+                $OneDriveDetails += "Dossier: $Path"
+            }
         }
     }
     
     # 1.5 Résultat
     if (-not $OneDriveFound) {
         Write-Log "OneDrive non installe sur ce poste" "OK"
-        Show-CGlobalPopup `
-            -Message "OneDrive n'est pas installe sur ce poste.`n`nAucune action necessaire." `
-            -Title "OneDrive - Information" `
-            -Buttons "OK" `
-            -Icon "Information"
+        Write-Log "Aucune action necessaire" "INFO"
         exit 0
     }
     
