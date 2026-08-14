@@ -98,8 +98,8 @@ if errorlevel 1 (
 
 call :RunPS "15_ApplicationsWinget.ps1"
 call :RunPS "16_TeamViewerQS.ps1"
-call :RunPS "17_VerificationMotDePasseCompteLocal.ps1"
 
+call :RunPS "90_VerificationMotDePasseCompteLocal.ps1"
 call :RunPS "99_FinDeploiement.ps1"
 
 echo.
