@@ -96,4 +96,4 @@ function Show-CGlobalPopup {
     return $result
 }
 
-Export-ModuleMember -Function Get-CGlobalLogFile, Initialize-CGlobalLog, Write-Log
+Export-ModuleMember -Function Get-CGlobalLogFile, Initialize-CGlobalLog, Write-Log, Show-CGlobalPopup
