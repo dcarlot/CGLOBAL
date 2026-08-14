@@ -69,7 +69,7 @@ echo.
 :: Lancement des scripts
 :: =====================================================
 ::
-:: Scripts actifs / validés : 00, 01, 02, 03, 04, 05, 06, 07, 10, 12, 13, 14
+:: Scripts actifs / validés : 00, 01, 02, 03, 04, 05, 06, 07, 10, 12, 13, 14, 15, 16, 17, 99
 :: Scripts actuellement mis de cote / a re-creer : 08, 11
 ::
 
@@ -146,9 +146,7 @@ exit /b 0
 
 :CheckInternet
 
-
 :InternetLoop
-
 
 echo.
 echo ============================================
@@ -156,25 +154,20 @@ echo Verification de l acces Internet...
 echo ============================================
 echo.
 
-
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
 "if ((Test-NetConnection download.microsoft.com -InformationLevel Quiet) -and (Test-NetConnection get.teamviewer.com -InformationLevel Quiet)) { exit 0 } else { exit 1 }"
-
 
 if %errorlevel% equ 0 (
     echo [OK] Acces Internet detecte.
     exit /b 0
 )
 
-
 :: =====================================================
 :: POPUP avec la fonction du module
 :: =====================================================
 
-
 powershell -ExecutionPolicy Bypass -NoProfile -Command ^
 "Import-Module 'C:\_CGLOBAL\PS1\CGLOBAL.Common.psm1' -Force -Global; $r = Show-CGlobalPopup -Message \"Aucun acces Internet detecte.`n`nWinget et TeamViewer necessitent une connexion Internet.`n`nVoulez-vous reessayer ?\" -Title \"Internet requis\" -Buttons \"YesNo\" -Icon \"Question\"; if ($r -eq 'Yes') { exit 0 } else { exit 1 }"
-
 
 if %errorlevel% equ 0 (
     goto :InternetLoop
