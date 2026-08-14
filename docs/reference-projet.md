@@ -11,6 +11,9 @@
 - [Tableau récapitulatif des scripts](#tableau-récapitulatif-des-scripts)
 - [6. État détaillé des scripts](#6-état-détaillé-des-scripts)
 - [7. Particularités Windows 11 25H2 observées](#7-particularités-windows-11-25h2-observées)
+- [8. Décisions validées](#8-décisions-validées)
+- [9. Points restant à traiter ou à valider](#9-points-restant-à-traiter-ou-à-valider)
+- [10. Démarrage d'un nouveau chat](#10-démarrage-dun-nouveau-chat)
 
 ## 1. Contexte général
 
@@ -44,7 +47,8 @@ Un module PowerShell partagé centralise les fonctionnalités communes :
 
 - **`Get-CGlobalLogFile`** : génère automatiquement le chemin du fichier log en fonction du nom du script courant ;
 - **`Initialize-CGlobalLog`** : initialise la journalisation (crée dossiers et fichier log si nécessaire) ;
-- **`Write-Log`** : enregistre les messages de log avec timestamp, niveau et couleur console.
+- **`Write-Log`** : enregistre les messages de log avec timestamp, niveau et couleur console ;
+- **`Show-CGlobalPopup`** : affiche une popup graphique pour les interactions utilisateur.
 
 #### En-tête standardisé des scripts actifs
 
@@ -78,12 +82,33 @@ La fonction `Write-Log` du module supporte les niveaux suivants :
 
 Les erreurs non critiques doivent être journalisées en `WARN` sans interrompre le script. Les erreurs critiques peuvent retourner un code d'erreur, mais le batch principal poursuit l'exécution des scripts suivants.
 
+#### Interactions utilisateur : popups graphiques
+
+Depuis août 2026, les interactions avec l'utilisateur utilisent des popups graphiques via la fonction `Show-CGlobalPopup` du module `CGLOBAL.Common.psm1`, remplaçant les saisies console (`Read-Host`) et les messages `Write-Host`.
+
+**Fonction `Show-CGlobalPopup` :**
+- Paramètres : `-Message`, `-Title`, `-Buttons`, `-Icon`
+- Boutons disponibles : `OK`, `OKCancel`, `YesNo`, `YesNoCancel`
+- Icônes disponibles : `None`, `Question`, `Exclamation`, `Stop`, `Information`
+- Retour : `[System.Windows.Forms.DialogResult]` (ex: `Yes`, `No`, `OK`, `Cancel`)
+
+**Scripts utilisant des popups :**
+- Script 14 : Confirmation de désinstallation Office
+- Script 16 : Contrôle Internet (via le batch)
+- Script 17 : Confirmation + saisie du mot de passe (formulaire personnalisé)
+- Script 99 : Confirmation de restauration des paramètres
+
+**Avantages :**
+- Interface plus professionnelle et lisible
+- Cohérence entre tous les scripts
+- Meilleure expérience utilisateur (boutons clairs, pas de saisie texte)
+- Popups toujours au premier plan (`TopMost`)
+
 ### Encodage
 
 Des problèmes d'affichage des caractères accentués ont été constatés dans la console et certains fichiers de log sous Windows PowerShell 5.1.
 
 Décision actuelle :
-
 - conserver les scripts fonctionnels en l'état ;
 - utiliser si nécessaire des messages sans accents dans les scripts sensibles ;
 - conserver `chcp 65001` dans le batch principal ;
@@ -92,7 +117,6 @@ Décision actuelle :
 ### Redémarrage d'Explorer
 
 Décision retenue :
-
 - ne pas redémarrer Explorer après chaque script de personnalisation ;
 - prévoir éventuellement un seul redémarrage d'Explorer en fin de séquence une fois tous les scripts d'interface validés.
 
@@ -202,21 +226,18 @@ Le déploiement continue.
 ### Contrôle Internet
 
 Un contrôle Internet doit être effectué avant les scripts nécessitant un accès en ligne, notamment :
-
 - WinGet ;
 - TeamViewer QuickSupport.
 
-Comportement souhaité :
+**Statut :** ✅ VALIDÉ
 
-1. Tester l'accès Internet.
-2. Si aucun accès n'est détecté, afficher un avertissement.
-3. Demander à l'utilisateur de connecter le poste.
-4. Proposer :
-   - Oui : refaire le test ;
-   - Non : interrompre le batch.
-5. Tant que l'utilisateur choisit Oui et que l'accès reste indisponible, refaire le test et reposer la question.
+**Implémentation :** Le batch utilise une popup graphique via `Show-CGlobalPopup` (module `CGLOBAL.Common.psm1`) pour demander à l'utilisateur de réessayer ou d'interrompre le déploiement.
 
-Statut : contrôle à stabiliser dans le batch.
+**Comportement :**
+1. Test automatique au lancement (download.microsoft.com + get.teamviewer.com)
+2. Si échec : popup "Aucun acces Internet detecte. Winget et TeamViewer necessitent une connexion Internet. Voulez-vous reessayer ?"
+3. Boutons : Oui (réessayer) / Non (interrompre)
+4. Boucle jusqu'à succès ou interruption utilisateur
 
 ---
 
@@ -244,7 +265,7 @@ Statut : contrôle à stabiliser dans le batch.
 13_NumLockDemarrage.ps1
 14_DesinstallationOffice.ps1
 
-[contrôle Internet]
+[contrôle Internet] ← Popup graphique via Show-CGlobalPopup
 
 15_ApplicationsWinget.ps1
 16_TeamViewerQS.ps1
@@ -274,11 +295,11 @@ Le script 17 reste volontairement le dernier script fonctionnel avant le script 
 | 11 | `11_ConfidentialiteLocalisation.ps1` | Paramètres de confidentialité / localisation | VALIDÉ AVEC GESTION DE CLÉ ABSENTE | Gère le cas clé absente |
 | 12 | `12_ConfigurerProfilParDefaut.ps1` | Configuration des futurs profils utilisateurs | VALIDÉ AVEC LIMITATION | Menu contextuel classique non hérité |
 | 13 | `13_NumLockDemarrage.ps1` | Forcer NumLock au démarrage | FIGÉ / COMPORTEMENT ACCEPTÉ | Comportement variable selon le poste |
-| 14 | `14_DesinstallationOffice.ps1` | Détection et désinstallation d'Office | VALIDÉ SUR LES CAS TESTÉS | Gestion MSI / C2R désinstallation |
-| 15 | `15_ApplicationsWinget.ps1` | Installation et mise à jour des applications via WinGet | VALIDÉ, AVEC FIREFOX FR ET NETTOYAGE MIROIR À CONSERVER | Gestion du cache local et synchronisation |
-| 16 | `16_TeamViewerQS.ps1` | Téléchargement et mise à jour de TeamViewer QS | À VALIDER | Conformité de l'API TeamViewer à confirmer |
-| 17 | `17_VerificationMotDePasseCompteLocal.ps1` | Vérifier un mot de passe local | À VALIDER | À confirmer selon les profils Microsoft / Entra |
-| 99 | `99_FinDeploiement.ps1` | Restauration du mode déploiement | À VALIDER | Détermine la fin du cycle de préparation |
+| 14 | `14_DesinstallationOffice.ps1` | Détection et désinstallation d'Office | VALIDÉ | Popup confirmation + gestion MSI/C2R |
+| 15 | `15_ApplicationsWinget.ps1` | Installation et mise à jour des applications via WinGet | VALIDÉ | Gestion du cache local et synchronisation |
+| 16 | `16_TeamViewerQS.ps1` | Téléchargement et mise à jour de TeamViewer QS | VALIDÉ | API TeamViewer + téléchargement direct |
+| 17 | `17_VerificationMotDePasseCompteLocal.ps1` | Vérifier un mot de passe local | VALIDÉ | Popup confirmation + formulaire saisie |
+| 99 | `99_FinDeploiement.ps1` | Restauration du mode déploiement | VALIDÉ | Popup confirmation + restauration paramètres |
 
 > Le tableau ci-dessus synthétise l'état actuel des scripts du dépôt.
 
@@ -423,9 +444,14 @@ Le script 17 reste volontairement le dernier script fonctionnel avant le script 
 
 **Nom :** `14_DesinstallationOffice.ps1`
 
-**Fonction :** Détecte et propose la désinstallation de toutes les versions Office présentes.
+**Fonction :** Détecte et propose la désinstallation de toutes les versions Office présentes (C2R, MSI, OEM).
 
-**État :** VALIDÉ SUR LES CAS TESTÉS
+**Interaction utilisateur :**
+- Popup de confirmation : "Voulez-vous desinstaller TOUTES ces versions d'Office ?"
+- Boutons : Oui / Non
+- Si Non : journalisation WARN et sortie sans action
+
+**État :** ✅ VALIDÉ
 
 ---
 
@@ -435,7 +461,7 @@ Le script 17 reste volontairement le dernier script fonctionnel avant le script 
 
 **Fonction :** Installation et mise à jour des applications via WinGet depuis cache local : 7-Zip, Adobe Acrobat Reader 64 bits, Google Chrome, Mozilla Firefox français.
 
-**État :** VALIDÉ, AVEC FIREFOX FR ET NETTOYAGE MIROIR À CONSERVER
+**État :** ✅ VALIDÉ
 
 ---
 
@@ -445,7 +471,13 @@ Le script 17 reste volontairement le dernier script fonctionnel avant le script 
 
 **Fonction :** Téléchargement et mise à jour de TeamViewer QS via l'API TeamViewer.
 
-**État :** À VALIDER
+**Procédure :**
+1. Appel API TeamViewer pour obtenir l'URL de téléchargement
+2. Téléchargement direct vers `C:\_CGLOBAL\TeamViewerQS.exe`
+3. Vérification de la signature numérique
+4. Création du raccourci "Assistance CGLOBAL" sur le Bureau public
+
+**État :** ✅ VALIDÉ
 
 ---
 
@@ -453,9 +485,16 @@ Le script 17 reste volontairement le dernier script fonctionnel avant le script 
 
 **Nom :** `17_VerificationMotDePasseCompteLocal.ps1`
 
-**Fonction :** Vérifier si le compte local courant possède un mot de passe.
+**Fonction :** Vérifie si le compte local courant possède un mot de passe et propose d'en définir un.
 
-**État :** À VALIDER
+**Interaction utilisateur :**
+- Popup de confirmation : "Le compte local n'a pas de mot de passe. Souhaitez-vous definir un mot de passe ?"
+- Si Oui : formulaire de saisie avec 2 champs masqués (mot de passe + confirmation)
+- Boutons : Valider / Annuler
+- Validation : les 2 mots de passe doivent correspondre
+- Application : `Set-LocalUser -Password`
+
+**État :** ✅ VALIDÉ
 
 ---
 
@@ -464,6 +503,26 @@ Le script 17 reste volontairement le dernier script fonctionnel avant le script 
 **Nom :** `99_FinDeploiement.ps1`
 
 **Fonction :** Permet à l'opérateur de restaurer ou non les paramètres modifiés par le script 00.
+
+**Interaction utilisateur :**
+- Popup d'information : liste des paramètres actifs (veille, écran, Windows Update)
+- Popup de confirmation : "Restaurer les parametres standards CGLOBAL ?"
+- Boutons : Oui / Non
+- Si Oui : restauration via `powercfg.exe` et suppression clé Windows Update
+- Popup de confirmation finale : "Parametres standards CGLOBAL appliques avec succes."
+
+**État :** ✅ VALIDÉ
+
+---
+
+### Script 00 : Mode déploiement
+
+**Nom :** `00_ModeDeploiement.ps1`
+
+**Fonction :** Préparer le poste avant le lancement du déploiement afin d'éviter :
+- la mise en veille ;
+- l'extinction automatique de l'écran ;
+- les redémarrages automatiques provoqués par Windows Update.
 
 **État :** À VALIDER
 
@@ -478,7 +537,7 @@ Le script 17 reste volontairement le dernier script fonctionnel avant le script 
 
 ---
 
-# 8. Décisions validées
+## 8. Décisions validées
 
 - Les scripts PowerShell sont stockés dans `_CGLOBAL\PS1`.
 - Les logs sont stockés dans `C:\_CGLOBAL\Logs`.
@@ -488,24 +547,29 @@ Le script 17 reste volontairement le dernier script fonctionnel avant le script 
 - Chaque script actif utilise `Get-CGlobalLogFile` pour obtenir son chemin de log automatiquement.
 - Aucune redondance de déclaration de `$LogFile` n'existe entre les scripts.
 - Tous les scripts actifs utilisent le même en-tête standardisé avec appel au module commun.
+- Les interactions utilisateur utilisent des popups graphiques via `Show-CGlobalPopup`.
+- Le batch utilise une popup pour le contrôle Internet.
+- Le script 17 utilise un formulaire Windows personnalisé pour la saisie du mot de passe.
+- Toutes les popups sont configurées avec `TopMost` pour rester au premier plan.
 
 ---
 
-# 9. Points restant à traiter ou à valider
+## 9. Points restant à traiter ou à valider
 
-## Prioritaires
+### Prioritaires
 
-- Stabiliser définitivement le contrôle Internet du batch.
+- ✅ Contrôle Internet du batch : VALIDÉ (popup graphique)
 - Valider les scripts 00, 16, 17, 99 sur les cas de déploiement réel.
 - Vérifier la cycle complet du script 15 avec Firefox FR lors d'une future mise à jour.
 
-## Reportés
+### Reportés
 
 - Script 08 : masquage du bouton Widgets avec protection UCPD.
 - Script 09 : désactivation complète des Widgets.
 - Désépinglage du Microsoft Store de la barre des tâches.
 - Exécution automatique du script 02 au premier logon de chaque nouvel utilisateur.
 - Éventuel redémarrage unique d'Explorer après les scripts d'interface.
+- Remplacer les `Read-Host` restants par des popups (si nécessaire).
 
 ---
 
