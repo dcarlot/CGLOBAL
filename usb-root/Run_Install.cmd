@@ -146,7 +146,9 @@ exit /b 0
 
 :CheckInternet
 
+
 :InternetLoop
+
 
 echo.
 echo ============================================
@@ -154,25 +156,25 @@ echo Verification de l acces Internet...
 echo ============================================
 echo.
 
+
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
 "if ((Test-NetConnection download.microsoft.com -InformationLevel Quiet) -and (Test-NetConnection get.teamviewer.com -InformationLevel Quiet)) { exit 0 } else { exit 1 }"
+
 
 if %errorlevel% equ 0 (
     echo [OK] Acces Internet detecte.
     exit /b 0
 )
 
+
 :: =====================================================
-:: POPUP au lieu de choice
+:: POPUP avec la fonction du module
 :: =====================================================
 
-powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-"$result = [System.Windows.Forms.MessageBox]::Show(" ^
-"'Aucun acces Internet detecte.`n`nWinget et TeamViewer necessitent une connexion Internet.`n`nVoulez-vous reessayer ?', " ^
-"'Post-Installation PC - Internet requis', " ^
-"'YesNo', " ^
-"'Question')" ^
-"if ($result -eq 'Yes') { exit 0 } else { exit 1 }"
+
+powershell -NoProfile -ExecutionPolicy Bypass ^
+-Command "Import-Module 'C:\_CGLOBAL\PS1\CGLOBAL.Common.psm1' -Force; $r = Show-CGlobalPopup -Message 'Aucun acces Internet detecte.`n`nWinget et TeamViewer necessitent une connexion Internet.`n`nVoulez-vous reessayer ?' -Title 'Internet requis' -Buttons 'YesNo' -Icon 'Question'; if ($r -eq 'Yes') { exit 0 } else { exit 1 }"
+
 
 if %errorlevel% equ 0 (
     goto :InternetLoop

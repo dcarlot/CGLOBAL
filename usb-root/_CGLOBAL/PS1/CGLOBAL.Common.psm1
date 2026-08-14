@@ -67,4 +67,33 @@ function Write-Log {
     Write-Host $Line -ForegroundColor $Color[$Level]
 }
 
+function Show-CGlobalPopup {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Message,
+
+
+        [string]$Title = "Post-Installation PC",
+
+
+        [ValidateSet('OK', 'OKCancel', 'YesNo', 'YesNoCancel', 'AbortRetryIgnore', 'RetryCancel')]
+        [string]$Buttons = 'OK',
+
+
+        [ValidateSet('None', 'Question', 'Exclamation', 'Stop', 'Information')]
+        [string]$Icon = 'Information'
+    )
+
+
+    $result = [System.Windows.Forms.MessageBox]::Show(
+        $Message,
+        $Title,
+        [System.Windows.Forms.MessageBoxButtons]::$Buttons,
+        [System.Windows.Forms.MessageBoxIcon]::$Icon
+    )
+
+
+    return $result
+}
+
 Export-ModuleMember -Function Get-CGlobalLogFile, Initialize-CGlobalLog, Write-Log
