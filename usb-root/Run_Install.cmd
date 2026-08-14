@@ -38,7 +38,7 @@ echo.
 
 if not exist "C:\_CGLOBAL" mkdir "C:\_CGLOBAL"
 
-robocopy "%USBPath%\_CGLOBAL" "C:\_CGLOBAL" /E /XO /R:1 /W:1 /NFL /NDL /NJH /NJS
+robocopy "%USBPath%\_CGLOBAL" "C:\_CGLOBAL" /E /MIR /NFL /NDL /NJH /NJS
 
 if %errorlevel% geq 8 (
     echo.
@@ -98,6 +98,7 @@ if errorlevel 1 (
 
 call :RunPS "15_ApplicationsWinget.ps1"
 call :RunPS "16_TeamViewerQS.ps1"
+call :RunPS "17_DesinstallationOneDrive.ps1"
 
 call :RunPS "90_VerificationMotDePasseCompteLocal.ps1"
 call :RunPS "99_FinDeploiement.ps1"
