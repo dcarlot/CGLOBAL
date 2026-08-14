@@ -93,7 +93,7 @@ function Get-TeamViewerDownloadUrl {
 # Création du raccourci public
 # ------------------------------------------------------------------
 
-function Create-TeamViewerShortcut {
+function New-TeamViewerShortcut {
 
     $DesktopPath = "C:\Users\Public\Desktop"
 
@@ -164,7 +164,7 @@ try {
     Test-TeamViewerSignature -FilePath $LocalFile
 
     # Étape 5 : Créer le raccourci
-    Create-TeamViewerShortcut
+    New-TeamViewerShortcut
 
     Write-Log "TeamViewerQS mis a jour avec succes" "OK"
 
