@@ -10,9 +10,9 @@ Initialize-CGlobalLog -LogFile $LogFile
 try {
     Write-Log "=== DESINSTALLATION ONEDRIVE ===" "INFO"
 
-    # ============================================
+    # --------------------------------------------
     # 1. DÉTECTION DE ONEDRIVE
-    # ============================================
+    # --------------------------------------------
     
     Write-Log "Recherche de OneDrive..." "INFO"
     
@@ -27,12 +27,23 @@ try {
         $OneDriveDetails += "AppX: $($OneDriveAppX.Name)"
     }
     
-    # 1.2 Détection OneDrive.exe
+    # 1.2 Détection OneDrive.exe (seul vrai indicateur)
     $OneDriveExe = Test-Path "$env:LOCALAPPDATA\Microsoft\OneDrive\OneDrive.exe"
     if ($OneDriveExe) {
         Write-Log "OneDrive.exe detecte: $env:LOCALAPPDATA\Microsoft\OneDrive\OneDrive.exe" "WARN"
         $OneDriveFound = $true
         $OneDriveDetails += "Exe: OneDrive.exe"
+    }
+    
+    # 1.3 Détection dossier OneDrive (seulement si OneDrive.exe présent)
+    $OneDriveFolder = Test-Path "$env:LOCALAPPDATA\Microsoft\OneDrive"
+    if ($OneDriveFolder -and -not $OneDriveExe) {
+        Write-Log "Dossier OneDrive present mais OneDrive.exe absent (residu)" "INFO"
+        # Ne pas marquer comme installé, juste un dossier résiduel
+    }
+    elseif ($OneDriveFolder -and $OneDriveExe) {
+        Write-Log "Dossier OneDrive detecte: $env:LOCALAPPDATA\Microsoft\OneDrive" "WARN"
+        $OneDriveDetails += "Dossier: $env:LOCALAPPDATA\Microsoft\OneDrive"
     }
     
     # 1.3 Détection registre (Programmes et fonctionnalités)
@@ -61,37 +72,33 @@ try {
         }
     }
     
-    # 1.4 Détection dossier d'installation
-    $InstallPaths = @(
-        "$env:PROGRAMFILES\Microsoft\OneDrive",
-        "$env:PROGRAMFILES(X86)\Microsoft\OneDrive",
-        "$env:LOCALAPPDATA\Microsoft\OneDrive"
-    )
-    
-    foreach ($Path in $InstallPaths) {
-        if (Test-Path $Path) {
-            Write-Log "Dossier OneDrive detecte: $Path" "WARN"
-            $OneDriveFound = $true
-            $OneDriveDetails += "Dossier: $Path"
+    # 1.4 Détection dossier d'installation (seulement si OneDrive.exe présent)
+    if ($OneDriveExe) {
+        $InstallPaths = @(
+            "$env:PROGRAMFILES\Microsoft\OneDrive",
+            "$env:PROGRAMFILES(X86)\Microsoft\OneDrive"
+        )
+        
+        foreach ($Path in $InstallPaths) {
+            if (Test-Path $Path) {
+                Write-Log "Dossier OneDrive detecte: $Path" "WARN"
+                $OneDriveDetails += "Dossier: $Path"
+            }
         }
     }
     
     # 1.5 Résultat
     if (-not $OneDriveFound) {
         Write-Log "OneDrive non installe sur ce poste" "OK"
-        Show-CGlobalPopup `
-            -Message "OneDrive n'est pas installe sur ce poste.`n`nAucune action necessaire." `
-            -Title "OneDrive - Information" `
-            -Buttons "OK" `
-            -Icon "Information"
+        Write-Log "Aucune action necessaire" "INFO"
         exit 0
     }
     
     Write-Log "OneDrive detecte via: $($OneDriveDetails -join ', ')" "WARN"
 
-    # ============================================
+    # --------------------------------------------
     # 2. DEMANDE DE CONFIRMATION
-    # ============================================
+    # --------------------------------------------
     
     Write-Log "Demande de confirmation a l'utilisateur" "INFO"
     
@@ -108,9 +115,9 @@ try {
     
     Write-Log "Desinstallation OneDrive validee par l'utilisateur" "OK"
 
-    # ============================================
+    # --------------------------------------------
     # 3. ARRÊT DU PROCESSUS ONEDRIVE
-    # ============================================
+    # --------------------------------------------
     
     Write-Log "Arret des processus OneDrive..." "INFO"
     
@@ -119,9 +126,9 @@ try {
     
     Write-Log "Processus OneDrive arretes" "OK"
 
-    # ============================================
+    # --------------------------------------------
     # 4. DÉSINSTALLATION APPX (si présent)
-    # ============================================
+    # --------------------------------------------
     
     if ($null -ne $OneDriveAppX) {
         Write-Log "Desinstallation du package AppX..." "INFO"
@@ -135,9 +142,9 @@ try {
         }
     }
 
-    # ============================================
+    # --------------------------------------------
     # 5. DÉSINSTALLATION EXE (si présent)
-    # ============================================
+    # --------------------------------------------
     
     if ($OneDriveExe) {
         Write-Log "Desinstallation de OneDrive.exe..." "INFO"
@@ -159,9 +166,9 @@ try {
         }
     }
 
-    # ============================================
+    # --------------------------------------------
     # 5.5 DÉSINSTALLATION VIA REGISTRE (si présent)
-    # ============================================
+    # --------------------------------------------
     
     Write-Log "Recherche de la commande de desinstallation dans le registre..." "INFO"
     
@@ -226,9 +233,9 @@ try {
         }
     }
 
-    # ============================================
+    # --------------------------------------------
     # 6. BLOCAGE POUR LES FUTURS PROFILS
-    # ============================================
+    # --------------------------------------------
     
     Write-Log "Configuration du blocage pour les futurs profils..." "INFO"
     
@@ -281,9 +288,9 @@ try {
         Write-Log "Profil par defaut introuvable (C:\Users\Default\NTUSER.DAT)" "WARN"
     }
 
-    # ============================================
+    # --------------------------------------------
     # 7. SUPPRESSION RACCOURCIS
-    # ============================================
+    # --------------------------------------------
     
     Write-Log "Suppression des raccourcis OneDrive..." "INFO"
     
@@ -299,9 +306,9 @@ try {
         }
     }
 
-    # ============================================
+    # --------------------------------------------
     # 8. MESSAGE DE SUCCÈS
-    # ============================================
+    # --------------------------------------------
     
     Write-Log "=== DESINSTALLATION ONEDRIVE TERMINEE ===" "OK"
     
