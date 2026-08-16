@@ -95,7 +95,8 @@ Depuis août 2026, les interactions avec l'utilisateur utilisent des popups grap
 **Scripts utilisant des popups :**
 - Script 14 : Confirmation de désinstallation Office
 - Script 16 : Contrôle Internet (via le batch)
-- Script 17 : Confirmation + saisie du mot de passe (formulaire personnalisé)
+- Script 17 : Confirmation de désinstallation OneDrive
+- Script 90 : Confirmation + saisie du mot de passe (formulaire personnalisé)
 - Script 99 : Confirmation de restauration des paramètres
 
 **Avantages :**
@@ -118,6 +119,7 @@ Décision actuelle :
 
 Décision retenue :
 - ne pas redémarrer Explorer après chaque script de personnalisation ;
+- le script 08 redémarre Explorer après désinstallation du package Widgets (nécessaire pour refléter la suppression) ;
 - prévoir éventuellement un seul redémarrage d'Explorer en fin de séquence une fois tous les scripts d'interface validés.
 
 ---
@@ -255,11 +257,12 @@ Un contrôle Internet doit être effectué avant les scripts nécessitant un acc
 05_BarreTachesGauche.ps1
 06_RechercheBarreTaches.ps1
 07_MasquerVueTaches.ps1
-08_DesactiverWidgets.ps1             à développer/valider
+08_MasquerWidgets.ps1
+09_MSStoreBarreTache.ps1
 
 10_DesactiverReprendre.ps1
 
-11_ConfidentialiteLocalisation.ps1   désactivé
+11_ConfidentialiteLocalisation.ps1 (désactivé)
 
 12_ConfigurerProfilParDefaut.ps1
 13_NumLockDemarrage.ps1
@@ -269,12 +272,14 @@ Un contrôle Internet doit être effectué avant les scripts nécessitant un acc
 
 15_ApplicationsWinget.ps1
 16_TeamViewerQS.ps1
-17_VerificationMotDePasseCompteLocal.ps1
+17_DesinstallationOneDrive.ps1
+
+90_VerificationMotDePasseCompteLocal.ps1
 
 99_FinDeploiement.ps1
 ```
 
-Le script 17 reste volontairement le dernier script fonctionnel avant le script 99 de fin de déploiement, afin de ne pas imposer la saisie d'un mot de passe entre plusieurs redémarrages et relances du batch pendant la préparation du poste.
+Le script 90 reste volontairement le dernier script fonctionnel avant le script 99 de fin de déploiement, afin de ne pas imposer la saisie d'un mot de passe entre plusieurs redémarrages et relances du batch pendant la préparation du poste.
 
 ---
 
@@ -290,7 +295,8 @@ Le script 17 reste volontairement le dernier script fonctionnel avant le script 
 | 05 | `05_BarreTachesGauche.ps1` | Alignement de la barre des tâches à gauche | VALIDÉ | Option de suppression de Store non implémentée |
 | 06 | `06_RechercheBarreTaches.ps1` | Affichage uniquement de l'icône recherche | VALIDÉ | Concerne l'interface de recherche |
 | 07 | `07_MasquerVueTaches.ps1` | Masquage du bouton Vue des tâches | VALIDÉ | Valeur enregistrée dans le registre |
-| 08 | `08_MasquerWidgets.ps1` | Masquage du bouton Widgets | À REPRENDRE | Blocage probable par UCPD |
+| 08 | `08_MasquerWidgets.ps1` | Désinstallation complète du package Widgets | À VALIDER | Suppression AppxPackage + provisioning + restart Explorer |
+| 09 | `09_MSStoreBarreTache.ps1` | Désépinglage de Microsoft Store de la barre des tâches | EN TEST | Depinning Shell + blocage registre |
 | 10 | `10_DesactiverReprendre.ps1` | Désactivation de l'option Reprendre | VALIDÉ | Vérifié sur Windows 11 25H2 |
 | 11 | `11_ConfidentialiteLocalisation.ps1` | Paramètres de confidentialité / localisation | VALIDÉ AVEC GESTION DE CLÉ ABSENTE | Gère le cas clé absente |
 | 12 | `12_ConfigurerProfilParDefaut.ps1` | Configuration des futurs profils utilisateurs | VALIDÉ AVEC LIMITATION | Menu contextuel classique non hérité |
@@ -298,7 +304,8 @@ Le script 17 reste volontairement le dernier script fonctionnel avant le script 
 | 14 | `14_DesinstallationOffice.ps1` | Détection et désinstallation d'Office | VALIDÉ | Popup confirmation + gestion MSI/C2R |
 | 15 | `15_ApplicationsWinget.ps1` | Installation et mise à jour des applications via WinGet | VALIDÉ | Gestion du cache local et synchronisation |
 | 16 | `16_TeamViewerQS.ps1` | Téléchargement et mise à jour de TeamViewer QS | VALIDÉ | API TeamViewer + téléchargement direct |
-| 17 | `17_VerificationMotDePasseCompteLocal.ps1` | Vérifier un mot de passe local | VALIDÉ | Popup confirmation + formulaire saisie |
+| 17 | `17_DesinstallationOneDrive.ps1` | Détection et désinstallation de OneDrive | À VALIDER | Popup confirmation + blocage futurs profils |
+| 90 | `90_VerificationMotDePasseCompteLocal.ps1` | Vérifier un mot de passe local | VALIDÉ | Popup confirmation + formulaire saisie |
 | 99 | `99_FinDeploiement.ps1` | Restauration du mode déploiement | VALIDÉ | Popup confirmation + restauration paramètres |
 
 > Le tableau ci-dessus synthétise l'état actuel des scripts du dépôt.
@@ -394,9 +401,30 @@ Le script 17 reste volontairement le dernier script fonctionnel avant le script 
 
 **Nom :** `08_MasquerWidgets.ps1`
 
-**Besoin :** Masquer uniquement le bouton Widgets de la barre des tâches.
+**Fonction :** Désinstalle complètement le package Windows Web Experience Pack (Widgets) pour tous les utilisateurs existants et supprime le provisioning pour les futurs utilisateurs.
 
-**État :** À REPRENDRE (blocage probable par UCPD)
+**Procédure :**
+1. Arrêt des processus Widgets
+2. Détection du package `*WebExperience*` (utilisateurs + provisionné)
+3. Désinstallation via `Remove-AppxPackage -AllUsers`
+4. Suppression du provisioning via `Remove-AppxProvisionedPackage -Online`
+5. Redémarrage de l'Explorateur
+
+**État :** À VALIDER
+
+---
+
+### Script 09 : Microsoft Store — Barre des tâches
+
+**Nom :** `09_MSStoreBarreTache.ps1`
+
+**Fonction :** Désépingler Microsoft Store de la barre des tâches et bloquer l'épinglage futur.
+
+**Procédure :**
+1. Désépinglage pour l'utilisateur actuel via `Shell.Application` COM object
+2. Blocage via registre : `HKCU:\Software\Policies\Microsoft\Windows\Explorer\NoPinningStoreToTaskbar = 1`
+
+**État :** EN TEST
 
 ---
 
@@ -481,9 +509,33 @@ Le script 17 reste volontairement le dernier script fonctionnel avant le script 
 
 ---
 
-### Script 17 : Vérification du mot de passe local
+### Script 17 : Désinstallation OneDrive
 
-**Nom :** `17_VerificationMotDePasseCompteLocal.ps1`
+**Nom :** `17_DesinstallationOneDrive.ps1`
+
+**Fonction :** Détecte et propose la désinstallation complète de OneDrive, avec blocage pour les futurs profils utilisateurs.
+
+**Procédure :**
+1. Détection multi-couches : package AppX (`Get-AppxPackage`), exécutable (`OneDrive.exe`), registre (Programmes et fonctionnalités), dossiers d'installation
+2. Popup de confirmation : "OneDrive est installe sur ce poste. Voulez-vous le desinstaller ?"
+3. Arrêt des processus OneDrive
+4. Désinstallation AppX (si présent) via `Remove-AppxPackage`
+5. Désinstallation EXE via `OneDrive.exe /uninstall`
+6. Désinstallation via registre (`UninstallString`) si une entrée existe
+7. Nettoyage des dossiers résiduels
+8. Blocage pour les futurs profils :
+   - `HKLM\SOFTWARE\Policies\Microsoft\Windows\OneDrive\DisableFileSyncNGSC = 1`
+   - Application au profil par défaut via montage `NTUSER.DAT` (`reg.exe LOAD/ADD/UNLOAD`)
+9. Suppression des raccourcis (Menu Démarrer, Bureau public)
+10. Popup de confirmation finale
+
+**État :** À VALIDER
+
+---
+
+### Script 90 : Vérification du mot de passe local
+
+**Nom :** `90_VerificationMotDePasseCompteLocal.ps1`
 
 **Fonction :** Vérifie si le compte local courant possède un mot de passe et propose d'en définir un.
 
@@ -515,23 +567,10 @@ Le script 17 reste volontairement le dernier script fonctionnel avant le script 
 
 ---
 
-### Script 00 : Mode déploiement
-
-**Nom :** `00_ModeDeploiement.ps1`
-
-**Fonction :** Préparer le poste avant le lancement du déploiement afin d'éviter :
-- la mise en veille ;
-- l'extinction automatique de l'écran ;
-- les redémarrages automatiques provoqués par Windows Update.
-
-**État :** À VALIDER
-
----
-
 ## 7. Particularités Windows 11 25H2 observées
 
-- **UCPD :** Le pilote User Choice Protection Driver peut bloquer l'écriture de certaines valeurs (ex. : `TaskbarDa` pour le bouton Widgets).
-- **Profil par défaut :** La majorité des valeurs du script 12 sont héritées correctement, mais la branche du menu contextuel classique ne l'est pas.
+- **UCPD :** Le pilote User Choice Protection Driver peut bloquer l'écriture de certaines valeurs (ex. : `TaskbarDa` pour le bouton Widgets). Le script 08 contourne ce problème en désinstallant complètement le package plutôt qu'en tentant une modification registre.
+- **Profil par défaut :** La majorité des valeurs du script 12 sont héritées correctement, mais la branche du menu contextuel classique ne l'est pas. Le script 17 applique également le blocage OneDrive au profil par défaut via montage `NTUSER.DAT`.
 - **NumLock :** La valeur HKCU peut être réinitialisée au premier logon sur certains postes.
 - **Différences de mise à jour :** Deux postes Windows 11 25H2 peuvent présenter des clés différentes selon les mises à jour installées.
 
@@ -549,8 +588,11 @@ Le script 17 reste volontairement le dernier script fonctionnel avant le script 
 - Tous les scripts actifs utilisent le même en-tête standardisé avec appel au module commun.
 - Les interactions utilisateur utilisent des popups graphiques via `Show-CGlobalPopup`.
 - Le batch utilise une popup pour le contrôle Internet.
-- Le script 17 utilise un formulaire Windows personnalisé pour la saisie du mot de passe.
+- Le script 90 utilise un formulaire Windows personnalisé pour la saisie du mot de passe.
 - Toutes les popups sont configurées avec `TopMost` pour rester au premier plan.
+- Le script 90 est renommé et positionné en fin de séquence (avant le 99) pour éviter d'imposer la saisie d'un mot de passe entre plusieurs redémarrages.
+- Le script 08 contourne le blocage UCPD en désinstallant le package Widgets plutôt qu'en modifiant le registre.
+- Le script 17 détecte OneDrive via plusieurs méthodes (AppX, EXE, registre, dossiers) et bloque son retour pour les futurs profils.
 
 ---
 
@@ -559,14 +601,13 @@ Le script 17 reste volontairement le dernier script fonctionnel avant le script 
 ### Prioritaires
 
 - ✅ Contrôle Internet du batch : VALIDÉ (popup graphique)
-- Valider les scripts 00, 16, 17, 99 sur les cas de déploiement réel.
+- Valider les scripts 00, 08, 09, 17 sur les cas de déploiement réel.
 - Vérifier la cycle complet du script 15 avec Firefox FR lors d'une future mise à jour.
 
 ### Reportés
 
-- Script 08 : masquage du bouton Widgets avec protection UCPD.
-- Script 09 : désactivation complète des Widgets.
-- Désépinglage du Microsoft Store de la barre des tâches.
+- Script 09 : finaliser le désépinglage de Microsoft Store et valider le blocage registre sur plusieurs postes.
+- Désactivation complète des Widgets (au-delà de la suppression du package).
 - Exécution automatique du script 02 au premier logon de chaque nouvel utilisateur.
 - Éventuel redémarrage unique d'Explorer après les scripts d'interface.
 - Remplacer les `Read-Host` restants par des popups (si nécessaire).
