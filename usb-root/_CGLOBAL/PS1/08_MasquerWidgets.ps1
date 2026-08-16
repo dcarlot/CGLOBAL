@@ -3,92 +3,102 @@
 
 $ErrorActionPreference = 'Stop'
 
-$LogFolder = "C:\_CGLOBAL\Logs"
-$LogFile   = "$LogFolder\Log08_MasquerWidgets.txt"
-
-if (-not (Test-Path $LogFolder)) {
-    New-Item -Path $LogFolder -ItemType Directory -Force | Out-Null
-}
-
-function Write-Log {
-
-    param(
-        [string]$Message,
-
-        [ValidateSet('INFO','OK','WARN','ERROR')]
-        [string]$Level = 'INFO'
-    )
-
-    $Line = "[{0}] [{1,-5}] {2}" -f `
-        (Get-Date -Format "HH:mm:ss"), `
-        $Level, `
-        $Message
-
-    Add-Content -Path $LogFile -Value $Line -Encoding UTF8
-
-    $Color = @{
-        INFO  = 'Cyan'
-        OK    = 'Green'
-        WARN  = 'Yellow'
-        ERROR = 'Red'
-    }
-
-    Write-Host $Line -ForegroundColor $Color[$Level]
-}
+Import-Module "C:\_CGLOBAL\PS1\CGLOBAL.Common.psm1" -Force
+$LogFile = Get-CGlobalLogFile -ScriptPath $MyInvocation.MyCommand.Path
+Initialize-CGlobalLog -LogFile $LogFile
 
 try {
+    Write-Log "=== MASQUAGE DES WIDGETS ===" "INFO"
 
-    Write-Log "Masquage du bouton Widgets"
+    # ------------------------------------------------------------------
+    # 1. ARRÊT DU PROCESSUS WIDGETS
+    # ------------------------------------------------------------------
+    
+    Write-Log "Arret des processus Widgets..." "INFO"
+    
+    Get-Process *Widget* -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+    Start-Sleep -Seconds 2
+    
+    Write-Log "Processus Widgets arretes" "OK"
 
-    $RegKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
-
-    Write-Log "Cle cible : $RegKey"
-
-    #
-    # Creation de la valeur si absente
-    #
-    if ($null -eq (Get-ItemProperty `
-        -Path $RegKey `
-        -Name TaskbarDa `
-        -ErrorAction SilentlyContinue))
-    {
-        New-ItemProperty `
-            -Path $RegKey `
-            -Name "TaskbarDa" `
-            -Value 0 `
-            -PropertyType DWord `
-            -Force | Out-Null
+    # ------------------------------------------------------------------
+    # 2. DÉTECTION DU PACKAGE WIDGETS
+    # ------------------------------------------------------------------
+    
+    Write-Log "Recherche du package Windows Web Experience Pack..." "INFO"
+    
+    $WidgetsPackage = Get-AppxPackage *WebExperience* -ErrorAction SilentlyContinue
+    $WidgetsProvisioned = Get-AppxProvisionedPackage -Online | Where-Object { $_.PackageName -like "*WebExperience*" }
+    
+    if ($null -eq $WidgetsPackage -and $null -eq $WidgetsProvisioned) {
+        Write-Log "Package Widgets non installe ou deja supprime" "OK"
+        exit 0
+    }
+    
+    if ($null -ne $WidgetsPackage) {
+        Write-Log "Package detecte: $($WidgetsPackage.Name)" "WARN"
+    }
+    if ($null -ne $WidgetsProvisioned) {
+        Write-Log "Package provisionne detecte: $($WidgetsProvisioned.PackageName)" "WARN"
     }
 
-    #
-    # Application de la valeur
-    #
-    Set-ItemProperty `
-        -Path $RegKey `
-        -Name "TaskbarDa" `
-        -Value 0
-
-    Write-Log "Parametre applique" "OK"
-
-    #
-    # Verification
-    #
-    $Value = (
-        Get-ItemProperty `
-            -Path $RegKey `
-            -Name TaskbarDa
-    ).TaskbarDa
-
-    if ($Value -ne 0) {
-        throw "Verification echouee"
+    # ------------------------------------------------------------------
+    # 3. DÉSINSTALLATION POUR TOUS LES UTILISATEURS EXISTANTS
+    # ------------------------------------------------------------------
+    
+    if ($null -ne $WidgetsPackage) {
+        Write-Log "Desinstallation pour tous les utilisateurs existants..." "INFO"
+        
+        try {
+            Get-AppxPackage -AllUsers *WebExperience* | Remove-AppxPackage -AllUsers -ErrorAction Stop
+            Write-Log "Package desinstalle pour tous les utilisateurs" "OK"
+        }
+        catch {
+            Write-Log "Echec desinstallation: $($_.Exception.Message)" "ERROR"
+            exit 1
+        }
     }
 
-    Write-Log "Verification OK" "OK"
+    # ------------------------------------------------------------------
+    # 4. SUPPRESSION DU PROVISIONING (FUTURS UTILISATEURS)
+    # ------------------------------------------------------------------
+    
+    if ($null -ne $WidgetsProvisioned) {
+        Write-Log "Suppression du provisioning pour les futurs utilisateurs..." "INFO"
+        
+        try {
+            Remove-AppxProvisionedPackage -Online -PackageName $WidgetsProvisioned.PackageName -ErrorAction Stop
+            Write-Log "Provisioning supprime avec succes" "OK"
+        }
+        catch {
+            Write-Log "Echec suppression provisioning: $($_.Exception.Message)" "WARN"
+        }
+    }
 
-    Write-Log "Configuration terminee" "OK"
+    # ------------------------------------------------------------------
+    # 5. RESTART EXPLORER
+    # ------------------------------------------------------------------
+    
+    Write-Log "Redemarrage de l'Explorateur..." "INFO"
+    
+    try {
+        Stop-Process -Name "explorer" -Force -ErrorAction Stop
+        Write-Log "Explorateur redemarre" "OK"
+    }
+    catch {
+        Write-Log "Echec restart Explorer: $($_.Exception.Message)" "WARN"
+    }
+
+    # ------------------------------------------------------------------
+    # 6. MESSAGE DE SUCCÈS
+    # ------------------------------------------------------------------
+    
+    Write-Log "=== MASQUAGE DES WIDGETS TERMINE ===" "OK"
+    
+    exit 0
 }
 catch {
-
     Write-Log $_.Exception.Message "ERROR"
+    Write-Log $_.ScriptStackTrace "ERROR"
     exit 1
 }
