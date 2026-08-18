@@ -304,8 +304,8 @@ Le script 90 reste volontairement le dernier script fonctionnel avant le script 
 | 14 | `14_DesinstallationOffice.ps1` | Détection et désinstallation d'Office | VALIDÉ | Popup confirmation + gestion MSI/C2R |
 | 15 | `15_ApplicationsWinget.ps1` | Installation et mise à jour des applications via WinGet | VALIDÉ | Gestion du cache local et synchronisation |
 | 16 | `16_TeamViewerQS.ps1` | Téléchargement et mise à jour de TeamViewer QS | VALIDÉ | API TeamViewer + téléchargement direct |
-| 17 | `17_DesinstallationOneDrive.ps1` | Détection et désinstallation de OneDrive | À VALIDER | Popup confirmation + blocage futurs profils |
-| 90 | `90_VerificationMotDePasseCompteLocal.ps1` | Vérifier un mot de passe local | VALIDÉ | Popup confirmation + formulaire saisie |
+| 17 | `17_DesinstallationOneDrive.ps1` | Détection et désinstallation de OneDrive | À VALIDER | UninstallString d'abord, fallback OneDrive.exe /uninstall, nettoyage registre |
+| 90 | `90_VerificationMotDePasseCompteLocal.ps1` | Vérifier un mot de passe local | VALIDÉ (corrigé) | PasswordRequired (fiable pour comptes locaux) |
 | 99 | `99_FinDeploiement.ps1` | Restauration du mode déploiement | VALIDÉ | Popup confirmation + restauration paramètres |
 
 > Le tableau ci-dessus synthétise l'état actuel des scripts du dépôt.
@@ -519,15 +519,21 @@ Le script 90 reste volontairement le dernier script fonctionnel avant le script 
 1. Détection multi-couches : package AppX (`Get-AppxPackage`), exécutable (`OneDrive.exe`), registre (Programmes et fonctionnalités), dossiers d'installation
 2. Popup de confirmation : "OneDrive est installe sur ce poste. Voulez-vous le desinstaller ?"
 3. Arrêt des processus OneDrive
-4. Désinstallation AppX (si présent) via `Remove-AppxPackage`
-5. Désinstallation EXE via `OneDrive.exe /uninstall`
-6. Désinstallation via registre (`UninstallString`) si une entrée existe
-7. Nettoyage des dossiers résiduels
-8. Blocage pour les futurs profils :
+4. Désinstallation via registre (`UninstallString`) en premier — méthode la plus propre
+5. Si échec ou fichier introuvable : fallback sur `OneDrive.exe /uninstall`
+6. Suppression de la clé de registre Uninstall pour nettoyer "Programmes et Fonctionnalités"
+7. Désinstallation AppX (si présent) via `Remove-AppxPackage`
+8. Nettoyage des dossiers résiduels
+9. Blocage pour les futurs profils :
    - `HKLM\SOFTWARE\Policies\Microsoft\Windows\OneDrive\DisableFileSyncNGSC = 1`
    - Application au profil par défaut via montage `NTUSER.DAT` (`reg.exe LOAD/ADD/UNLOAD`)
-9. Suppression des raccourcis (Menu Démarrer, Bureau public)
-10. Popup de confirmation finale
+10. Suppression des raccourcis (Menu Démarrer, Bureau public)
+11. Popup de confirmation finale
+
+**Corrections appliquées (août 2026) :**
+- **Ordre d'exécution inversé :** le `UninstallString` du registre est exécuté AVANT `OneDrive.exe /uninstall`. L'ancien ordre supprimait le dossier contenant `OneDriveSetup.exe` avant de l'exécuter.
+- **Parsing du UninstallString corrigé :** gestion robuste des guillemets (`"chemin.exe" /args`). L'ancien `Trim('"')` laissait un guillemet résiduel dans les arguments.
+- **Suppression de la clé Uninstall :** après désinstallation, la clé de registre est supprimée pour nettoyer l'entrée dans "Programmes et Fonctionnalités".
 
 **État :** À VALIDER
 
@@ -539,6 +545,13 @@ Le script 90 reste volontairement le dernier script fonctionnel avant le script 
 
 **Fonction :** Vérifie si le compte local courant possède un mot de passe et propose d'en définir un.
 
+**Contexte :** Le poste est configuré avec un compte local (poste neuf ou réinstallé). `PasswordRequired` est donc fiable.
+
+**Procédure :**
+1. Détection du compte via `Get-LocalUser`
+2. Si `PasswordRequired = $true` → sortie sans action (mot de passe présent)
+3. Si `PasswordRequired = $false` → popup de confirmation + formulaire de saisie
+
 **Interaction utilisateur :**
 - Popup de confirmation : "Le compte local n'a pas de mot de passe. Souhaitez-vous definir un mot de passe ?"
 - Si Oui : formulaire de saisie avec 2 champs masqués (mot de passe + confirmation)
@@ -546,7 +559,11 @@ Le script 90 reste volontairement le dernier script fonctionnel avant le script 
 - Validation : les 2 mots de passe doivent correspondre
 - Application : `Set-LocalUser -Password`
 
-**État :** ✅ VALIDÉ
+**Corrections appliquées (août 2026) :**
+- **Problème initial :** `PasswordRequired` utilisé seul retournait `$false` pour les comptes Microsoft/EntraID même avec un mot de passe défini → popup intempestif.
+- **Correction :** Simplification du script : pas de vérification `PrincipalSource` car le contexte métier garantit un compte local. `PasswordRequired` est fiable pour les comptes locaux purs.
+
+**État :** ✅ VALIDÉ (corrigé)
 
 ---
 
@@ -591,8 +608,9 @@ Le script 90 reste volontairement le dernier script fonctionnel avant le script 
 - Le script 90 utilise un formulaire Windows personnalisé pour la saisie du mot de passe.
 - Toutes les popups sont configurées avec `TopMost` pour rester au premier plan.
 - Le script 90 est renommé et positionné en fin de séquence (avant le 99) pour éviter d'imposer la saisie d'un mot de passe entre plusieurs redémarrages.
+- Le script 90 utilise `PasswordRequired` pour la détection du mot de passe. Le contexte métier garantit un compte local (poste neuf ou réinstallé), donc `PasswordRequired` est fiable.
 - Le script 08 contourne le blocage UCPD en désinstallant le package Widgets plutôt qu'en modifiant le registre.
-- Le script 17 détecte OneDrive via plusieurs méthodes (AppX, EXE, registre, dossiers) et bloque son retour pour les futurs profils.
+- Le script 17 exécute le `UninstallString` du registre en premier (méthode propre), avec fallback sur `OneDrive.exe /uninstall`. La clé de registre Uninstall est supprimée après désinstallation pour nettoyer "Programmes et Fonctionnalités".
 
 ---
 
