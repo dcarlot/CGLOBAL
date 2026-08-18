@@ -17,10 +17,9 @@ function Test-UserHasPassword {
     )
 
     # ------------------------------------------------------------------
-    # Methode 1 : [ADSI] PasswordAge (API Windows native, fiable)
-    # PasswordAge = age du MDP en secondes
-    # 0 ou null = aucun mot de passe n'a jamais ete defini
-    # > 0 = un mot de passe est defini
+    # Methode 1 : [ADSI] PasswordAge
+    # PasswordAge = 0  -> jamais de mot de passe defini
+    # PasswordAge > 0  -> un mot de passe a ete defini (mais peut etre vide maintenant)
     # ------------------------------------------------------------------
     try {
         Write-Log "Verification via [ADSI] PasswordAge..." "INFO"
@@ -31,21 +30,54 @@ function Test-UserHasPassword {
 
         Write-Log "[ADSI] PasswordAge = $PasswordAge" "INFO"
 
-        if ($PasswordAge -gt 0) {
-            Write-Log "[ADSI] : mot de passe defini (age: $PasswordAge secondes)" "INFO"
-            return $true
-        }
-        else {
-            Write-Log "[ADSI] : aucun mot de passe defini (PasswordAge = 0)" "INFO"
+        if ($PasswordAge -eq 0) {
+            Write-Log "[ADSI] : jamais de mot de passe defini" "INFO"
             return $false
         }
+
+        Write-Log "[ADSI] : un mot de passe a ete defini (age: $PasswordAge s)" "INFO"
     }
     catch {
-        Write-Log "Echec [ADSI] : $($_.Exception.Message)" "WARN"
+        Write-Log "Echec [ADSI] PasswordAge : $($_.Exception.Message)" "WARN"
     }
 
     # ------------------------------------------------------------------
-    # Methode 2 : net user (fallback)
+    # Methode 2 : test d'authentification avec mot de passe vide
+    # Si l'authentification reussit, le mot de passe est vide.
+    # Si elle echoue, le mot de passe est non vide.
+    # ------------------------------------------------------------------
+    try {
+        Write-Log "Test d'authentification avec mot de passe vide..." "INFO"
+
+        $Computer = $env:COMPUTERNAME
+        $Entry = New-Object System.DirectoryServices.DirectoryEntry("WinNT://$Computer/$UserName,user", $UserName, "")
+
+        # Force une operation qui necessite l'authentification
+        [void]$Entry.InvokeGet("Name")
+
+        # Si on arrive ici, l'authentification avec MDP vide a reussi
+        Write-Log "Authentification avec MDP vide reussie -> MDP est vide" "INFO"
+        return $false
+    }
+    catch [System.Runtime.InteropServices.COMException] {
+        $HResult = $_.Exception.HResult
+        Write-Log "Authentification avec MDP vide echouee (HResult: $HResult)" "INFO"
+
+        # HResult connus :
+        # 0x8007052E = -2147023570 = ERROR_LOGON_FAILURE (mauvais MDP)
+        # 0x80070005 = -2147024891 = E_ACCESSDENIED
+        # 0x800708C5 = -2147026747 = ERROR_PASSWORD_RESTRICTION
+        # Tous indiquent que le MDP n'est pas vide
+
+        Write-Log "Mot de passe non vide (authentification refusee)" "INFO"
+        return $true
+    }
+    catch {
+        Write-Log "Exception inattendue lors du test d'authentification : $($_.Exception.Message)" "WARN"
+    }
+
+    # ------------------------------------------------------------------
+    # Methode 3 : net user (fallback)
     # ------------------------------------------------------------------
     $TempFile = $null
     try {
@@ -92,7 +124,7 @@ function Test-UserHasPassword {
     }
 
     # ------------------------------------------------------------------
-    # Methode 3 : Get-LocalUser (dernier recours)
+    # Methode 4 : Get-LocalUser (dernier recours)
     # ------------------------------------------------------------------
     try {
         Write-Log "Fallback sur Get-LocalUser..." "INFO"
