@@ -10,6 +10,118 @@ Import-Module "C:\\_CGLOBAL\\PS1\\CGLOBAL.Common.psm1" -Force
 $LogFile = Get-CGlobalLogFile -ScriptPath $MyInvocation.MyCommand.Path
 Initialize-CGlobalLog -LogFile $LogFile
 
+function Test-UserHasPassword {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$UserName
+    )
+
+    # ------------------------------------------------------------------
+    # Methode 1 : [ADSI] PasswordAge (API Windows native, fiable)
+    # PasswordAge = age du MDP en secondes
+    # 0 ou null = aucun mot de passe n'a jamais ete defini
+    # > 0 = un mot de passe est defini
+    # ------------------------------------------------------------------
+    try {
+        Write-Log "Verification via [ADSI] PasswordAge..." "INFO"
+
+        $Computer = $env:COMPUTERNAME
+        $User = [ADSI]"WinNT://$Computer/$UserName,user"
+        $PasswordAge = $User.InvokeGet("PasswordAge")
+
+        Write-Log "[ADSI] PasswordAge = $PasswordAge" "INFO"
+
+        if ($PasswordAge -gt 0) {
+            Write-Log "[ADSI] : mot de passe defini (age: $PasswordAge secondes)" "INFO"
+            return $true
+        }
+        else {
+            Write-Log "[ADSI] : aucun mot de passe defini (PasswordAge = 0)" "INFO"
+            return $false
+        }
+    }
+    catch {
+        Write-Log "Echec [ADSI] : $($_.Exception.Message)" "WARN"
+    }
+
+    # ------------------------------------------------------------------
+    # Methode 2 : net user (fallback)
+    # ------------------------------------------------------------------
+    $TempFile = $null
+    try {
+        Write-Log "Fallback sur net user..." "INFO"
+
+        $TempFile = [System.IO.Path]::GetTempFileName()
+
+        Start-Process -FilePath "cmd.exe" `
+            -ArgumentList "/c", "net user `"$UserName`" > `"$TempFile`" 2>&1" `
+            -Wait -NoNewWindow -WindowStyle Hidden
+
+        $Lines = Get-Content -Path $TempFile -ErrorAction SilentlyContinue
+
+        if ($null -ne $Lines) {
+            foreach ($Line in $Lines) {
+                $LineStr = $Line.ToString().Trim()
+
+                if ($LineStr -match "Mot de passe|Password") {
+                    Write-Log "net user : [$LineStr]" "INFO"
+                }
+
+                if ($LineStr -match "Mot de passe requis" -and $LineStr -match "Non|No") {
+                    return $false
+                }
+                if ($LineStr -match "Mot de passe requis" -and $LineStr -match "Oui|Yes") {
+                    return $true
+                }
+                if ($LineStr -match "Password required" -and $LineStr -match "No|Non") {
+                    return $false
+                }
+                if ($LineStr -match "Password required" -and $LineStr -match "Yes|Oui") {
+                    return $true
+                }
+            }
+        }
+    }
+    catch {
+        Write-Log "Echec net user : $($_.Exception.Message)" "WARN"
+    }
+    finally {
+        if ($null -ne $TempFile -and (Test-Path $TempFile)) {
+            Remove-Item -Path $TempFile -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    # ------------------------------------------------------------------
+    # Methode 3 : Get-LocalUser (dernier recours)
+    # ------------------------------------------------------------------
+    try {
+        Write-Log "Fallback sur Get-LocalUser..." "INFO"
+
+        $User = Get-LocalUser -Name $UserName -ErrorAction Stop
+
+        Write-Log "Get-LocalUser : PasswordRequired=$($User.PasswordRequired), PasswordLastSet=$($User.PasswordLastSet)" "INFO"
+
+        if ($User.PasswordRequired) {
+            return $true
+        }
+
+        if ($null -eq $User.PasswordLastSet) {
+            return $false
+        }
+
+        return $true
+    }
+    catch {
+        Write-Log "Echec Get-LocalUser : $($_.Exception.Message)" "WARN"
+    }
+
+    # ------------------------------------------------------------------
+    # Dernier recours : securite par defaut
+    # ------------------------------------------------------------------
+    Write-Log "Aucune methode fiable - MDP present par defaut" "WARN"
+    return $true
+}
+
 try {
 
     Write-Log "Verification du compte utilisateur courant"
@@ -20,44 +132,10 @@ try {
     Write-Log "Utilisateur courant : $CurrentUserName"
 
     # ------------------------------------------------------------------
-    # Recherche du compte local
-    # ------------------------------------------------------------------
-
-    $LocalUser = Get-LocalUser -Name $CurrentUserName -ErrorAction SilentlyContinue
-
-    if ($null -eq $LocalUser) {
-        Write-Log "Compte local introuvable" "WARN"
-        exit 0
-    }
-
-    Write-Log "Compte local detecte : $($LocalUser.Name)" "OK"
-
-    # ------------------------------------------------------------------
     # Verification du mot de passe
     # ------------------------------------------------------------------
-    # Contexte : compte local pur (poste neuf ou reinstalle).
-    #
-    # PasswordRequired n'est pas toujours fiable sur Windows 11 :
-    # il peut retourner $false meme quand un mot de passe est defini.
-    #
-    # On combine donc deux methodes de detection :
-    # - PasswordRequired = $true  -> MDP present (fiable quand il fonctionne)
-    # - PasswordLastSet != $null  -> MDP a ete defini (date du changement)
-    #
-    # Si l'une des deux methodes detecte un MDP, on considere que le
-    # compte est protege et on sort sans popup.
 
-    $HasPassword = $false
-
-    if ($LocalUser.PasswordRequired) {
-        Write-Log "PasswordRequired = $true" "OK"
-        $HasPassword = $true
-    }
-
-    if ($null -ne $LocalUser.PasswordLastSet) {
-        Write-Log "PasswordLastSet = $($LocalUser.PasswordLastSet)" "OK"
-        $HasPassword = $true
-    }
+    $HasPassword = Test-UserHasPassword -UserName $CurrentUserName
 
     if ($HasPassword) {
         Write-Log "Compte local protege par un mot de passe" "OK"
