@@ -186,10 +186,10 @@ try {
 
     if (Test-Path $LocalFile) {
         $File = Get-Item $LocalFile
-        $FileAge = (Get-Date) - $File.CreationTime
+        $FileAge = (Get-Date) - $File.LastWriteTime
 
         Write-Log "Fichier local detecte"
-        Write-Log "Date creation: $($File.CreationTime)"
+        Write-Log "Date derniere modification: $($File.LastWriteTime)"
         Write-Log "Age: $($FileAge.Days) jours"
 
         if ($FileAge.TotalDays -le $CacheMaxAgeDays) {
