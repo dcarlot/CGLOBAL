@@ -96,7 +96,7 @@ function Add-Error {
     Write-Log $Message "ERROR"
 }
 
-function Ensure-RegistryKey {
+function Test-RegistryKey {
 
     param(
         [Parameter(Mandatory = $true)]
@@ -132,7 +132,7 @@ function Set-DefaultUserDWord {
 
     try {
 
-        Ensure-RegistryKey -Path $Path
+        Test-RegistryKey -Path $Path
 
         # CORRECTION : Set-ItemProperty au lieu de New-ItemProperty
         # Set-ItemProperty cree ou modifie la valeur existante
@@ -180,7 +180,7 @@ function Set-DefaultUserString {
 
     try {
 
-        Ensure-RegistryKey -Path $Path
+        Test-RegistryKey -Path $Path
 
         # CORRECTION : Set-ItemProperty au lieu de New-ItemProperty
         # New-ItemProperty -Name "(Default)" cree une valeur NOMMEE "(Default)"
