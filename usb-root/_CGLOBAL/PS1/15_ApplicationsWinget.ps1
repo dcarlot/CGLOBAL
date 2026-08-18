@@ -475,7 +475,7 @@ function Get-LocalInstallerFile {
     return $null
 }
 
-function Download-WingetPackage {
+function Invoke-WingetPackageDownload {
 
     param(
         [string]$PackageId,
@@ -944,7 +944,7 @@ try {
                 throw "Impossible de continuer sans cache ni version en ligne pour $($App.Name)"
             }
 
-            Download-WingetPackage -PackageId $App.Id -TargetVersion $OnlineVersion
+            Invoke-WingetPackageDownload -PackageId $App.Id -TargetVersion $OnlineVersion
             $DownloadedUpdates = $true
 
             $LocalCache = Get-LocalWingetCache `
@@ -967,7 +967,7 @@ try {
 
                     Write-Log ("Version en ligne plus recente pour $($App.Name) ({0} > {1})" -f $OnlineVersion, $LocalCache.Version) "WARN"
 
-                    Download-WingetPackage -PackageId $App.Id -TargetVersion $OnlineVersion
+                    Invoke-WingetPackageDownload -PackageId $App.Id -TargetVersion $OnlineVersion
                     $DownloadedUpdates = $true
 
                     $LocalCache = Get-LocalWingetCache `
