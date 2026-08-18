@@ -3,21 +3,21 @@
 
 <#
 .SYNOPSIS
-    Configure le profil utilisateur par defaut de Windows.
+ Configure le profil utilisateur par defaut de Windows.
 
 .DESCRIPTION
-    Charge C:\Users\Default\NTUSER.DAT dans une ruche temporaire,
-    applique les reglages utilisateur valides dans la chaine CGLOBAL,
-    puis decharge proprement la ruche.
+ Charge C:\Users\Default\NTUSER.DAT dans une ruche temporaire,
+ applique les reglages utilisateur valides dans la chaine CGLOBAL,
+ puis decharge proprement la ruche.
 
-    Les reglages seront appliques uniquement aux nouveaux profils
-    utilisateurs crees apres l'execution du script.
+ Les reglages seront appliques uniquement aux nouveaux profils
+ utilisateurs crees apres l'execution du script.
 
-    Ce script ne copie pas le profil courant dans son integralite.
+ Ce script ne copie pas le profil courant dans son integralite.
 
 .NOTES
-    Compatible avec Windows PowerShell 5.1.
-    Execution avec privileges administrateur requise.
+ Compatible avec Windows PowerShell 5.1.
+ Execution avec privileges administrateur requise.
 #>
 
 [CmdletBinding()]
@@ -26,18 +26,18 @@ param()
 $ErrorActionPreference = 'Stop'
 
 $LogFolder = "C:\_CGLOBAL\Logs"
-$LogFile   = "$LogFolder\Log12_ConfigurerProfilParDefaut.txt"
+$LogFile = "$LogFolder\Log12_ConfigurerProfilParDefaut.txt"
 
 $DefaultProfilePath = Join-Path $env:SystemDrive "Users\Default"
-$DefaultHiveFile    = Join-Path $DefaultProfilePath "NTUSER.DAT"
+$DefaultHiveFile = Join-Path $DefaultProfilePath "NTUSER.DAT"
 
-$HiveName       = "CGLOBAL_DefaultUser"
-$HiveRegPath    = "HKLM\$HiveName"
+$HiveName = "CGLOBAL_DefaultUser"
+$HiveRegPath = "HKLM\$HiveName"
 $HivePowerShell = "Registry::HKEY_LOCAL_MACHINE\$HiveName"
 
 $HiveLoadedByScript = $false
-$WarningCount       = 0
-$ErrorCount         = 0
+$WarningCount = 0
+$ErrorCount = 0
 
 if (-not (Test-Path $LogFolder)) {
     New-Item `
@@ -67,9 +67,9 @@ function Write-Log {
         -Encoding UTF8
 
     $Color = @{
-        INFO  = 'Cyan'
-        OK    = 'Green'
-        WARN  = 'Yellow'
+        INFO = 'Cyan'
+        OK = 'Green'
+        WARN = 'Yellow'
         ERROR = 'Red'
     }
 
@@ -134,11 +134,12 @@ function Set-DefaultUserDWord {
 
         Ensure-RegistryKey -Path $Path
 
-        New-ItemProperty `
+        # CORRECTION : Set-ItemProperty au lieu de New-ItemProperty
+        # Set-ItemProperty cree ou modifie la valeur existante
+        Set-ItemProperty `
             -Path $Path `
             -Name $Name `
             -Value $Value `
-            -PropertyType DWord `
             -Force | Out-Null
 
         $ReadValue = (
@@ -181,11 +182,15 @@ function Set-DefaultUserString {
 
         Ensure-RegistryKey -Path $Path
 
-        New-ItemProperty `
+        # CORRECTION : Set-ItemProperty au lieu de New-ItemProperty
+        # New-ItemProperty -Name "(Default)" cree une valeur NOMMEE "(Default)"
+        # au lieu de modifier la valeur par defaut de la cle.
+        # Set-ItemProperty interprete correctement "(Default)" comme la
+        # valeur par defaut native de la cle de registre.
+        Set-ItemProperty `
             -Path $Path `
             -Name $Name `
             -Value $Value `
-            -PropertyType String `
             -Force | Out-Null
 
         $Property = Get-ItemProperty `
@@ -263,16 +268,16 @@ function Dismount-DefaultUserHive {
     Get-Variable `
         -Scope Script `
         -ErrorAction SilentlyContinue |
-        Where-Object {
-            $_.Value -is [Microsoft.Win32.RegistryKey]
-        } |
-        ForEach-Object {
-            try {
-                $_.Value.Close()
-            }
-            catch {
-            }
+    Where-Object {
+        $_.Value -is [Microsoft.Win32.RegistryKey]
+    } |
+    ForEach-Object {
+        try {
+            $_.Value.Close()
         }
+        catch {
+        }
+    }
 
     [System.GC]::Collect()
     [System.GC]::WaitForPendingFinalizers()
@@ -474,7 +479,7 @@ finally {
 
 Write-Log "----------------------------------------"
 Write-Log "Avertissements : $WarningCount"
-Write-Log "Erreurs         : $ErrorCount"
+Write-Log "Erreurs : $ErrorCount"
 
 if ($ErrorCount -gt 0) {
 

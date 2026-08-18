@@ -22,8 +22,6 @@ try {
     # ------------------------------------------------------------------
     # Recherche du compte local
     # ------------------------------------------------------------------
-    # Contexte : le poste est configure avec un compte local (poste neuf
-    # ou reinstalle). PasswordRequired est donc fiable.
 
     $LocalUser = Get-LocalUser -Name $CurrentUserName -ErrorAction SilentlyContinue
 
@@ -37,16 +35,36 @@ try {
     # ------------------------------------------------------------------
     # Verification du mot de passe
     # ------------------------------------------------------------------
-    # PasswordRequired est fiable pour les comptes locaux purs.
-    # $true  = mot de passe present
-    # $false = pas de mot de passe (ou supprime)
+    # Contexte : compte local pur (poste neuf ou reinstalle).
+    #
+    # PasswordRequired n'est pas toujours fiable sur Windows 11 :
+    # il peut retourner $false meme quand un mot de passe est defini.
+    #
+    # On combine donc deux methodes de detection :
+    # - PasswordRequired = $true  -> MDP present (fiable quand il fonctionne)
+    # - PasswordLastSet != $null  -> MDP a ete defini (date du changement)
+    #
+    # Si l'une des deux methodes detecte un MDP, on considere que le
+    # compte est protege et on sort sans popup.
+
+    $HasPassword = $false
 
     if ($LocalUser.PasswordRequired) {
+        Write-Log "PasswordRequired = $true" "OK"
+        $HasPassword = $true
+    }
+
+    if ($null -ne $LocalUser.PasswordLastSet) {
+        Write-Log "PasswordLastSet = $($LocalUser.PasswordLastSet)" "OK"
+        $HasPassword = $true
+    }
+
+    if ($HasPassword) {
         Write-Log "Compte local protege par un mot de passe" "OK"
         exit 0
     }
 
-    Write-Log "Compte local sans mot de passe" "WARN"
+    Write-Log "Compte local sans mot de passe detecte" "WARN"
 
     # ------------------------------------------------------------------
     # POPUP : Demande de confirmation
