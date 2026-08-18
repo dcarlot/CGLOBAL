@@ -38,7 +38,29 @@ echo.
 
 if not exist "C:\_CGLOBAL" mkdir "C:\_CGLOBAL"
 
-robocopy "%USBPath%\_CGLOBAL" "C:\_CGLOBAL" /E /MIR /NFL /NDL /NJH /NJS
+:: =====================================================
+:: Étape 1 : Copie des dossiers Installer et PS1 en /MIR
+:: =====================================================
+
+
+echo.
+echo --- Copie de Installer (avec miroir) ---
+robocopy "%USBPath%\_CGLOBAL\Installer" "C:\_CGLOBAL\Installer" /E /MIR /NFL /NDL /NJH /NJS
+
+echo.
+echo --- Copie de PS1 (avec miroir) ---
+robocopy "%USBPath%\_CGLOBAL\PS1" "C:\_CGLOBAL\PS1" /E /MIR /NFL /NDL /NJH /NJS
+
+
+:: =====================================================
+:: Étape 2 : Copie du reste SANS /MIR (ne supprime pas)
+:: =====================================================
+
+
+echo.
+echo --- Copie des autres dossiers (sans miroir) ---
+
+robocopy "%USBPath%\_CGLOBAL" "C:\_CGLOBAL" /E /XD Installer PS1 /NFL /NDL /NJH /NJS
 
 if %errorlevel% geq 8 (
     echo.
