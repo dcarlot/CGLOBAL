@@ -53,6 +53,7 @@ function Test-UserHasPassword {
         $Entry = New-Object System.DirectoryServices.DirectoryEntry("WinNT://$Computer/$UserName,user", $UserName, "")
 
         # Force une operation qui necessite l'authentification
+        # [void] supprime le warning "variable assigned but never used"
         [void]$Entry.InvokeGet("Name")
 
         # Si on arrive ici, l'authentification avec MDP vide a reussi
