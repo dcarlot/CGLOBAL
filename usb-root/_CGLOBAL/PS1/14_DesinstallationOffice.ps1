@@ -60,10 +60,14 @@ function Get-OfficeInstalls {
         ForEach-Object {
 
             $type = 'Inconnu'
-            if ($_.UninstallString -match 'OfficeClickToRun\\.exe|OfficeC2RClient\\.exe') {
+            $uninstall = $_.UninstallString
+
+            # Detection C2R : OfficeClickToRun.exe ou OfficeC2RClient.exe
+            # On match le nom de fichier sans se soucier du .exe
+            if ($uninstall -match 'OfficeClickToRun|OfficeC2RClient') {
                 $type = 'Click-to-Run'
             }
-            elseif ($_.UninstallString -match 'msiexec') {
+            elseif ($uninstall -match 'msiexec') {
                 $type = 'MSI'
             }
 
@@ -120,9 +124,17 @@ function Invoke-OfficeUninstall {
 
     param($item)
 
-    if ($item.Type -eq 'Click-to-Run') {
+    $uninstall = $item.UninstallString
 
-        $cmd = $item.UninstallString
+    # ------------------------------------------------------------------
+    # Detection du type a partir de l'UninstallString (fallback si Inconnu)
+    # ------------------------------------------------------------------
+    $isC2R = ($item.Type -eq 'Click-to-Run') -or ($uninstall -match 'OfficeClickToRun|OfficeC2RClient')
+    $isMSI = ($item.Type -eq 'MSI') -or ($uninstall -match 'msiexec')
+
+    if ($isC2R) {
+
+        $cmd = $uninstall
 
         if ($cmd -notmatch 'DisplayLevel=') {
             $cmd += ' DisplayLevel=False'
@@ -149,9 +161,9 @@ function Invoke-OfficeUninstall {
         }
     }
 
-    elseif ($item.Type -eq 'MSI') {
+    elseif ($isMSI) {
 
-        if ($item.UninstallString -match '\{[0-9A-Fa-f\-]+\}') {
+        if ($uninstall -match '\{[0-9A-Fa-f\-]+\}') {
 
             $guid = $Matches[0]
 
