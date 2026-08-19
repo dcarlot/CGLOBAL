@@ -45,7 +45,7 @@ if not exist "C:\_CGLOBAL" mkdir "C:\_CGLOBAL"
 
 echo.
 echo --- Copie de Installer (avec miroir) ---
-robocopy "%USBPath%\_CGLOBAL\Installer" "C:\_CGLOBAL\Installer" /E /MIR /NFL /NDL /NJH /NJS
+robocopy "%USBPath%\_CGLOBAL\Installers" "C:\_CGLOBAL\Installers" /E /MIR /NFL /NDL /NJH /NJS
 
 echo.
 echo --- Copie de PS1 (avec miroir) ---
