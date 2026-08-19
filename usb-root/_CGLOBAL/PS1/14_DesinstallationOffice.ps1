@@ -3,26 +3,27 @@
 
 <#
 .SYNOPSIS
-    Liste toutes les versions d'Office installees sur le poste (Click-to-Run et MSI),
-    puis demande une confirmation avant de les desinstaller (ou de ne rien faire).
+ Liste toutes les versions d'Office et OneNote installees sur le poste
+ (Click-to-Run et MSI), puis demande une confirmation avant de les
+ desinstaller (ou de ne rien faire).
 
 .DESCRIPTION
-    - Recherche les installations Office dans les cles de registre "Uninstall"
-      standard (32 et 64 bits), qui sont les memes cles utilisees par
-      "Programmes et fonctionnalites".
-    - Reutilise directement la commande UninstallString presente dans le
-      registre (celle que Windows utilise lui-meme), en y ajoutant les
-      parametres de mode silencieux. C'est plus fiable que de reconstruire
-      la commande soi-meme.
-    - Affiche la liste numerotee des produits trouves.
-    - Attend une validation explicite de l'utilisateur (O/N).
-    - Si validation positive : desinstalle toutes les versions trouvees.
-    - Si validation negative : ne fait rien et quitte proprement.
+ - Recherche les installations Office et OneNote dans les cles de
+   registre "Uninstall" standard (32 et 64 bits), qui sont les memes
+   cles utilisees par "Programmes et fonctionnalites".
+ - Reutilise directement la commande UninstallString presente dans le
+   registre (celle que Windows utilise lui-meme), en y ajoutant les
+   parametres de mode silencieux. C'est plus fiable que de reconstruire
+   la commande soi-meme.
+ - Affiche la liste numerotee des produits trouves.
+ - Attend une validation explicite de l'utilisateur (O/N).
+ - Si validation positive : desinstalle toutes les versions trouvees.
+ - Si validation negative : ne fait rien et quitte proprement.
 
 .NOTES
-    A executer en tant qu'administrateur (elevation requise).
-    Fichier enregistre sans caracteres accentues pour eviter les problemes
-    d'affichage lies a l'encodage selon l'editeur utilise.
+ A executer en tant qu'administrateur (elevation requise).
+ Fichier enregistre sans caracteres accentues pour eviter les problemes
+ d'affichage lies a l'encodage selon l'editeur utilise.
 #>
 
 [CmdletBinding()]
@@ -30,50 +31,50 @@ param()
 
 $ErrorActionPreference = 'Stop'
 
-Import-Module "C:\_CGLOBAL\PS1\CGLOBAL.Common.psm1" -Force
+Import-Module "C:\\_CGLOBAL\\PS1\\CGLOBAL.Common.psm1" -Force
 $LogFile = Get-CGlobalLogFile -ScriptPath $MyInvocation.MyCommand.Path
 Initialize-CGlobalLog -LogFile $LogFile
 
 function Get-OfficeInstalls {
     $installs = @()
 
-# Monte HKU pour analyser tous les profils utilisateurs
-if (-not (Get-PSDrive -Name HKU -ErrorAction SilentlyContinue)) {
-    New-PSDrive -PSProvider Registry -Name HKU -Root HKEY_USERS | Out-Null
-}
+    # Monte HKU pour analyser tous les profils utilisateurs
+    if (-not (Get-PSDrive -Name HKU -ErrorAction SilentlyContinue)) {
+        New-PSDrive -PSProvider Registry -Name HKU -Root HKEY_USERS | Out-Null
+    }
 
-$uninstallKeys = @(
-    'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*',
-    'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*',
-    'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*',
-    'HKU:\*\Software\Microsoft\Windows\CurrentVersion\Uninstall\*'
-)
+    $uninstallKeys = @(
+        'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*',
+        'HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*',
+        'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*',
+        'HKU:\\*\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*'
+    )
 
     foreach ($keyPath in $uninstallKeys) {
         Get-ItemProperty -Path $keyPath -ErrorAction SilentlyContinue |
-            Where-Object {
-                $_.DisplayName -match 'Microsoft (Office|365|Project|Visio)' -and
-                $_.DisplayName -notmatch 'Update|MUI|Redistributable|Runtime|Licensing' -and
-                $_.UninstallString
-            } |
-            ForEach-Object {
+        Where-Object {
+            $_.DisplayName -match 'Microsoft (Office|365|Project|Visio|OneNote)' -and
+            $_.DisplayName -notmatch 'Update|MUI|Redistributable|Runtime|Licensing|Proofing|Help|Language|Font|Theme|Visual Studio' -and
+            $_.UninstallString
+        } |
+        ForEach-Object {
 
-                $type = 'Inconnu'
-                if ($_.UninstallString -match 'OfficeClickToRun\.exe|OfficeC2RClient\.exe') {
-                    $type = 'Click-to-Run'
-                }
-                elseif ($_.UninstallString -match 'msiexec') {
-                    $type = 'MSI'
-                }
-
-                $installs += [PSCustomObject]@{
-					Nom             = $_.DisplayName
-					Version         = $_.DisplayVersion
-					Type            = $type
-					UninstallString = $_.UninstallString
-					CleSource       = $_.PSParentPath
-				}
+            $type = 'Inconnu'
+            if ($_.UninstallString -match 'OfficeClickToRun\\.exe|OfficeC2RClient\\.exe') {
+                $type = 'Click-to-Run'
             }
+            elseif ($_.UninstallString -match 'msiexec') {
+                $type = 'MSI'
+            }
+
+            $installs += [PSCustomObject]@{
+                Nom = $_.DisplayName
+                Version = $_.DisplayVersion
+                Type = $type
+                UninstallString = $_.UninstallString
+                CleSource = $_.PSParentPath
+            }
+        }
     }
 
     # Deduplique au cas ou la meme entree apparaisse dans les deux cles (32/64 bits)
@@ -84,9 +85,9 @@ $uninstallKeys = @(
 
 function Show-DiagnosticSiVide {
 
-    Write-Log "Diagnostic de recherche Office" "WARN"
+    Write-Log "Diagnostic de recherche Office / OneNote" "WARN"
 
-    $c2rPath = 'HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Configuration'
+    $c2rPath = 'HKLM:\\SOFTWARE\\Microsoft\\Office\\ClickToRun\\Configuration'
 
     if (Test-Path $c2rPath) {
 
@@ -96,7 +97,7 @@ function Show-DiagnosticSiVide {
 
         Write-Log (
             "Configuration ClickToRun detectee : ProductReleaseIds={0}" -f `
-                $cfg.ProductReleaseIds
+            $cfg.ProductReleaseIds
         ) "WARN"
 
         Write-Log (
@@ -129,7 +130,7 @@ function Invoke-OfficeUninstall {
 
         if ($cmd -match '^"([^"]+)"\s*(.*)$') {
 
-            $exe  = $Matches[1]
+            $exe = $Matches[1]
             $Arguments = $Matches[2]
 
             Start-Process `
@@ -143,7 +144,7 @@ function Invoke-OfficeUninstall {
 
             Write-Log (
                 "Format de commande Click-to-Run inattendu pour : {0}" -f `
-                    $item.Nom
+                $item.Nom
             ) "WARN"
         }
     }
@@ -165,7 +166,7 @@ function Invoke-OfficeUninstall {
 
             Write-Log (
                 "Impossible d extraire le GUID pour : {0}" -f `
-                    $item.Nom
+                $item.Nom
             ) "WARN"
         }
     }
@@ -174,8 +175,8 @@ function Invoke-OfficeUninstall {
 
         Write-Log (
             "Type de desinstallation non reconnu pour : {0} -> {1}" -f `
-                $item.Nom,
-                $item.UninstallString
+            $item.Nom,
+            $item.UninstallString
         ) "WARN"
     }
 }
@@ -184,7 +185,7 @@ function Invoke-OfficeUninstall {
 # Etape 1 : Detection
 # ------------------------------------------------------------------
 
-Write-Log "Recherche des installations Microsoft Office sur ce poste"
+Write-Log "Recherche des installations Microsoft Office et OneNote sur ce poste"
 
 $officeInstalls = Get-OfficeInstalls
 
@@ -193,7 +194,7 @@ $officeInstalls = @($officeInstalls)
 
 if (-not $officeInstalls -or $officeInstalls.Count -eq 0) {
 
-    Write-Log "Aucune installation Office detectee sur ce poste" "OK"
+    Write-Log "Aucune installation Office / OneNote detectee sur ce poste" "OK"
 
     Show-DiagnosticSiVide
 
@@ -204,32 +205,32 @@ if (-not $officeInstalls -or $officeInstalls.Count -eq 0) {
 # Etape 2 : Affichage de la liste
 # ------------------------------------------------------------------
 
-Write-Host "`nVersions d'Office detectees :" -ForegroundColor Yellow
+Write-Host "`nVersions d'Office / OneNote detectees :" -ForegroundColor Yellow
 
 $i = 1
 
-Write-Log "$($officeInstalls.Count) version(s) Office detectee(s)" "WARN"
+Write-Log "$($officeInstalls.Count) version(s) Office / OneNote detectee(s)" "WARN"
 
 foreach ($item in $officeInstalls) {
 
     Write-Log (
         "Detecte [{0}] {1} - Version={2}" -f `
-            $item.Type, `
-            $item.Nom, `
-            $item.Version
+        $item.Type, `
+        $item.Nom, `
+        $item.Version
     )
 
     Write-Log (
         "Source registre : {0}" -f `
-            $item.CleSource
+        $item.CleSource
     )
 
     Write-Host (
-        "  [{0}] {1} - Version : {2} - Type : {3}" -f `
-            $i, `
-            $item.Nom, `
-            $item.Version, `
-            $item.Type
+        " [{0}] {1} - Version : {2} - Type : {3}" -f `
+        $i, `
+        $item.Nom, `
+        $item.Version, `
+        $item.Type
     )
 
     $i++
@@ -240,41 +241,40 @@ foreach ($item in $officeInstalls) {
 # ------------------------------------------------------------------
 
 $reponse = Show-CGlobalPopup `
-    -Message "Voulez-vous desinstaller TOUTES ces versions d'Office ?`n`nCette action est irreversible." `
-    -Title "Desinstallation Office" `
+    -Message "Voulez-vous desinstaller TOUTES ces versions d'Office / OneNote ?`n`nCette action est irreversible." `
+    -Title "Desinstallation Office / OneNote" `
     -Buttons "YesNo" `
     -Icon "Exclamation"
 
-
 if ($reponse -ne 'Yes') {
-    Write-Log "Desinstallation Office annulee par l utilisateur" "WARN"
+    Write-Log "Desinstallation Office / OneNote annulee par l utilisateur" "WARN"
     exit 0
 }
 
 # ------------------------------------------------------------------
 # Etape 4 : Desinstallation
 # ------------------------------------------------------------------
-Write-Log "Desinstallation Office en cours" "WARN"
+Write-Log "Desinstallation Office / OneNote en cours" "WARN"
 
 foreach ($item in $officeInstalls) {
-    
-	Write-Log (
-    "Desinstallation [{0}] {1}" -f `
+
+    Write-Log (
+        "Desinstallation [{0}] {1}" -f `
         $item.Type,
         $item.Nom
-	) "WARN"
+    ) "WARN"
 
     try {
         Invoke-OfficeUninstall -item $item
     }
     catch {
         Write-Log (
-    "Echec de la desinstallation de {0} : {1}" -f `
-        $item.Nom,
-        $_.Exception.Message
-	) "ERROR"
+            "Echec de la desinstallation de {0} : {1}" -f `
+            $item.Nom,
+            $_.Exception.Message
+        ) "ERROR"
     }
 }
 
-Write-Log "Desinstallation Office terminee" "OK"
+Write-Log "Desinstallation Office / OneNote terminee" "OK"
 Write-Log "Un redemarrage du poste est recommande" "WARN"
