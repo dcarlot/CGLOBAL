@@ -21,7 +21,7 @@ try {
     $UninstallKeyPath = $null
     $UninstallString = $null
 
-    # 1.1 Detection AppX
+    # 1.1 Detection AppX (utilisateur courant)
     $OneDriveAppX = Get-AppxPackage -Name "*OneDrive*" -ErrorAction SilentlyContinue
     if ($null -ne $OneDriveAppX) {
         Write-Log "OneDrive AppX detecte: $($OneDriveAppX.Name)" "WARN"
@@ -29,7 +29,16 @@ try {
         $OneDriveDetails += "AppX: $($OneDriveAppX.Name)"
     }
 
-    # 1.2 Detection OneDrive.exe (version desktop)
+    # 1.2 Detection AppX provisionne (tous les utilisateurs)
+    $OneDriveAppXProvisioned = Get-AppxProvisionedPackage -Online -ErrorAction SilentlyContinue |
+        Where-Object { $_.DisplayName -like "*OneDrive*" }
+    if ($null -ne $OneDriveAppXProvisioned) {
+        Write-Log "OneDrive AppX provisionne detecte: $($OneDriveAppXProvisioned.DisplayName)" "WARN"
+        $OneDriveFound = $true
+        $OneDriveDetails += "AppXProvisioned: $($OneDriveAppXProvisioned.DisplayName)"
+    }
+
+    # 1.3 Detection OneDrive.exe (version desktop)
     $OneDriveExe = Test-Path "$env:LOCALAPPDATA\Microsoft\OneDrive\OneDrive.exe"
     if ($OneDriveExe) {
         Write-Log "OneDrive.exe detecte: $env:LOCALAPPDATA\Microsoft\OneDrive\OneDrive.exe" "WARN"
@@ -37,7 +46,7 @@ try {
         $OneDriveDetails += "Exe: OneDrive.exe"
     }
 
-    # 1.3 Detection dossier OneDrive (seulement si OneDrive.exe present)
+    # 1.4 Detection dossier OneDrive (seulement si OneDrive.exe present)
     $OneDriveFolder = Test-Path "$env:LOCALAPPDATA\Microsoft\OneDrive"
     if ($OneDriveFolder -and -not $OneDriveExe) {
         Write-Log "Dossier OneDrive present mais OneDrive.exe absent (residu)" "INFO"
@@ -47,7 +56,7 @@ try {
         $OneDriveDetails += "Dossier: $env:LOCALAPPDATA\Microsoft\OneDrive"
     }
 
-    # 1.4 Detection registre (Programmes et fonctionnalites)
+    # 1.5 Detection registre (Programmes et fonctionnalites)
     $RegPaths = @(
         "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall",
         "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall",
@@ -75,7 +84,7 @@ try {
         }
     }
 
-    # 1.5 Detection dossier d'installation (seulement si OneDrive.exe present)
+    # 1.6 Detection dossier d'installation (seulement si OneDrive.exe present)
     if ($OneDriveExe) {
         $InstallPaths = @(
             "$env:PROGRAMFILES\Microsoft\OneDrive",
@@ -89,7 +98,7 @@ try {
         }
     }
 
-    # 1.6 Resultat
+    # 1.7 Resultat
     if (-not $OneDriveFound) {
         Write-Log "OneDrive non installe sur ce poste" "OK"
         Write-Log "Aucune action necessaire" "INFO"
@@ -131,8 +140,6 @@ try {
     # --------------------------------------------
     # 4. DESINSTALLATION VIA REGISTRE (methode propre)
     # --------------------------------------------
-    # On execute le UninstallString AVANT OneDrive.exe /uninstall car
-    # OneDrive.exe /uninstall supprime le dossier contenant OneDriveSetup.exe
 
     $RegUninstallDone = $false
 
@@ -140,15 +147,12 @@ try {
         Write-Log "Commande de desinstallation trouvee: $UninstallString" "INFO"
 
         # Parsing robuste du UninstallString
-        # Format possible: "C:\chemin\OneDriveSetup.exe" /uninstall
-        #                 C:\chemin\OneDriveSetup.exe /uninstall
         $UninstallString = $UninstallString.Trim()
 
         $ExePath = $null
         $Arguments = $null
 
         if ($UninstallString.StartsWith('"')) {
-            # Format avec guillemets: "chemin.exe" arguments
             $EndQuote = $UninstallString.IndexOf('"', 1)
             if ($EndQuote -gt 0) {
                 $ExePath = $UninstallString.Substring(1, $EndQuote - 1)
@@ -157,7 +161,6 @@ try {
         }
 
         if ($null -eq $ExePath -and $UninstallString -match '^(\S+\.exe)\s*(.*)$') {
-            # Format sans guillemets: chemin.exe arguments
             $ExePath = $matches[1]
             $Arguments = $matches[2].Trim()
         }
@@ -202,16 +205,22 @@ try {
     # --------------------------------------------
     # 6. SUPPRESSION DE LA CLE DE REGISTRE UNINSTALL
     # --------------------------------------------
-    # Nettoie l'entree dans Programmes et Fonctionnalites
+    # OneDriveSetup.exe supprime souvent la cle lui-meme.
+    # Si elle est deja absente, c'est le resultat souhaite.
 
     if ($null -ne $UninstallKeyPath) {
         Write-Log "Suppression de la cle de registre Uninstall..." "INFO"
-        try {
-            Remove-Item -Path $UninstallKeyPath -Recurse -Force -ErrorAction Stop
-            Write-Log "Cle de registre Uninstall supprimee" "OK"
+        if (Test-Path $UninstallKeyPath) {
+            try {
+                Remove-Item -Path $UninstallKeyPath -Recurse -Force -ErrorAction Stop
+                Write-Log "Cle de registre Uninstall supprimee" "OK"
+            }
+            catch {
+                Write-Log "Echec suppression cle de registre: $($_.Exception.Message)" "WARN"
+            }
         }
-        catch {
-            Write-Log "Echec suppression cle de registre: $($_.Exception.Message)" "WARN"
+        else {
+            Write-Log "Cle de registre Uninstall deja supprimee (par le desinstalleur)" "OK"
         }
     }
 
@@ -219,15 +228,41 @@ try {
     # 7. DESINSTALLATION APPX (si present)
     # --------------------------------------------
 
+    # 7.1 Package AppX utilisateur courant
     if ($null -ne $OneDriveAppX) {
-        Write-Log "Desinstallation du package AppX..." "INFO"
+        Write-Log "Desinstallation du package AppX utilisateur..." "INFO"
 
         try {
             Remove-AppxPackage -Package $OneDriveAppX.PackageFullName -ErrorAction Stop
             Write-Log "Package AppX desinstalle avec succes" "OK"
         }
         catch {
-            Write-Log "Echec desinstallation AppX: $($_.Exception.Message)" "ERROR"
+            $ErrorMsg = $_.Exception.Message
+            if ($ErrorMsg -match '0x80073CF1|package introuvable|package is not installed') {
+                Write-Log "Package AppX deja supprime ou non installe pour cet utilisateur" "INFO"
+            }
+            else {
+                Write-Log "Echec desinstallation AppX: $ErrorMsg" "WARN"
+            }
+        }
+    }
+
+    # 7.2 Package AppX provisionne (tous les utilisateurs)
+    if ($null -ne $OneDriveAppXProvisioned) {
+        Write-Log "Desinstallation du package AppX provisionne..." "INFO"
+
+        try {
+            Remove-AppxProvisionedPackage -Online -PackageName $OneDriveAppXProvisioned.PackageName -ErrorAction Stop
+            Write-Log "Package AppX provisionne desinstalle avec succes" "OK"
+        }
+        catch {
+            $ErrorMsg = $_.Exception.Message
+            if ($ErrorMsg -match '0x80073CF1|package introuvable|package is not installed') {
+                Write-Log "Package AppX provisionne deja supprime" "INFO"
+            }
+            else {
+                Write-Log "Echec desinstallation AppX provisionne: $ErrorMsg" "WARN"
+            }
         }
     }
 
