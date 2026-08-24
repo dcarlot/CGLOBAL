@@ -10,11 +10,90 @@ Import-Module "C:\\_CGLOBAL\\PS1\\CGLOBAL.Common.psm1" -Force
 $LogFile = Get-CGlobalLogFile -ScriptPath $MyInvocation.MyCommand.Path
 Initialize-CGlobalLog -LogFile $LogFile
 
+# ------------------------------------------------------------------
+# P/Invoke LogonUser : seule methode fiable pour tester un mot de
+# passe vide. Contrairement a System.DirectoryServices.DirectoryEntry
+# (qui effectue une authentification de type "reseau"), LOGON32_LOGON_
+# INTERACTIVE n'est PAS bloque par la strategie de securite "Comptes :
+# limiter l'utilisation des mots de passe vides par les comptes locaux
+# a l'ouverture de session sur console uniquement" (LimitBlankPasswordUse),
+# activee par defaut sur Windows. C'est cette strategie qui faisait
+# echouer a tort l'ancien test des lors qu'un mot de passe avait deja
+# ete defini une fois puis vide.
+# ------------------------------------------------------------------
+if (-not ([System.Management.Automation.PSTypeName]'CGlobal.NativeMethods').Type) {
+    Add-Type -Namespace CGlobal -Name NativeMethods -MemberDefinition @"
+[DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+public static extern bool LogonUser(
+    string lpszUsername,
+    string lpszDomain,
+    string lpszPassword,
+    int dwLogonType,
+    int dwLogonProvider,
+    out IntPtr phToken);
+
+[DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+public static extern bool CloseHandle(IntPtr handle);
+"@
+}
+
+function Test-EmptyPasswordViaLogonUser {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$UserName
+    )
+
+    $LOGON32_LOGON_INTERACTIVE = 2
+    $LOGON32_PROVIDER_DEFAULT  = 0
+    $TokenHandle = [IntPtr]::Zero
+
+    try {
+        $Success = [CGlobal.NativeMethods]::LogonUser(
+            $UserName,
+            $env:COMPUTERNAME,
+            "",
+            $LOGON32_LOGON_INTERACTIVE,
+            $LOGON32_PROVIDER_DEFAULT,
+            [ref]$TokenHandle
+        )
+
+        if ($Success) {
+            [void][CGlobal.NativeMethods]::CloseHandle($TokenHandle)
+            Write-Log "LogonUser (interactif, MDP vide) reussi -> mot de passe vide" "INFO"
+            return $false   # authentification reussie avec MDP vide => pas de MDP
+        }
+        else {
+            $LastError = [System.Runtime.InteropServices.Marshal]::GetLastWin32Error()
+            Write-Log "LogonUser (interactif, MDP vide) echoue - code erreur Win32: $LastError" "INFO"
+            # 1326 = ERROR_LOGON_FAILURE (mauvais mot de passe) -> un MDP est bien defini
+            # 1327 = ERROR_INVALID_LOGON_HOURS, 1328 = ERROR_INVALID_WORKSTATION, etc.
+            # 1330 = ERROR_PASSWORD_EXPIRED
+            # Tout code d'echec ici signifie que le MDP vide a ete rejete => MDP present
+            return $true
+        }
+    }
+    catch {
+        Write-Log "Exception lors de l'appel LogonUser : $($_.Exception.Message)" "WARN"
+        return $null    # indetermine -> on se rabat sur les autres methodes
+    }
+}
+
 function Test-UserHasPassword {
     param(
         [Parameter(Mandatory = $true)]
         [string]$UserName
     )
+
+    # ------------------------------------------------------------------
+    # Methode 0 (prioritaire) : LogonUser interactif avec MDP vide
+    # C'est la seule methode qui n'est pas biaisee par la strategie
+    # LimitBlankPasswordUse. On lui fait confiance en priorite.
+    # ------------------------------------------------------------------
+    $LogonUserResult = Test-EmptyPasswordViaLogonUser -UserName $UserName
+    if ($null -ne $LogonUserResult) {
+        return $LogonUserResult
+    }
+    Write-Log "Resultat LogonUser indetermine, poursuite avec methodes de secours" "WARN"
 
     # ------------------------------------------------------------------
     # Methode 1 : [ADSI] PasswordAge
