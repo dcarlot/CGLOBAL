@@ -43,7 +43,7 @@ Write-LogSelective "=== LANCEMENT MODE SELECTIF ===" "INFO"
 # ============================================================
 $SelFile = "C:\_CGLOBAL\Run_Selective.sel"
 
-function Save-Selection {
+function Export-Selection {
     param($Checkboxes)
     $Lines = @()
     foreach ($Num in ($Checkboxes.Keys | Sort-Object)) {
@@ -54,7 +54,7 @@ function Save-Selection {
     Write-LogSelective "Selection sauvegardee dans $SelFile" "OK"
 }
 
-function Load-Selection {
+function Import-Selection {
     param($Checkboxes)
     if (-not (Test-Path $SelFile)) {
         Write-LogSelective "Aucune selection precedente trouvee" "INFO"
@@ -138,7 +138,7 @@ function Test-InternetConnection {
             # URL suivante
         }
         finally {
-            if ($TcpClient -ne $null) {
+            if ($null -ne $TcpClient) {
                 $TcpClient.Dispose()
             }
         }
@@ -284,7 +284,7 @@ $BtnSave.Location = New-Object System.Drawing.Point(200, 605)
 $BtnSave.Width = 90
 $BtnSave.Height = 30
 $BtnSave.Add_Click({
-    Save-Selection -Checkboxes $Checkboxes
+    Export-Selection -Checkboxes $Checkboxes
     [System.Windows.Forms.MessageBox]::Show(
         "Selection sauvegardee avec succes.",
         "Sauvegarde",
@@ -300,7 +300,7 @@ $BtnLoad.Location = New-Object System.Drawing.Point(300, 605)
 $BtnLoad.Width = 80
 $BtnLoad.Height = 30
 $BtnLoad.Add_Click({
-    if (Load-Selection -Checkboxes $Checkboxes) {
+    if (Import-Selection -Checkboxes $Checkboxes) {
         [System.Windows.Forms.MessageBox]::Show(
             "Selection chargee avec succes.",
             "Chargement",
@@ -357,18 +357,33 @@ $Form.Controls.Add($ProgressLabel)
 # --- Bouton Executer ---
 $BtnExecuter = New-Object System.Windows.Forms.Button
 $BtnExecuter.Text = "Executer"
-$BtnExecuter.Location = New-Object System.Drawing.Point(400, 660)
-$BtnExecuter.Width = 120
+$BtnExecuter.Location = New-Object System.Drawing.Point(310, 660)
+$BtnExecuter.Width = 100
 $BtnExecuter.Height = 35
 $BtnExecuter.Font = New-Object System.Drawing.Font("Segoe UI", 10, [System.Drawing.FontStyle]::Bold)
 $BtnExecuter.BackColor = [System.Drawing.Color]::LightGreen
 $Form.Controls.Add($BtnExecuter)
 
+# --- Bouton Quitter ---
+$BtnQuitter = New-Object System.Windows.Forms.Button
+$BtnQuitter.Text = "Quitter"
+$BtnQuitter.Location = New-Object System.Drawing.Point(420, 660)
+$BtnQuitter.Width = 100
+$BtnQuitter.Height = 35
+$BtnQuitter.Font = New-Object System.Drawing.Font("Segoe UI", 10)
+$BtnQuitter.BackColor = [System.Drawing.Color]::LightCoral
+$BtnQuitter.Add_Click({
+    Export-Selection -Checkboxes $Checkboxes
+    Write-LogSelective "Fermeture par l utilisateur (bouton Quitter)" "INFO"
+    $Form.Close()
+})
+$Form.Controls.Add($BtnQuitter)
+
 # ============================================================
 # Chargement automatique de la derniere selection
 # ============================================================
 $Form.Add_Shown({
-    Load-Selection -Checkboxes $Checkboxes | Out-Null
+    Import-Selection -Checkboxes $Checkboxes | Out-Null
 })
 
 # ============================================================
@@ -395,7 +410,7 @@ $BtnExecuter.Add_Click({
 
         if ($Result -eq [System.Windows.Forms.DialogResult]::Cancel) {
             Write-LogSelective "Fermeture par l utilisateur (aucun script coche)" "WARN"
-            Save-Selection -Checkboxes $Checkboxes
+            Export-Selection -Checkboxes $Checkboxes
             $Form.Close()
         }
         return
@@ -415,9 +430,34 @@ $BtnExecuter.Add_Click({
         $Form.Refresh()
 
         if (-not (Test-InternetConnection)) {
-            if (-not (Show-InternetPopup)) {
-                Write-LogSelective "Execution annulee - pas de connexion Internet" "WARN"
+            # Lister les scripts qui necessitent Internet
+            $ScriptsInternet = $Selected | Where-Object { $_.Net } | ForEach-Object { "[$($_.Num)] $($_.Desc)" }
+            $ScriptsInternetText = $ScriptsInternet -join "`n"
+
+            $Result = [System.Windows.Forms.MessageBox]::Show(
+                "Aucun acces Internet detecte.`n`nLes scripts suivants necessitent Internet :`n$ScriptsInternetText`n`nVoulez-vous :`n- OUI = Continuer SANS ces scripts`n- NON = Arreter completement`n- ANNULER = Revenir a la selection",
+                "Internet requis",
+                [System.Windows.Forms.MessageBoxButtons]::YesNoCancel,
+                [System.Windows.Forms.MessageBoxIcon]::Question
+            )
+
+            if ($Result -eq [System.Windows.Forms.DialogResult]::No) {
+                # Arreter completement
+                Write-LogSelective "Execution annulee par l utilisateur (pas de connexion Internet)" "WARN"
                 $ProgressLabel.Text = "Execution annulee (pas de connexion Internet)"
+                return
+            }
+            elseif ($Result -eq [System.Windows.Forms.DialogResult]::Yes) {
+                # Continuer sans les scripts Internet
+                $Selected = $Selected | Where-Object { -not $_.Net }
+                Write-LogSelective "Continuation sans les scripts Internet ($($ScriptsInternet.Count) script(s) ignores)" "WARN"
+                $ProgressLabel.Text = "Continuation sans les scripts necessitant Internet..."
+                $Form.Refresh()
+                Start-Sleep -Milliseconds 500
+            }
+            else {
+                # Cancel = revenir a la selection
+                $ProgressLabel.Text = "Pret"
                 return
             }
         }
@@ -494,7 +534,7 @@ $BtnExecuter.Add_Click({
     Write-LogSelective "=== EXECUTION TERMINEE ===" "OK"
 
     # --- Sauvegarder la selection ---
-    Save-Selection -Checkboxes $Checkboxes
+    Export-Selection -Checkboxes $Checkboxes
 
     # --- Compter les resultats ---
     $OkCount = ($Results.Values | Where-Object { $_ -eq "OK" }).Count
@@ -523,7 +563,7 @@ $BtnExecuter.Add_Click({
 # Sauvegarde automatique a la fermeture
 # ============================================================
 $Form.Add_FormClosing({
-    Save-Selection -Checkboxes $Checkboxes
+    Export-Selection -Checkboxes $Checkboxes
 })
 
 # ============================================================
