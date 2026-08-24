@@ -116,19 +116,39 @@ function Test-InternetConnection {
         Write-LogSelective "Test de connexion Internet..." "INFO"
     }
 
-    try {
-        $Test1 = Test-NetConnection -ComputerName "download.microsoft.com" -InformationLevel Quiet -ErrorAction Stop
-        $Test2 = Test-NetConnection -ComputerName "get.teamviewer.com" -InformationLevel Quiet -ErrorAction Stop
+    # Test TCP sur le port 443 (HTTPS) au lieu de ping ICMP
+    # Le ping ICMP est souvent bloque par les firewalls et tres lent
+    $Urls = @(
+        @{ Host = "download.microsoft.com"; Port = 443 },
+        @{ Host = "get.teamviewer.com"; Port = 443 }
+    )
 
-        if ($Test1 -and $Test2) {
-            if (-not $Silent) {
-                Write-LogSelective "Connexion Internet OK" "OK"
+    $Connected = $false
+    foreach ($Url in $Urls) {
+        try {
+            $TcpClient = New-Object System.Net.Sockets.TcpClient
+            $TcpClient.Connect($Url.Host, $Url.Port)
+            if ($TcpClient.Connected) {
+                $TcpClient.Close()
+                $Connected = $true
+                break
             }
-            return $true
+        }
+        catch {
+            # URL suivante
+        }
+        finally {
+            if ($TcpClient -ne $null) {
+                $TcpClient.Dispose()
+            }
         }
     }
-    catch {
-        # Echec silencieux
+
+    if ($Connected) {
+        if (-not $Silent) {
+            Write-LogSelective "Connexion Internet OK" "OK"
+        }
+        return $true
     }
 
     if (-not $Silent) {
