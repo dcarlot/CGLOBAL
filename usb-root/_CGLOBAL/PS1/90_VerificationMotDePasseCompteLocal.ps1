@@ -318,6 +318,19 @@ try {
 
     } while ($Password1 -ne $Password2)
 
+    # ------------------------------------------------------------------
+    # Verification : mot de passe vide refuse
+    # ------------------------------------------------------------------
+    if ([string]::IsNullOrWhiteSpace($Password1)) {
+        Write-Log "Mot de passe vide refuse" "WARN"
+        Show-CGlobalPopup `
+            -Message "Le mot de passe ne peut pas etre vide.`n`nVeuillez relancer le script et saisir un mot de passe valide." `
+            -Title "Mot de passe invalide" `
+            -Buttons "OK" `
+            -Icon "Stop"
+        exit 0
+    }
+
     # Convertir en SecureString
     $SecurePassword = ConvertTo-SecureString -String $Password1 -AsPlainText -Force
 
