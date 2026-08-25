@@ -343,14 +343,14 @@ $Form.Controls.Add($NetLabel)
 $LegendLabel = New-Object System.Windows.Forms.Label
 $LegendLabel.Text = "Legende : Vert = OK  |  Rouge = Erreur  |  Jaune = Warning"
 $LegendLabel.Font = New-Object System.Drawing.Font("Segoe UI", 8)
-$LegendLabel.Location = New-Object System.Drawing.Point(20, 700)
+$LegendLabel.Location = New-Object System.Drawing.Point(20, 650)
 $LegendLabel.Width = 400
 $LegendLabel.Height = 18
 $Form.Controls.Add($LegendLabel)
 
 # --- Barre de progression ---
 $ProgressBar = New-Object System.Windows.Forms.ProgressBar
-$ProgressBar.Location = New-Object System.Drawing.Point(20, 725)
+$ProgressBar.Location = New-Object System.Drawing.Point(20, 680)
 $ProgressBar.Width = 360
 $ProgressBar.Height = 20
 $ProgressBar.Minimum = 0
@@ -360,7 +360,7 @@ $Form.Controls.Add($ProgressBar)
 
 $ProgressLabel = New-Object System.Windows.Forms.Label
 $ProgressLabel.Text = "Pret"
-$ProgressLabel.Location = New-Object System.Drawing.Point(20, 750)
+$ProgressLabel.Location = New-Object System.Drawing.Point(20, 700)
 $ProgressLabel.Width = 500
 $ProgressLabel.Height = 20
 $Form.Controls.Add($ProgressLabel)
