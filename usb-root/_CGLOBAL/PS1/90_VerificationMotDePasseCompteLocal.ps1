@@ -10,73 +10,25 @@ Import-Module "C:\\_CGLOBAL\\PS1\\CGLOBAL.Common.psm1" -Force
 $LogFile = Get-CGlobalLogFile -ScriptPath $MyInvocation.MyCommand.Path
 Initialize-CGlobalLog -LogFile $LogFile
 
-# ------------------------------------------------------------------
-# P/Invoke LogonUser : seule methode fiable pour tester un mot de
-# passe vide. Contrairement a System.DirectoryServices.DirectoryEntry
-# (qui effectue une authentification de type "reseau"), LOGON32_LOGON_
-# INTERACTIVE n'est PAS bloque par la strategie de securite "Comptes :
-# limiter l'utilisation des mots de passe vides par les comptes locaux
-# a l'ouverture de session sur console uniquement" (LimitBlankPasswordUse),
-# activee par defaut sur Windows. C'est cette strategie qui faisait
-# echouer a tort l'ancien test des lors qu'un mot de passe avait deja
-# ete defini une fois puis vide.
-# ------------------------------------------------------------------
-if (-not ([System.Management.Automation.PSTypeName]'CGlobal.NativeMethods').Type) {
-    Add-Type -Namespace CGlobal -Name NativeMethods -MemberDefinition @"
-[DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-public static extern bool LogonUser(
-    string lpszUsername,
-    string lpszDomain,
-    string lpszPassword,
-    int dwLogonType,
-    int dwLogonProvider,
-    out IntPtr phToken);
+# ============================================================
+# API Windows LogonUser pour test d'authentification
+# ============================================================
+Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+public class AuthHelper {
+    [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+    public static extern bool LogonUser(string lpszUsername, string lpszDomain, string lpszPassword, int dwLogonType, int dwLogonProvider, out IntPtr phToken);
 
-[DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-public static extern bool CloseHandle(IntPtr handle);
+    [DllImport("kernel32.dll", SetLastError = true)]
+    public static extern bool CloseHandle(IntPtr hObject);
+
+    public const int LOGON32_LOGON_INTERACTIVE = 2;
+    public const int LOGON32_PROVIDER_DEFAULT = 0;
+    public const int ERROR_LOGON_FAILURE = 1326;
+    public const int ERROR_ACCOUNT_RESTRICTION = 1327;
+}
 "@
-}
-
-function Test-EmptyPasswordViaLogonUser {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$UserName
-    )
-
-    $LOGON32_LOGON_INTERACTIVE = 2
-    $LOGON32_PROVIDER_DEFAULT  = 0
-    $TokenHandle = [IntPtr]::Zero
-
-    try {
-        $Success = [CGlobal.NativeMethods]::LogonUser(
-            $UserName,
-            $env:COMPUTERNAME,
-            "",
-            $LOGON32_LOGON_INTERACTIVE,
-            $LOGON32_PROVIDER_DEFAULT,
-            [ref]$TokenHandle
-        )
-
-        if ($Success) {
-            [void][CGlobal.NativeMethods]::CloseHandle($TokenHandle)
-            Write-Log "LogonUser (interactif, MDP vide) reussi -> mot de passe vide" "INFO"
-            return $false   # authentification reussie avec MDP vide => pas de MDP
-        }
-        else {
-            $LastError = [System.Runtime.InteropServices.Marshal]::GetLastWin32Error()
-            Write-Log "LogonUser (interactif, MDP vide) echoue - code erreur Win32: $LastError" "INFO"
-            # 1326 = ERROR_LOGON_FAILURE (mauvais mot de passe) -> un MDP est bien defini
-            # 1327 = ERROR_INVALID_LOGON_HOURS, 1328 = ERROR_INVALID_WORKSTATION, etc.
-            # 1330 = ERROR_PASSWORD_EXPIRED
-            # Tout code d'echec ici signifie que le MDP vide a ete rejete => MDP present
-            return $true
-        }
-    }
-    catch {
-        Write-Log "Exception lors de l'appel LogonUser : $($_.Exception.Message)" "WARN"
-        return $null    # indetermine -> on se rabat sur les autres methodes
-    }
-}
 
 function Test-UserHasPassword {
     param(
@@ -85,20 +37,9 @@ function Test-UserHasPassword {
     )
 
     # ------------------------------------------------------------------
-    # Methode 0 (prioritaire) : LogonUser interactif avec MDP vide
-    # C'est la seule methode qui n'est pas biaisee par la strategie
-    # LimitBlankPasswordUse. On lui fait confiance en priorite.
-    # ------------------------------------------------------------------
-    $LogonUserResult = Test-EmptyPasswordViaLogonUser -UserName $UserName
-    if ($null -ne $LogonUserResult) {
-        return $LogonUserResult
-    }
-    Write-Log "Resultat LogonUser indetermine, poursuite avec methodes de secours" "WARN"
-
-    # ------------------------------------------------------------------
     # Methode 1 : [ADSI] PasswordAge
     # PasswordAge = 0  -> jamais de mot de passe defini
-    # PasswordAge > 0  -> un mot de passe a ete defini (mais peut etre vide maintenant)
+    # PasswordAge > 0  -> un mot de passe a ete defini (peut etre vide maintenant)
     # ------------------------------------------------------------------
     try {
         Write-Log "Verification via [ADSI] PasswordAge..." "INFO"
@@ -121,39 +62,45 @@ function Test-UserHasPassword {
     }
 
     # ------------------------------------------------------------------
-    # Methode 2 : test d'authentification avec mot de passe vide
-    # Si l'authentification reussit, le mot de passe est vide.
-    # Si elle echoue, le mot de passe est non vide.
+    # Methode 2 : LogonUser avec mot de passe vide (API Windows native)
+    # C'est la methode la plus fiable pour detecter un MDP vide.
+    # Si l'authentification reussit avec MDP vide -> MDP est vide.
+    # Si elle echoue avec ERROR_LOGON_FAILURE (1326) -> MDP est non vide.
     # ------------------------------------------------------------------
     try {
-        Write-Log "Test d'authentification avec mot de passe vide..." "INFO"
+        Write-Log "Test d'authentification Windows avec mot de passe vide (LogonUser)..." "INFO"
 
-        $Computer = $env:COMPUTERNAME
-        $Entry = New-Object System.DirectoryServices.DirectoryEntry("WinNT://$Computer/$UserName,user", $UserName, "")
+        $Token = [IntPtr]::Zero
+        $Result = [AuthHelper]::LogonUser($UserName, ".", "", [AuthHelper]::LOGON32_LOGON_INTERACTIVE, [AuthHelper]::LOGON32_PROVIDER_DEFAULT, [ref]$Token)
 
-        # Force une operation qui necessite l'authentification
-        # [void] supprime le warning "variable assigned but never used"
-        [void]$Entry.InvokeGet("Name")
+        if ($Result) {
+            # Authentification avec MDP vide REUSSIE -> le MDP est vide
+            [void][AuthHelper]::CloseHandle($Token)
+            Write-Log "LogonUser : authentification avec MDP vide REUSSIE -> MDP est vide" "INFO"
+            return $false
+        }
+        else {
+            $ErrorCode = [System.Runtime.InteropServices.Marshal]::GetLastWin32Error()
+            Write-Log "LogonUser : echec (code Win32: $ErrorCode)" "INFO"
 
-        # Si on arrive ici, l'authentification avec MDP vide a reussi
-        Write-Log "Authentification avec MDP vide reussie -> MDP est vide" "INFO"
-        return $false
-    }
-    catch [System.Runtime.InteropServices.COMException] {
-        $HResult = $_.Exception.HResult
-        Write-Log "Authentification avec MDP vide echouee (HResult: $HResult)" "INFO"
-
-        # HResult connus :
-        # 0x8007052E = -2147023570 = ERROR_LOGON_FAILURE (mauvais MDP)
-        # 0x80070005 = -2147024891 = E_ACCESSDENIED
-        # 0x800708C5 = -2147026747 = ERROR_PASSWORD_RESTRICTION
-        # Tous indiquent que le MDP n'est pas vide
-
-        Write-Log "Mot de passe non vide (authentification refusee)" "INFO"
-        return $true
+            if ($ErrorCode -eq [AuthHelper]::ERROR_LOGON_FAILURE) {
+                # Mauvais mot de passe = le MDP n'est PAS vide
+                Write-Log "LogonUser : ERROR_LOGON_FAILURE (1326) -> MDP est NON vide" "INFO"
+                return $true
+            }
+            elseif ($ErrorCode -eq [AuthHelper]::ERROR_ACCOUNT_RESTRICTION) {
+                # Compte avec restriction (ex: MDP vide interdit par politique)
+                # Dans ce cas, le MDP est vide mais on ne peut pas l'utiliser
+                Write-Log "LogonUser : ERROR_ACCOUNT_RESTRICTION (1327) -> MDP vide mais interdit" "INFO"
+                return $false
+            }
+            else {
+                Write-Log "LogonUser : code d'erreur inattendu ($ErrorCode)" "WARN"
+            }
+        }
     }
     catch {
-        Write-Log "Exception inattendue lors du test d'authentification : $($_.Exception.Message)" "WARN"
+        Write-Log "Exception LogonUser : $($_.Exception.Message)" "WARN"
     }
 
     # ------------------------------------------------------------------
