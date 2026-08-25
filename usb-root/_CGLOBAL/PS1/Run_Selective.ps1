@@ -182,17 +182,28 @@ function Show-InternetPopup {
 # ============================================================
 # Creation du formulaire principal
 # ============================================================
+# --- DPI Awareness : evite le flou sur les ecrans a 125% / 150% ---
+Add-Type -TypeDefinition @"
+using System.Runtime.InteropServices;
+public class DpiHelper {
+    [DllImport("user32.dll")]
+    public static extern bool SetProcessDPIAware();
+}
+"@
+[DpiHelper]::SetProcessDPIAware()
+
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
 $Form = New-Object System.Windows.Forms.Form
 $Form.Text = "CGLOBAL - Mode Selectif"
 $Form.Width = 600
-$Form.Height = 780
+$Form.Height = 840
 $Form.StartPosition = "CenterScreen"
 $Form.FormBorderStyle = "FixedDialog"
 $Form.MaximizeBox = $false
 $Form.MinimizeBox = $false
+$Form.AutoScaleMode = [System.Windows.Forms.AutoScaleMode]::Dpi
 
 # --- Titre ---
 $TitleLabel = New-Object System.Windows.Forms.Label
@@ -332,14 +343,14 @@ $Form.Controls.Add($NetLabel)
 $LegendLabel = New-Object System.Windows.Forms.Label
 $LegendLabel.Text = "Legende : Vert = OK  |  Rouge = Erreur  |  Jaune = Warning"
 $LegendLabel.Font = New-Object System.Drawing.Font("Segoe UI", 8)
-$LegendLabel.Location = New-Object System.Drawing.Point(20, 640)
+$LegendLabel.Location = New-Object System.Drawing.Point(20, 700)
 $LegendLabel.Width = 400
 $LegendLabel.Height = 18
 $Form.Controls.Add($LegendLabel)
 
 # --- Barre de progression ---
 $ProgressBar = New-Object System.Windows.Forms.ProgressBar
-$ProgressBar.Location = New-Object System.Drawing.Point(20, 665)
+$ProgressBar.Location = New-Object System.Drawing.Point(20, 725)
 $ProgressBar.Width = 360
 $ProgressBar.Height = 20
 $ProgressBar.Minimum = 0
@@ -349,7 +360,7 @@ $Form.Controls.Add($ProgressBar)
 
 $ProgressLabel = New-Object System.Windows.Forms.Label
 $ProgressLabel.Text = "Pret"
-$ProgressLabel.Location = New-Object System.Drawing.Point(20, 690)
+$ProgressLabel.Location = New-Object System.Drawing.Point(20, 750)
 $ProgressLabel.Width = 500
 $ProgressLabel.Height = 20
 $Form.Controls.Add($ProgressLabel)
@@ -357,7 +368,7 @@ $Form.Controls.Add($ProgressLabel)
 # --- Bouton Executer ---
 $BtnExecuter = New-Object System.Windows.Forms.Button
 $BtnExecuter.Text = "Executer"
-$BtnExecuter.Location = New-Object System.Drawing.Point(310, 660)
+$BtnExecuter.Location = New-Object System.Drawing.Point(310, 720)
 $BtnExecuter.Width = 100
 $BtnExecuter.Height = 35
 $BtnExecuter.Font = New-Object System.Drawing.Font("Segoe UI", 10, [System.Drawing.FontStyle]::Bold)
@@ -367,7 +378,7 @@ $Form.Controls.Add($BtnExecuter)
 # --- Bouton Quitter ---
 $BtnQuitter = New-Object System.Windows.Forms.Button
 $BtnQuitter.Text = "Quitter"
-$BtnQuitter.Location = New-Object System.Drawing.Point(420, 660)
+$BtnQuitter.Location = New-Object System.Drawing.Point(420, 720)
 $BtnQuitter.Width = 100
 $BtnQuitter.Height = 35
 $BtnQuitter.Font = New-Object System.Drawing.Font("Segoe UI", 10)
