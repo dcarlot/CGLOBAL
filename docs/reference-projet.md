@@ -307,7 +307,7 @@ Permettre de choisir manuellement les scripts à exécuter, plutôt que de lance
 06_RechercheBarreTaches.ps1
 07_MasquerVueTaches.ps1
 08_MasquerWidgets.ps1
-09_MasquerBoutonChatTeams.ps1
+09_MSStoreBarreTache.ps1
 
 10_DesactiverReprendre.ps1
 
@@ -345,7 +345,7 @@ Le script 90 reste volontairement le dernier script fonctionnel avant le script 
 | 06 | `06_RechercheBarreTaches.ps1` | Affichage uniquement de l'icône recherche | VALIDÉ | Concerne l'interface de recherche |
 | 07 | `07_MasquerVueTaches.ps1` | Masquage du bouton Vue des tâches | VALIDÉ | Valeur enregistrée dans le registre |
 | 08 | `08_MasquerWidgets.ps1` | Désinstallation complète du package Widgets | À VALIDER | Suppression AppxPackage + provisioning + restart Explorer |
-| 09 | `09_MasquerBoutonChatTeams.ps1` | Masquer le bouton Chat Teams de la barre des tâches | EN TEST | Masquage du bouton Chat (Microsoft Teams) |
+| 09 | `09_MSStoreBarreTache.ps1` | Masquer le bouton MS Store de la barre des tâches | EN TEST | Masquage du bouton Microsoft Store |
 | 10 | `10_DesactiverReprendre.ps1` | Désactivation de l'option Reprendre | VALIDÉ | Vérifié sur Windows 11 25H2 |
 | 11 | `11_ConfidentialiteLocalisation.ps1` | Paramètres de confidentialité / localisation | VALIDÉ | Gère le cas clé absente |
 | 12 | `12_ConfigurerProfilParDefaut.ps1` | Configuration des futurs profils utilisateurs | VALIDÉ | Menu contextuel classique corrigé (Set-ItemProperty) |
