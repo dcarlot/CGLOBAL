@@ -93,7 +93,7 @@ $Scripts = @(
     @{ Num="06"; File="06_RechercheBarreTaches.ps1"; Desc="Recherche en mode icone"; Tooltip="Affiche uniquement l icone de recherche (pas la barre complete)"; Net=$false },
     @{ Num="07"; File="07_MasquerVueTaches.ps1"; Desc="Masquer le bouton Vue des taches"; Tooltip="Masque le bouton Vue des taches de la barre des taches"; Net=$false },
     @{ Num="08"; File="08_MasquerWidgets.ps1"; Desc="Desinstaller les Widgets"; Tooltip="Desinstalle completement le package Windows Web Experience Pack (Widgets)"; Net=$false },
-    @{ Num="09"; File="09_MSStoreBarreTache.ps1"; Desc="Masquer bouton MS Store"; Tooltip="Masque le bouton Microsoft Store de la barre des taches"; Net=$false },
+    @{ Num="09"; File="09_MSStoreBarreTache.ps1"; Desc="Supprimer MS Store barre des taches"; Tooltip="Supprime l epingle Microsoft Store de la barre des taches et bloque son retour"; Net=$false },
     @{ Num="10"; File="10_DesactiverReprendre.ps1"; Desc="Desactiver Reprendre"; Tooltip="Desactive la fonction Reprendre (Resume) au demarrage"; Net=$false },
     @{ Num="11"; File="11_ConfidentialiteLocalisation.ps1"; Desc="Confidentialite / localisation"; Tooltip="Desactive les notifications de localisation et le remplacement de localisation"; Net=$false },
     @{ Num="12"; File="12_ConfigurerProfilParDefaut.ps1"; Desc="Configurer profil par defaut"; Tooltip="Configure les reglages pour les futurs profils utilisateurs (NTUSER.DAT)"; Net=$false },
