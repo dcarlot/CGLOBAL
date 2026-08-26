@@ -6,7 +6,7 @@ param()
 
 $ErrorActionPreference = 'Stop'
 
-Import-Module "C:\\_CGLOBAL\\PS1\\CGLOBAL.Common.psm1" -Force
+Import-Module "C:\_CGLOBAL\PS1\CGLOBAL.Common.psm1" -Force
 $LogFile = Get-CGlobalLogFile -ScriptPath $MyInvocation.MyCommand.Path
 Initialize-CGlobalLog -LogFile $LogFile
 
@@ -219,8 +219,10 @@ try {
     }
 
     # ------------------------------------------------------------------
-    # POPUP : Saisie du mot de passe (2 fois)
+    # POPUP : Saisie du mot de passe (boucle jusqu'a validation)
     # ------------------------------------------------------------------
+
+    $PasswordValid = $false
 
     do {
         $PasswordForm = New-Object System.Windows.Forms.Form
@@ -291,6 +293,22 @@ try {
 
         $PasswordForm.Dispose()
 
+        # ------------------------------------------------------------------
+        # Verification : mot de passe vide refuse (retour en boucle)
+        # ------------------------------------------------------------------
+        if ([string]::IsNullOrWhiteSpace($Password1)) {
+            Write-Log "Mot de passe vide refuse" "WARN"
+            Show-CGlobalPopup `
+                -Message "Le mot de passe ne peut pas etre vide.`n`nVeuillez saisir un mot de passe valide." `
+                -Title "Mot de passe invalide" `
+                -Buttons "OK" `
+                -Icon "Exclamation"
+            continue
+        }
+
+        # ------------------------------------------------------------------
+        # Verification : correspondance des deux saisies
+        # ------------------------------------------------------------------
         if ($Password1 -ne $Password2) {
             $ErrorForm = New-Object System.Windows.Forms.Form
             $ErrorForm.Text = "Erreur"
@@ -314,22 +332,12 @@ try {
 
             $ErrorForm.ShowDialog()
             $ErrorForm.Dispose()
+            continue
         }
 
-    } while ($Password1 -ne $Password2)
+        $PasswordValid = $true
 
-    # ------------------------------------------------------------------
-    # Verification : mot de passe vide refuse
-    # ------------------------------------------------------------------
-    if ([string]::IsNullOrWhiteSpace($Password1)) {
-        Write-Log "Mot de passe vide refuse" "WARN"
-        Show-CGlobalPopup `
-            -Message "Le mot de passe ne peut pas etre vide.`n`nVeuillez relancer le script et saisir un mot de passe valide." `
-            -Title "Mot de passe invalide" `
-            -Buttons "OK" `
-            -Icon "Stop"
-        exit 0
-    }
+    } while (-not $PasswordValid)
 
     # Convertir en SecureString
     $SecurePassword = ConvertTo-SecureString -String $Password1 -AsPlainText -Force
