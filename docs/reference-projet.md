@@ -1,21 +1,19 @@
-# Projet CGLOBAL
-
 ## Sommaire
 
-- [1. Contexte général](#1-contexte-général)
-- [2. Principes techniques retenus](#2-principes-techniques-retenus)
-- [3. Arborescence du kit](#3-arborescence-du-kit)
-- [4. Batch principal : Run_Install.cmd](#4-batch-principal--run_installcmd)
-- [5. Ordre des scripts](#5-ordre-des-scripts)
-- [Glossaire](#glossaire)
-- [Tableau récapitulatif des scripts](#tableau-récapitulatif-des-scripts)
-- [6. État détaillé des scripts](#6-état-détaillé-des-scripts)
-- [7. Particularités Windows 11 25H2 observées](#7-particularités-windows-11-25h2-observées)
-- [8. Décisions validées](#8-décisions-validées)
-- [9. Points restant à traiter ou à valider](#9-points-restant-à-traiter-ou-à-valider)
-- [10. Démarrage d'un nouveau chat](#10-démarrage-dun-nouveau-chat)
+- 1\. Contexte général
+- 2\. Principes techniques retenus
+- 3\. Arborescence du kit
+- 4\. Batch principal : Run_Install.cmd
+- 5\. Ordre des scripts
+- Glossaire
+- Tableau récapitulatif des scripts
+- 6\. État détaillé des scripts
+- 7\. Particularités Windows 11 25H2 observées
+- 8\. Décisions validées
+- 9\. Points restant à traiter ou à valider
+- 10\. Démarrage d'un nouveau chat
 
-## 1. Contexte général
+## 1\. Contexte général
 
 Projet d'automatisation post-installation pour des postes Windows 11, principalement validé sur Windows 11 25H2, dans un contexte MSP.
 
@@ -33,7 +31,7 @@ Projet d'automatisation post-installation pour des postes Windows 11, principale
 
 ---
 
-## 2. Principes techniques retenus
+## 2\. Principes techniques retenus
 
 ### Scripts PowerShell
 
@@ -54,7 +52,7 @@ Un module PowerShell partagé centralise les fonctionnalités communes :
 
 Tous les scripts actifs utilisent le même en-tête :
 
-```powershell
+```
 #Requires -Version 5.1
 #Requires -RunAsAdministrator
 
@@ -66,6 +64,7 @@ Initialize-CGlobalLog -LogFile $LogFile
 ```
 
 Cet en-tête garantit :
+
 - une génération automatique du chemin log (pas de redondance entre scripts) ;
 - la disponibilité de `Write-Log` sans réimplémentation locale ;
 - une cohérence sur la gestion des erreurs via `$ErrorActionPreference` ;
@@ -87,12 +86,14 @@ Les erreurs non critiques doivent être journalisées en `WARN` sans interrompre
 Depuis août 2026, les interactions avec l'utilisateur utilisent des popups graphiques via la fonction `Show-CGlobalPopup` du module `CGLOBAL.Common.psm1`, remplaçant les saisies console (`Read-Host`) et les messages `Write-Host`.
 
 **Fonction `Show-CGlobalPopup` :**
+
 - Paramètres : `-Message`, `-Title`, `-Buttons`, `-Icon`
 - Boutons disponibles : `OK`, `OKCancel`, `YesNo`, `YesNoCancel`
 - Icônes disponibles : `None`, `Question`, `Exclamation`, `Stop`, `Information`
 - Retour : `[System.Windows.Forms.DialogResult]` (ex: `Yes`, `No`, `OK`, `Cancel`)
 
 **Scripts utilisant des popups :**
+
 - Script 14 : Confirmation de désinstallation Office
 - Script 16 : Contrôle Internet (via le batch)
 - Script 17 : Confirmation de désinstallation OneDrive
@@ -100,6 +101,7 @@ Depuis août 2026, les interactions avec l'utilisateur utilisent des popups grap
 - Script 99 : Confirmation de restauration des paramètres
 
 **Avantages :**
+
 - Interface plus professionnelle et lisible
 - Cohérence entre tous les scripts
 - Meilleure expérience utilisateur (boutons clairs, pas de saisie texte)
@@ -110,6 +112,7 @@ Depuis août 2026, les interactions avec l'utilisateur utilisent des popups grap
 Des problèmes d'affichage des caractères accentués ont été constatés dans la console et certains fichiers de log sous Windows PowerShell 5.1.
 
 Décision actuelle :
+
 - conserver les scripts fonctionnels en l'état ;
 - utiliser si nécessaire des messages sans accents dans les scripts sensibles ;
 - conserver `chcp 65001` dans le batch principal ;
@@ -118,8 +121,10 @@ Décision actuelle :
 ### Redémarrage d'Explorer
 
 Décision retenue :
+
 - ne pas redémarrer Explorer après chaque script de personnalisation ;
 - le script 08 redémarre Explorer après désinstallation du package Widgets (nécessaire pour refléter la suppression) ;
+- le script 09 redémarre Explorer après suppression du raccourci Microsoft Store ;
 - prévoir éventuellement un seul redémarrage d'Explorer en fin de séquence une fois tous les scripts d'interface validés.
 
 ---
@@ -127,48 +132,60 @@ Décision retenue :
 ## Glossaire
 
 ### UCPD
+
 User Choice Protection Driver. Pilote de protection de la sélection utilisateur, connu pour bloquer certaines modifications du registre ou de l'interface de Windows 11, notamment sur des valeurs liées à la barre des tâches et aux widgets.
 
 ### WinGet
+
 Outil de gestion des paquets Microsoft pour installer, mettre à jour et désinstaller des applications de manière standardisée à partir de manifests et de sources configurées.
 
 ### C2R
+
 Click-to-Run. Modèle d'installation des applications Microsoft 365 / Office via le mécanisme C2R, souvent observé avec des installations OEM ou Microsoft 365.
 
 ### MSI
+
 Windows Installer. Format d'installation Windows utilisé par de nombreuses applications, exploité via la commande `msiexec.exe`.
 
 ### HKCU / HKLM / HKU
+
 Racines du registre Windows :
+
 - `HKCU` : paramètres du compte utilisateur courant ;
 - `HKLM` : paramètres système pour le poste ;
 - `HKU` : profil utilisateur chargés / hives utilisateur.
 
 ### NTUSER.DAT
+
 Fichier du profil utilisateur par défaut, utilisé comme modèle pour les futurs profils utilisateurs sur un poste Windows.
 
-### HKEY_USERS\.DEFAULT
+### HKEY_USERS.DEFAULT
+
 Hive du profil par défaut dans le registre du système. À distinguer du fichier `C:\Users\Default\NTUSER.DAT` utilisé pour les nouveaux profils.
 
 ### TeamViewer QS
+
 TeamViewer QuickSupport. Version légère de TeamViewer destinée au support client et au téléchargement depuis une URL dynamique de configuration CGLOBAL.
 
 ### Robocopy
+
 Outil de synchronisation de fichiers intégré à Windows, utilisé pour recopier et maintenir le dépôt `_CGLOBAL` depuis la clé USB vers le poste cible.
 
 ### Log / journalisation
+
 Fichier de trace produit par chaque script, stocké dans `C:\_CGLOBAL\Logs\` avec un nom dérivé automatiquement du nom du script (ex. : `Log01_Bureau.txt` pour le script `01_Bureau.ps1`). Les opérations, avertissements et erreurs y sont enregistrés dans un journal distinct par script via la fonction `Write-Log` du module centralisé.
 
 ### Profil par défaut
+
 Modèle de configuration utilisé pour les futurs profils créés sur le poste. Les paramètres appliqués ici doivent être conservés sans dépendre de l'état d'un profil existant.
 
 ---
 
-## 3. Arborescence du kit
+## 3\. Arborescence du kit
 
 ### Sur la clé USB
 
-```text
+```
 X:\
 └── _CGLOBAL
     ├── PS1
@@ -180,7 +197,7 @@ Le fichier `Run_Install.cmd` est lancé depuis la clé USB et détecte automatiq
 
 ### Sur le poste cible
 
-```text
+```
 C:\_CGLOBAL
 ├── Logs
 ├── PS1
@@ -191,7 +208,7 @@ Le dossier `Temp` peut être créé temporairement par certains scripts, puis su
 
 ---
 
-## 4. Batch principal : Run_Install.cmd
+## 4\. Batch principal : Run_Install.cmd
 
 ### Fonctions principales
 
@@ -206,20 +223,20 @@ Le dossier `Temp` peut être créé temporairement par certains scripts, puis su
 
 ### Principe de la sous-routine
 
-```bat
+```
 call :RunPS "01_Bureau.ps1"
 call :RunPS "02_MenuContextuelClassique.ps1"
 ```
 
 La sous-routine appelle :
 
-```bat
+```
 powershell.exe -ExecutionPolicy Bypass -File "C:\_CGLOBAL\PS1\%~1"
 ```
 
 En cas d'échec :
 
-```text
+```
 [WARN] Le script a retourné une erreur
 ```
 
@@ -228,6 +245,7 @@ Le déploiement continue.
 ### Contrôle Internet
 
 Un contrôle Internet doit être effectué avant les scripts nécessitant un accès en ligne, notamment :
+
 - WinGet ;
 - TeamViewer QuickSupport.
 
@@ -236,6 +254,7 @@ Un contrôle Internet doit être effectué avant les scripts nécessitant un acc
 **Implémentation :** Le batch utilise une popup graphique via `Show-CGlobalPopup` (module `CGLOBAL.Common.psm1`) pour demander à l'utilisateur de réessayer ou d'interrompre le déploiement.
 
 **Comportement :**
+
 1. Test automatique au lancement (download.microsoft.com + get.teamviewer.com)
 2. Si échec : popup "Aucun acces Internet detecte. Winget et TeamViewer necessitent une connexion Internet. Voulez-vous reessayer ?"
 3. Boutons : Oui (réessayer) / Non (interrompre)
@@ -246,13 +265,16 @@ Un contrôle Internet doit être effectué avant les scripts nécessitant un acc
 ## 4b. Mode sélectif : Run_Selective.cmd + Run_Selective.ps1
 
 ### Objectif
+
 Permettre de choisir manuellement les scripts à exécuter, plutôt que de lancer la séquence complète automatiquement.
 
 ### Fichiers
+
 - `Run_Selective.cmd` : batch d'entrée (vérifie les droits admin, synchronise la clé USB, lance le PS1)
 - `Run_Selective.ps1` : interface graphique PowerShell (formulaire Windows Forms avec cases à cocher)
 
 ### Interface
+
 - Liste des 20 scripts dans l'ordre de numérotation, avec description
 - Cases à cocher individuelles pour chaque script
 - Scripts nécessitant Internet (15, 16) affichés en **orange**
@@ -262,6 +284,7 @@ Permettre de choisir manuellement les scripts à exécuter, plutôt que de lance
 - Barre de progression pendant l'exécution
 
 ### Logique d'exécution
+
 1. Vérification qu'au moins un script est coché
    - Si aucun : popup "Attention, aucun script coché" avec choix **Revenir** (retour à la sélection) ou **Quitter** (fermeture)
 2. Si un script Internet est coché : test de connexion Internet (même logique que `Run_Install.cmd`)
@@ -270,6 +293,7 @@ Permettre de choisir manuellement les scripts à exécuter, plutôt que de lance
 5. Log global dans `C:\_CGLOBAL\Logs\LogRun_Selective.txt`
 
 ### Fonctionnalites
+
 - **Info-bulles (ToolTips)** : survoler un script affiche sa description complete
 - **Resultat visuel** : couleur de fond des cases apres execution
   - 🟢 Vert = succes (exit code 0)
@@ -283,8 +307,9 @@ Permettre de choisir manuellement les scripts à exécuter, plutôt que de lance
 - **Test Internet** : identique a `Run_Install.cmd` (`Test-NetConnection` sur download.microsoft.com et get.teamviewer.com)
 
 ### Cas d'usage
+
 - Tester un script isolé sans relancer toute la séquence
-- Relancer un script qui a échoue lors d'un deploiement precedent
+- Relancer un script qui a echoue lors d'un deploiement precedent
 - Deboguer un nouveau script en phase de developpement
 - Personnaliser le deploiement selon le contexte client
 
@@ -292,11 +317,11 @@ Permettre de choisir manuellement les scripts à exécuter, plutôt que de lance
 
 ---
 
-## 5. Ordre des scripts
+## 5\. Ordre des scripts
 
 ### Ordre cible des scripts
 
-```text
+```
 00_ModeDeploiement.ps1
 
 01_Bureau.ps1
@@ -335,44 +360,45 @@ Le script 90 reste volontairement le dernier script fonctionnel avant le script 
 ## Tableau récapitulatif des scripts
 
 | Script | Fichier | Objectif principal | État | Commentaire |
-|---|---|---|---|---|
-| 00 | `00_ModeDeploiement.ps1` | Préparer le poste avant le déploiement | À VALIDER | Paramétrage énergie / Windows Update |
-| 01 | `01_Bureau.ps1` | Affichage des icônes système sur le bureau | VALIDÉ | Reste limité sur la position exacte |
-| 02 | `02_MenuContextuelClassique.ps1` | Restauration du menu contextuel classique | VALIDÉ POUR L'UTILISATEUR COURANT | Non hérité dans le profil par défaut |
-| 03 | `03_Explorateur.ps1` | Ouvrir l'Explorateur sur Ce PC / extensions visibles | VALIDÉ | Paramètres Explorer validés |
-| 04 | `04_ZoneNotification.ps1` | Affichage des icônes déjà connues dans la zone de notification | VALIDÉ | Les nouvelles icônes restent gérées manuellement |
-| 05 | `05_BarreTachesGauche.ps1` | Alignement de la barre des tâches à gauche | VALIDÉ | Option de suppression de Store non implémentée |
-| 06 | `06_RechercheBarreTaches.ps1` | Affichage uniquement de l'icône recherche | VALIDÉ | Concerne l'interface de recherche |
-| 07 | `07_MasquerVueTaches.ps1` | Masquage du bouton Vue des tâches | VALIDÉ | Valeur enregistrée dans le registre |
+| --- | --- | --- | --- | --- |
+| 00 | `00_ModeDeploiement.ps1` | Préparer le poste avant le déploiement | ✅ VALIDÉ | Paramétrage énergie / Windows Update |
+| 01 | `01_Bureau.ps1` | Affichage des icônes système sur le bureau | ✅ VALIDÉ | Reste limité sur la position exacte |
+| 02 | `02_MenuContextuelClassique.ps1` | Restauration du menu contextuel classique | ✅ VALIDÉ POUR L'UTILISATEUR COURANT | Non hérité dans le profil par défaut |
+| 03 | `03_Explorateur.ps1` | Ouvrir l'Explorateur sur Ce PC / extensions visibles | ✅ VALIDÉ | Paramètres Explorer validés |
+| 04 | `04_ZoneNotification.ps1` | Affichage des icônes déjà connues dans la zone de notification | ✅ VALIDÉ | Les nouvelles icônes restent gérées manuellement |
+| 05 | `05_BarreTachesGauche.ps1` | Alignement de la barre des tâches à gauche | ✅ VALIDÉ | Option de suppression de Store non implémentée |
+| 06 | `06_RechercheBarreTaches.ps1` | Affichage uniquement de l'icône recherche | ✅ VALIDÉ | Concerne l'interface de recherche |
+| 07 | `07_MasquerVueTaches.ps1` | Masquage du bouton Vue des tâches | ✅ VALIDÉ | Valeur enregistrée dans le registre |
 | 08 | `08_MasquerWidgets.ps1` | Désinstallation complète du package Widgets | À VALIDER | Suppression AppxPackage + provisioning + restart Explorer |
-| 09 | `09_MSStoreBarreTache.ps1` | Masquer le bouton MS Store de la barre des tâches | EN TEST | Masquage du bouton Microsoft Store |
-| 10 | `10_DesactiverReprendre.ps1` | Désactivation de l'option Reprendre | VALIDÉ | Vérifié sur Windows 11 25H2 |
-| 11 | `11_ConfidentialiteLocalisation.ps1` | Paramètres de confidentialité / localisation | VALIDÉ | Gère le cas clé absente |
-| 12 | `12_ConfigurerProfilParDefaut.ps1` | Configuration des futurs profils utilisateurs | VALIDÉ | Menu contextuel classique corrigé (Set-ItemProperty) |
+| 09 | `09_MSStoreBarreTache.ps1` | Supprimer Microsoft Store de la barre des tâches | À VALIDER | Suppression .lnk + LayoutModification.xml Replace + registre HKCU/HKLM |
+| 10 | `10_DesactiverReprendre.ps1` | Désactivation de l'option Reprendre | ✅ VALIDÉ | Vérifié sur Windows 11 25H2 |
+| 11 | `11_ConfidentialiteLocalisation.ps1` | Paramètres de confidentialité / localisation | ✅ VALIDÉ | Gère le cas clé absente |
+| 12 | `12_ConfigurerProfilParDefaut.ps1` | Configuration des futurs profils utilisateurs | ✅ VALIDÉ | Menu contextuel classique corrigé (Set-ItemProperty) |
 | 13 | `13_NumLockDemarrage.ps1` | Forcer NumLock au démarrage | FIGÉ / COMPORTEMENT ACCEPTÉ | Comportement variable selon le poste |
-| 14 | `14_DesinstallationOffice.ps1` | Détection et désinstallation d'Office / OneNote | VALIDÉ | Popup confirmation + gestion MSI/C2R + OneNote |
-| 15 | `15_ApplicationsWinget.ps1` | Installation et mise à jour des applications via WinGet | VALIDÉ | Gestion du cache local et synchronisation |
-| 16 | `16_TeamViewerQS.ps1` | Téléchargement et mise à jour de TeamViewer QS | VALIDÉ | API TeamViewer + téléchargement direct |
-| 17 | `17_DesinstallationOneDrive.ps1` | Détection et désinstallation de OneDrive | VALIDÉ | UninstallString + AppX provisionne + gestion erreurs gracieuse |
-| 90 | `90_VerificationMotDePasseCompteLocal.ps1` | Vérifier un mot de passe local | À VALIDER | LogonUser API Windows (test authentification MDP vide) |
-| 99 | `99_FinDeploiement.ps1` | Restauration du mode déploiement | VALIDÉ | Popup confirmation + restauration paramètres |
+| 14 | `14_DesinstallationOffice.ps1` | Détection et désinstallation d'Office / OneNote | ✅ VALIDÉ | Popup confirmation + gestion MSI/C2R + OneNote |
+| 15 | `15_ApplicationsWinget.ps1` | Installation et mise à jour des applications via WinGet | ✅ VALIDÉ | Gestion du cache local et synchronisation |
+| 16 | `16_TeamViewerQS.ps1` | Téléchargement et mise à jour de TeamViewer QS | ✅ VALIDÉ | API TeamViewer + téléchargement direct |
+| 17 | `17_DesinstallationOneDrive.ps1` | Détection et désinstallation de OneDrive | ✅ VALIDÉ | UninstallString + AppX provisionné + gestion erreurs gracieuse |
+| 90 | `90_VerificationMotDePasseCompteLocal.ps1` | Vérifier un mot de passe local | ✅ VALIDÉ | API Windows LogonUser — détection fiable du mot de passe vide |
+| 99 | `99_FinDeploiement.ps1` | Restauration du mode déploiement | ✅ VALIDÉ | Popup confirmation + restauration paramètres |
 
 > Le tableau ci-dessus synthétise l'état actuel des scripts du dépôt.
 
 ---
 
-## 6. État détaillé des scripts
+## 6\. État détaillé des scripts
 
 ### Script 00 : Mode déploiement
 
 **Nom :** `00_ModeDeploiement.ps1`
 
 **Fonction :** Préparer le poste avant le lancement du déploiement afin d'éviter :
+
 - la mise en veille ;
 - l'extinction automatique de l'écran ;
 - les redémarrages automatiques provoqués par Windows Update.
 
-**État :** À VALIDER
+**État :** ✅ VALIDÉ
 
 ---
 
@@ -382,7 +408,7 @@ Le script 90 reste volontairement le dernier script fonctionnel avant le script 
 
 **Fonction :** Affiche les icônes système souhaitées sur le Bureau : Ce PC, dossier utilisateur, Réseau, Corbeille, Panneau de configuration.
 
-**État :** VALIDÉ
+**État :** ✅ VALIDÉ
 
 ---
 
@@ -392,7 +418,7 @@ Le script 90 reste volontairement le dernier script fonctionnel avant le script 
 
 **Fonction :** Restaure le menu contextuel classique de Windows 11.
 
-**État :** VALIDÉ POUR L'UTILISATEUR COURANT
+**État :** ✅ VALIDÉ POUR L'UTILISATEUR COURANT
 
 ---
 
@@ -402,7 +428,7 @@ Le script 90 reste volontairement le dernier script fonctionnel avant le script 
 
 **Fonction :** Ouvre l'Explorateur sur Ce PC et affiche les extensions de fichiers connues.
 
-**État :** VALIDÉ
+**État :** ✅ VALIDÉ
 
 ---
 
@@ -412,7 +438,7 @@ Le script 90 reste volontairement le dernier script fonctionnel avant le script 
 
 **Fonction :** Affiche dans la zone de notification toutes les icônes déjà connues par le profil.
 
-**État :** VALIDÉ
+**État :** ✅ VALIDÉ
 
 ---
 
@@ -422,7 +448,7 @@ Le script 90 reste volontairement le dernier script fonctionnel avant le script 
 
 **Fonction :** Aligne les icônes de la barre des tâches à gauche.
 
-**État :** VALIDÉ
+**État :** ✅ VALIDÉ
 
 ---
 
@@ -432,7 +458,7 @@ Le script 90 reste volontairement le dernier script fonctionnel avant le script 
 
 **Fonction :** Affiche uniquement l'icône de recherche.
 
-**État :** VALIDÉ
+**État :** ✅ VALIDÉ
 
 ---
 
@@ -442,7 +468,7 @@ Le script 90 reste volontairement le dernier script fonctionnel avant le script 
 
 **Fonction :** Masque le bouton Vue des tâches.
 
-**État :** VALIDÉ
+**État :** ✅ VALIDÉ
 
 ---
 
@@ -453,6 +479,7 @@ Le script 90 reste volontairement le dernier script fonctionnel avant le script 
 **Fonction :** Désinstalle complètement le package Windows Web Experience Pack (Widgets) pour tous les utilisateurs existants et supprime le provisioning pour les futurs utilisateurs.
 
 **Procédure :**
+
 1. Arrêt des processus Widgets
 2. Détection du package `*WebExperience*` (utilisateurs + provisionné)
 3. Désinstallation via `Remove-AppxPackage -AllUsers`
@@ -463,16 +490,28 @@ Le script 90 reste volontairement le dernier script fonctionnel avant le script 
 
 ---
 
-### Script 09 : Masquer le bouton Chat Teams
+### Script 09 : Supprimer Microsoft Store de la barre des tâches
 
-**Nom :** `09_MasquerBoutonChatTeams.ps1`
+**Nom :** `09_MSStoreBarreTache.ps1`
 
-**Fonction :** Masque le bouton Chat (Microsoft Teams) de la barre des tâches.
+**Fonction :** Supprime l'épingle Microsoft Store de la barre des tâches pour l'utilisateur courant et bloque son retour pour les futurs utilisateurs.
 
 **Procédure :**
-1. Masquage du bouton Chat via registre
 
-**État :** EN TEST
+1. **Suppression physique du raccourci `.lnk`** dans `%APPDATA%\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar` — méthode la plus fiable sur Windows 11
+2. **Fallback COM** si le `.lnk` n'est pas trouvé (désépinglage via `Shell.Application`)
+3. **LayoutModification.xml** dans le profil par défaut avec `PinListPlacement="Replace"` (et non plus `Append`) pour contrôler les épingles par défaut des futurs utilisateurs — ne conserve que l'Explorateur de fichiers
+4. **Registre** `NoPinningStoreToTaskbar` en `HKCU` et `HKLM` pour bloquer l'épinglage futur
+5. **Redémarrage d'Explorer** si une modification a été appliquée
+
+**Corrections appliquées (août 2026) :**
+
+- Remplacement de la méthode COM (fragile sur Win11) par la suppression du fichier `.lnk` + redémarrage Explorer
+- `LayoutModification.xml` passe de `Append` à `Replace` (sinon le Store restait présent)
+- Suppression de la référence à Internet Explorer (obsolète)
+- Ajout du blocage registre en `HKLM` pour les futurs profils
+
+**État :** À VALIDER
 
 ---
 
@@ -482,7 +521,7 @@ Le script 90 reste volontairement le dernier script fonctionnel avant le script 
 
 **Fonction :** Désactive l'option Reprendre.
 
-**État :** VALIDÉ
+**État :** ✅ VALIDÉ
 
 ---
 
@@ -492,7 +531,7 @@ Le script 90 reste volontairement le dernier script fonctionnel avant le script 
 
 **Fonction :** Désactive les notifications de localisation et le remplacement de localisation.
 
-**État :** VALIDÉ
+**État :** ✅ VALIDÉ
 
 ---
 
@@ -503,6 +542,7 @@ Le script 90 reste volontairement le dernier script fonctionnel avant le script 
 **Fonction :** Configure les réglages initiaux des futurs utilisateurs en modifiant `C:\Users\Default\NTUSER.DAT`.
 
 **Procédure :**
+
 1. Chargement de `NTUSER.DAT` via `reg.exe LOAD`
 2. Application des réglages dans la ruche temporaire :
    - Icônes Bureau (Ce PC, Panneau de configuration, Corbeille, Réseau)
@@ -517,6 +557,7 @@ Le script 90 reste volontairement le dernier script fonctionnel avant le script 
 3. Déchargement propre de la ruche
 
 **Correction appliquée (août 2026) :**
+
 - **Problème :** Le menu contextuel classique n'était pas hérité par les futurs utilisateurs. La fonction `Set-DefaultUserString` utilisait `New-ItemProperty` qui crée une valeur **nommée** `(Default)` au lieu de modifier la **valeur par défaut** native de la clé.
 - **Correction :** Remplacement de `New-ItemProperty` par `Set-ItemProperty` dans `Set-DefaultUserString` (et `Set-DefaultUserDWord` pour cohérence). `Set-ItemProperty` interprète correctement `(Default)` comme la valeur par défaut de la clé.
 
@@ -541,6 +582,7 @@ Le script 90 reste volontairement le dernier script fonctionnel avant le script 
 **Fonction :** Détecte et propose la désinstallation de toutes les versions Office et OneNote présentes (C2R, MSI, OEM).
 
 **Procédure :**
+
 1. Recherche dans les clés de registre Uninstall (HKLM, HKCU, HKU)
 2. Détection des produits : Microsoft Office, 365, Project, Visio, **OneNote**
 3. Exclusion des mises à jour, MUI, redistribuables, runtime, licensing, proofing, help, language packs
@@ -549,11 +591,13 @@ Le script 90 reste volontairement le dernier script fonctionnel avant le script 
 6. Désinstallation via `UninstallString` (C2R ou MSI)
 
 **Interaction utilisateur :**
+
 - Popup de confirmation : "Voulez-vous desinstaller TOUTES ces versions d'Office / OneNote ?"
 - Boutons : Oui / Non
 - Si Non : journalisation WARN et sortie sans action
 
 **Modification appliquée (août 2026) :**
+
 - Ajout de **OneNote** dans la détection (FR-FR, EN-US, etc.)
 - Le regex `DisplayName` inclut désormais `Microsoft OneNote`
 - Exclusion élargie pour éviter les faux positifs (Proofing, Help, Language, Font, Theme, Visual Studio)
@@ -566,7 +610,7 @@ Le script 90 reste volontairement le dernier script fonctionnel avant le script 
 
 **Nom :** `15_ApplicationsWinget.ps1`
 
-**Fonction :** Installation et mise à jour des applications via WinGet depuis cache local : 7-Zip, Adobe Acrobat Reader 64 bits, Google Chrome, Mozilla Firefox français.
+**Fonction :** Installation et mise à jour des applications via WinGet depuis cache local : 7-Zip, Adobe Acrobat Reader 64 bits, Google Chrome, Mozilla Firefox.
 
 **État :** ✅ VALIDÉ
 
@@ -579,6 +623,7 @@ Le script 90 reste volontairement le dernier script fonctionnel avant le script 
 **Fonction :** Téléchargement et mise à jour de TeamViewer QS via l'API TeamViewer.
 
 **Procédure :**
+
 1. Appel API TeamViewer pour obtenir l'URL de téléchargement
 2. Téléchargement direct vers `C:\_CGLOBAL\TeamViewerQS.exe`
 3. Vérification de la signature numérique
@@ -595,31 +640,33 @@ Le script 90 reste volontairement le dernier script fonctionnel avant le script 
 **Fonction :** Détecte et propose la désinstallation complète de OneDrive, avec blocage pour les futurs profils utilisateurs.
 
 **Procédure :**
-1. Détection multi-couches :
-   - Package AppX utilisateur (`Get-AppxPackage`)
-   - Package AppX provisionné (`Get-AppxProvisionedPackage`)
-   - Exécutable (`OneDrive.exe`)
-   - Registre (Programmes et fonctionnalités)
-   - Dossiers d'installation
-2. Popup de confirmation : "OneDrive est installe sur ce poste. Voulez-vous le desinstaller ?"
-3. Arrêt des processus OneDrive
-4. Désinstallation via registre (`UninstallString`) en premier — méthode la plus propre
-5. Si échec ou fichier introuvable : fallback sur `OneDrive.exe /uninstall`
-6. Suppression de la clé de registre Uninstall :
-   - Si présente → suppression manuelle
-   - Si déjà absente (supprimée par le désinstalleur) → log OK
-7. Désinstallation AppX :
-   - Package utilisateur via `Remove-AppxPackage`
-   - Package provisionné via `Remove-AppxProvisionedPackage`
-   - Erreur `0x80073CF1` (package introuvable) gérée gracieusement
-8. Nettoyage des dossiers résiduels
-9. Blocage pour les futurs profils :
-   - `HKLM\SOFTWARE\Policies\Microsoft\Windows\OneDrive\DisableFileSyncNGSC = 1`
-   - Application au profil par défaut via montage `NTUSER.DAT` (`reg.exe LOAD/ADD/UNLOAD`)
+
+01. Détection multi-couches :
+    - Package AppX utilisateur (`Get-AppxPackage`)
+    - Package AppX provisionné (`Get-AppxProvisionedPackage`)
+    - Exécutable (`OneDrive.exe`)
+    - Registre (Programmes et fonctionnalités)
+    - Dossiers d'installation
+02. Popup de confirmation : "OneDrive est installe sur ce poste. Voulez-vous le desinstaller ?"
+03. Arrêt des processus OneDrive
+04. Désinstallation via registre (`UninstallString`) en premier — méthode la plus propre
+05. Si échec ou fichier introuvable : fallback sur `OneDrive.exe /uninstall`
+06. Suppression de la clé de registre Uninstall :
+    - Si présente → suppression manuelle
+    - Si déjà absente (supprimée par le désinstalleur) → log OK
+07. Désinstallation AppX :
+    - Package utilisateur via `Remove-AppxPackage`
+    - Package provisionné via `Remove-AppxProvisionedPackage`
+    - Erreur `0x80073CF1` (package introuvable) gérée gracieusement
+08. Nettoyage des dossiers résiduels
+09. Blocage pour les futurs profils :
+    - `HKLM\SOFTWARE\Policies\Microsoft\Windows\OneDrive\DisableFileSyncNGSC = 1`
+    - Application au profil par défaut via montage `NTUSER.DAT` (`reg.exe LOAD/ADD/UNLOAD`)
 10. Suppression des raccourcis (Menu Démarrer, Bureau public)
 11. Popup de confirmation finale
 
 **Corrections appliquées (août 2026) :**
+
 - **Ordre d'exécution inversé :** le `UninstallString` du registre est exécuté AVANT `OneDrive.exe /uninstall`.
 - **Parsing du UninstallString corrigé :** gestion robuste des guillemets.
 - **Suppression de la clé Uninstall :** gère le cas où OneDriveSetup.exe a déjà supprimé la clé.
@@ -639,30 +686,25 @@ Le script 90 reste volontairement le dernier script fonctionnel avant le script 
 **Contexte :** Le poste est configuré avec un compte local (poste neuf ou réinstallé).
 
 **Procédure :**
-1. Vérification du mot de passe via `[ADSI]` avec `PasswordAge` (méthode principale)
-   - `PasswordAge > 0` → mot de passe défini (sortie)
-   - `PasswordAge = 0` → aucun mot de passe (popup)
-2. Fallback sur `net user` via `cmd /c` + fichier temporaire :
-   - Parse la ligne "Mot de passe requis" / "Password required" (FR/EN)
-3. Dernier fallback sur `Get-LocalUser` :
-   - `PasswordRequired = $true` → MDP présent (sortie)
-   - `PasswordLastSet = $null` → jamais de MDP (popup)
 
-**Interaction utilisateur :**
-- Popup de confirmation : "Le compte local n'a pas de mot de passe. Souhaitez-vous definir un mot de passe ?"
-- Si Oui : formulaire de saisie avec 2 champs masqués (mot de passe + confirmation)
-- Boutons : Valider / Annuler
-- Validation : les 2 mots de passe doivent correspondre
-- Application : `Set-LocalUser -Password`
+1. Vérification du mot de passe via l'API Windows `LogonUser` (advapi32) avec un mot de passe vide :
+   - Authentification réussie → mot de passe vide (popup de saisie)
+   - Échec avec `ERROR_LOGON_FAILURE` (1326) → mot de passe non vide (sortie)
+2. Si mot de passe vide : popup de confirmation "Le compte local n'a pas de mot de passe. Souhaitez-vous definir un mot de passe ?"
+3. Si Oui : formulaire de saisie avec 2 champs masqués (mot de passe + confirmation)
+4. Validation : les 2 mots de passe doivent correspondre
+5. Application : `Set-LocalUser -Password`
 
-**Corrections appliquées (août 2026) :**
+**Historique des corrections :**
+
 - **Problème initial :** `PasswordRequired` utilisé seul retournait `$false` pour les comptes Microsoft/EntraID même avec un mot de passe défini → popup intempestif.
 - **Correction 1 :** Ajout de `PasswordLastSet` comme méthode de secours.
 - **Correction 2 :** `PasswordLastSet` garde la date même si le MDP est supprimé → faux négatif.
 - **Correction 3 :** `net user` retournait "Mot de passe requis Non" même avec MDP défini sur certains comptes locaux Windows 11.
-- **Correction finale :** Utilisation de `[ADSI]` avec `PasswordAge` comme méthode principale. C'est une API Windows native qui retourne l'âge du mot de passe en secondes (0 = pas de MDP). `net user` et `Get-LocalUser` sont conservés comme fallbacks.
+- **Correction finale (août 2026) :** Utilisation de l'API Windows `LogonUser` (advapi32) avec un mot de passe vide comme méthode principale. C'est une API Windows native qui teste directement l'authentification. `net user` et `Get-LocalUser` sont conservés comme fallbacks historiques.
+- **Correction boucle MDP vide (août 2026) :** La vérification du mot de passe vide était placée après la boucle `do…while` avec un `exit 0` brutal. Elle est désormais à l'intérieur de la boucle avec un `continue`, permettant à l'utilisateur de ressaisir un mot de passe valide au lieu de devoir relancer le script.
 
-**État :** À VALIDER (correction v8)
+**État :** ✅ VALIDÉ
 
 ---
 
@@ -673,6 +715,7 @@ Le script 90 reste volontairement le dernier script fonctionnel avant le script 
 **Fonction :** Permet à l'opérateur de restaurer ou non les paramètres modifiés par le script 00.
 
 **Interaction utilisateur :**
+
 - Popup d'information : liste des paramètres actifs (veille, écran, Windows Update)
 - Popup de confirmation : "Restaurer les parametres standards CGLOBAL ?"
 - Boutons : Oui / Non
@@ -683,16 +726,17 @@ Le script 90 reste volontairement le dernier script fonctionnel avant le script 
 
 ---
 
-## 7. Particularités Windows 11 25H2 observées
+## 7\. Particularités Windows 11 25H2 observées
 
 - **UCPD :** Le pilote User Choice Protection Driver peut bloquer l'écriture de certaines valeurs (ex. : `TaskbarDa` pour le bouton Widgets). Le script 08 contourne ce problème en désinstallant complètement le package plutôt qu'en tentant une modification registre.
 - **Profil par défaut :** Toutes les valeurs du script 12 sont héritées correctement, y compris le menu contextuel classique (corrigé via `Set-ItemProperty`). Le script 17 applique également le blocage OneDrive au profil par défaut via montage `NTUSER.DAT`.
 - **NumLock :** La valeur HKCU peut être réinitialisée au premier logon sur certains postes.
 - **Différences de mise à jour :** Deux postes Windows 11 25H2 peuvent présenter des clés différentes selon les mises à jour installées.
+- **Barre des tâches Windows 11 :** Les épingles ne sont plus gérées de la même manière que sous Windows 10. La méthode COM (`Shell.Application`) est fragile pour les applications modernes (UWP). La suppression du fichier `.lnk` dans `User Pinned\TaskBar` + redémarrage d'Explorer est plus fiable (script 09).
 
 ---
 
-## 8. Décisions validées
+## 8\. Décisions validées
 
 - Les scripts PowerShell sont stockés dans `_CGLOBAL\PS1`.
 - Les logs sont stockés dans `C:\_CGLOBAL\Logs`.
@@ -709,22 +753,22 @@ Le script 90 reste volontairement le dernier script fonctionnel avant le script 
 - Le script 90 est renommé et positionné en fin de séquence (avant le 99) pour éviter d'imposer la saisie d'un mot de passe entre plusieurs redémarrages.
 - Le script 90 utilise l'API Windows `LogonUser` (advapi32) avec un mot de passe vide comme méthode principale pour détecter l'état actuel du mot de passe. Si l'authentification réussit, le mot de passe est vide. Si elle échoue avec `ERROR_LOGON_FAILURE` (1326), le mot de passe est non vide.
 - Le script 08 contourne le blocage UCPD en désinstallant le package Widgets plutôt qu'en modifiant le registre.
+- Le script 09 supprime le raccourci `.lnk` du Store dans le dossier des épingles (`User Pinned\TaskBar`) et redémarre Explorer, car la méthode COM est trop fragile sur Windows 11 pour les applications UWP.
+- Le script 09 utilise `LayoutModification.xml` avec `PinListPlacement="Replace"` (et non plus `Append`) pour contrôler les épingles par défaut des futurs utilisateurs.
 - Le script 17 exécute le `UninstallString` du registre en premier (méthode propre), avec fallback sur `OneDrive.exe /uninstall`. La clé de registre Uninstall est supprimée si elle existe encore, ou considérée comme déjà nettoyée si absente. Les packages AppX provisionnés sont également supprimés via `Remove-AppxProvisionedPackage`.
 - Le script 12 utilise `Set-ItemProperty` au lieu de `New-ItemProperty` pour modifier la valeur `(Default)` du registre dans le profil par défaut, car `New-ItemProperty` crée une valeur nommée au lieu de modifier la valeur par défaut native.
 
 ---
 
-## 9. Points restant à traiter ou à valider
+## 9\. Points restant à traiter ou à valider
 
 ### Prioritaires
 
 - ✅ Contrôle Internet du batch : VALIDÉ (popup graphique)
-- Valider les scripts 00, 08, 09, 17 sur les cas de déploiement réel.
-- Vérifier la cycle complet du script 15 avec Firefox FR lors d'une future mise à jour.
+- Valider les scripts 08 et 09 sur les cas de déploiement réel.
 
 ### Reportés
 
-- Script 09 : finaliser le désépinglage de Microsoft Store et valider le blocage registre sur plusieurs postes.
 - Désactivation complète des Widgets (au-delà de la suppression du package).
 - Exécution automatique du script 02 au premier logon de chaque nouvel utilisateur (optionnel, le script 12 corrige maintenant le menu contextuel pour les futurs profils).
 - Éventuel redémarrage unique d'Explorer après les scripts d'interface.
@@ -732,7 +776,7 @@ Le script 90 reste volontairement le dernier script fonctionnel avant le script 
 
 ---
 
-# 10. Démarrage d'un nouveau chat
+## 10\. Démarrage d'un nouveau chat
 
 Utiliser le message suivant :
 
