@@ -116,8 +116,6 @@ function Test-InternetConnection {
         Write-LogSelective "Test de connexion Internet..." "INFO"
     }
 
-    # Test TCP sur le port 443 (HTTPS) au lieu de ping ICMP
-    # Le ping ICMP est souvent bloque par les firewalls et tres lent
     $Urls = @(
         @{ Host = "download.microsoft.com"; Port = 443 },
         @{ Host = "get.teamviewer.com"; Port = 443 }
@@ -182,7 +180,6 @@ function Show-InternetPopup {
 # ============================================================
 # Creation du formulaire principal
 # ============================================================
-# --- DPI Awareness : evite le flou sur les ecrans a 125% / 150% ---
 Add-Type -TypeDefinition @"
 using System.Runtime.InteropServices;
 public class DpiHelper {
@@ -197,8 +194,8 @@ Add-Type -AssemblyName System.Drawing
 
 $Form = New-Object System.Windows.Forms.Form
 $Form.Text = "CGLOBAL - Mode Selectif"
-$Form.Width = 600
-$Form.Height = 840
+$Form.Width = 920
+$Form.Height = 720
 $Form.StartPosition = "CenterScreen"
 $Form.FormBorderStyle = "FixedDialog"
 $Form.MaximizeBox = $false
@@ -210,7 +207,7 @@ $TitleLabel = New-Object System.Windows.Forms.Label
 $TitleLabel.Text = "CGLOBAL - Selection des scripts a executer"
 $TitleLabel.Font = New-Object System.Drawing.Font("Segoe UI", 12, [System.Drawing.FontStyle]::Bold)
 $TitleLabel.Location = New-Object System.Drawing.Point(20, 15)
-$TitleLabel.Width = 550
+$TitleLabel.Width = 860
 $TitleLabel.Height = 30
 $Form.Controls.Add($TitleLabel)
 
@@ -218,17 +215,16 @@ $Form.Controls.Add($TitleLabel)
 $SubLabel = New-Object System.Windows.Forms.Label
 $SubLabel.Text = "Cochez les scripts a lancer, puis cliquez sur Executer. Survolez un script pour voir sa description."
 $SubLabel.Font = New-Object System.Drawing.Font("Segoe UI", 9)
-$SubLabel.Location = New-Object System.Drawing.Point(20, 45)
-$SubLabel.Width = 550
+$SubLabel.Location = New-Object System.Drawing.Point(20, 50)
+$SubLabel.Width = 860
 $SubLabel.Height = 20
 $Form.Controls.Add($SubLabel)
 
-# --- Panel scrollable pour les checkboxes ---
+# --- Panel de gauche : liste des scripts (sans scroll) ---
 $Panel = New-Object System.Windows.Forms.Panel
-$Panel.Location = New-Object System.Drawing.Point(20, 75)
-$Panel.Width = 550
-$Panel.Height = 520
-$Panel.AutoScroll = $true
+$Panel.Location = New-Object System.Drawing.Point(20, 80)
+$Panel.Width = 560
+$Panel.Height = 560
 $Panel.BorderStyle = "FixedSingle"
 $Form.Controls.Add($Panel)
 
@@ -240,14 +236,14 @@ $Tooltip.ReshowDelay = 200
 $Tooltip.ShowAlways = $true
 
 $Checkboxes = @{}
-$Results = @{}  # Pour stocker le resultat de chaque script
+$Results = @{}
 $Y = 10
 
 foreach ($Script in $Scripts) {
     $CB = New-Object System.Windows.Forms.CheckBox
     $CB.Text = "[$($Script.Num)] $($Script.Desc)"
     $CB.Location = New-Object System.Drawing.Point(10, $Y)
-    $CB.Width = 510
+    $CB.Width = 530
     $CB.Height = 22
     $CB.Tag = $Script
 
@@ -255,7 +251,6 @@ foreach ($Script in $Scripts) {
         $CB.ForeColor = [System.Drawing.Color]::DarkOrange
     }
 
-    # --- Info-bulle (Tooltip) ---
     $Tooltip.SetToolTip($CB, $Script.Tooltip)
 
     $Panel.Controls.Add($CB)
@@ -264,12 +259,18 @@ foreach ($Script in $Scripts) {
     $Y += 26
 }
 
-# --- Boutons Tous / Aucun / Sauvegarder / Charger ---
+# ============================================================
+# Colonne de droite : boutons de controle
+# ============================================================
+$RightX = 600
+
+# --- Bouton Tous ---
 $BtnTous = New-Object System.Windows.Forms.Button
 $BtnTous.Text = "Tous"
-$BtnTous.Location = New-Object System.Drawing.Point(20, 605)
-$BtnTous.Width = 80
-$BtnTous.Height = 30
+$BtnTous.Location = New-Object System.Drawing.Point($RightX, 80)
+$BtnTous.Width = 120
+$BtnTous.Height = 32
+$BtnTous.Font = New-Object System.Drawing.Font("Segoe UI", 9)
 $BtnTous.Add_Click({
     foreach ($CB in $Checkboxes.Values) {
         $CB.Checked = $true
@@ -277,11 +278,13 @@ $BtnTous.Add_Click({
 })
 $Form.Controls.Add($BtnTous)
 
+# --- Bouton Aucun ---
 $BtnAucun = New-Object System.Windows.Forms.Button
 $BtnAucun.Text = "Aucun"
-$BtnAucun.Location = New-Object System.Drawing.Point(110, 605)
-$BtnAucun.Width = 80
-$BtnAucun.Height = 30
+$BtnAucun.Location = New-Object System.Drawing.Point(($RightX + 130), 80)
+$BtnAucun.Width = 120
+$BtnAucun.Height = 32
+$BtnAucun.Font = New-Object System.Drawing.Font("Segoe UI", 9)
 $BtnAucun.Add_Click({
     foreach ($CB in $Checkboxes.Values) {
         $CB.Checked = $false
@@ -289,11 +292,13 @@ $BtnAucun.Add_Click({
 })
 $Form.Controls.Add($BtnAucun)
 
+# --- Bouton Sauvegarder ---
 $BtnSave = New-Object System.Windows.Forms.Button
 $BtnSave.Text = "Sauvegarder"
-$BtnSave.Location = New-Object System.Drawing.Point(200, 605)
-$BtnSave.Width = 90
-$BtnSave.Height = 30
+$BtnSave.Location = New-Object System.Drawing.Point($RightX, 125)
+$BtnSave.Width = 120
+$BtnSave.Height = 32
+$BtnSave.Font = New-Object System.Drawing.Font("Segoe UI", 9)
 $BtnSave.Add_Click({
     Export-Selection -Checkboxes $Checkboxes
     [System.Windows.Forms.MessageBox]::Show(
@@ -305,11 +310,13 @@ $BtnSave.Add_Click({
 })
 $Form.Controls.Add($BtnSave)
 
+# --- Bouton Charger ---
 $BtnLoad = New-Object System.Windows.Forms.Button
 $BtnLoad.Text = "Charger"
-$BtnLoad.Location = New-Object System.Drawing.Point(300, 605)
-$BtnLoad.Width = 80
-$BtnLoad.Height = 30
+$BtnLoad.Location = New-Object System.Drawing.Point(($RightX + 130), 125)
+$BtnLoad.Width = 120
+$BtnLoad.Height = 32
+$BtnLoad.Font = New-Object System.Drawing.Font("Segoe UI", 9)
 $BtnLoad.Add_Click({
     if (Import-Selection -Checkboxes $Checkboxes) {
         [System.Windows.Forms.MessageBox]::Show(
@@ -334,25 +341,26 @@ $Form.Controls.Add($BtnLoad)
 $NetLabel = New-Object System.Windows.Forms.Label
 $NetLabel.Text = "[INTERNET] = necessite une connexion Internet"
 $NetLabel.ForeColor = [System.Drawing.Color]::DarkOrange
-$NetLabel.Location = New-Object System.Drawing.Point(400, 610)
-$NetLabel.Width = 170
-$NetLabel.Height = 30
+$NetLabel.Font = New-Object System.Drawing.Font("Segoe UI", 9)
+$NetLabel.Location = New-Object System.Drawing.Point($RightX, 175)
+$NetLabel.Width = 260
+$NetLabel.Height = 20
 $Form.Controls.Add($NetLabel)
 
 # --- Legende resultats ---
 $LegendLabel = New-Object System.Windows.Forms.Label
-$LegendLabel.Text = "Legende : Vert = OK  |  Rouge = Erreur  |  Jaune = Warning"
-$LegendLabel.Font = New-Object System.Drawing.Font("Segoe UI", 8)
-$LegendLabel.Location = New-Object System.Drawing.Point(20, 650)
-$LegendLabel.Width = 400
-$LegendLabel.Height = 18
+$LegendLabel.Text = "Legende :`n  Vert  = succes`n  Jaune = avertissement`n  Rouge = erreur / introuvable"
+$LegendLabel.Font = New-Object System.Drawing.Font("Segoe UI", 9)
+$LegendLabel.Location = New-Object System.Drawing.Point($RightX, 210)
+$LegendLabel.Width = 260
+$LegendLabel.Height = 70
 $Form.Controls.Add($LegendLabel)
 
 # --- Barre de progression ---
 $ProgressBar = New-Object System.Windows.Forms.ProgressBar
-$ProgressBar.Location = New-Object System.Drawing.Point(20, 680)
-$ProgressBar.Width = 360
-$ProgressBar.Height = 20
+$ProgressBar.Location = New-Object System.Drawing.Point($RightX, 300)
+$ProgressBar.Width = 260
+$ProgressBar.Height = 22
 $ProgressBar.Minimum = 0
 $ProgressBar.Maximum = 100
 $ProgressBar.Value = 0
@@ -360,17 +368,18 @@ $Form.Controls.Add($ProgressBar)
 
 $ProgressLabel = New-Object System.Windows.Forms.Label
 $ProgressLabel.Text = "Pret"
-$ProgressLabel.Location = New-Object System.Drawing.Point(20, 700)
-$ProgressLabel.Width = 500
-$ProgressLabel.Height = 20
+$ProgressLabel.Font = New-Object System.Drawing.Font("Segoe UI", 9)
+$ProgressLabel.Location = New-Object System.Drawing.Point($RightX, 328)
+$ProgressLabel.Width = 260
+$ProgressLabel.Height = 22
 $Form.Controls.Add($ProgressLabel)
 
 # --- Bouton Executer ---
 $BtnExecuter = New-Object System.Windows.Forms.Button
 $BtnExecuter.Text = "Executer"
-$BtnExecuter.Location = New-Object System.Drawing.Point(310, 720)
-$BtnExecuter.Width = 100
-$BtnExecuter.Height = 35
+$BtnExecuter.Location = New-Object System.Drawing.Point($RightX, 380)
+$BtnExecuter.Width = 120
+$BtnExecuter.Height = 42
 $BtnExecuter.Font = New-Object System.Drawing.Font("Segoe UI", 10, [System.Drawing.FontStyle]::Bold)
 $BtnExecuter.BackColor = [System.Drawing.Color]::LightGreen
 $Form.Controls.Add($BtnExecuter)
@@ -378,9 +387,9 @@ $Form.Controls.Add($BtnExecuter)
 # --- Bouton Quitter ---
 $BtnQuitter = New-Object System.Windows.Forms.Button
 $BtnQuitter.Text = "Quitter"
-$BtnQuitter.Location = New-Object System.Drawing.Point(420, 720)
-$BtnQuitter.Width = 100
-$BtnQuitter.Height = 35
+$BtnQuitter.Location = New-Object System.Drawing.Point(($RightX + 130), 380)
+$BtnQuitter.Width = 120
+$BtnQuitter.Height = 42
 $BtnQuitter.Font = New-Object System.Drawing.Font("Segoe UI", 10)
 $BtnQuitter.BackColor = [System.Drawing.Color]::LightCoral
 $BtnQuitter.Add_Click({
@@ -441,7 +450,6 @@ $BtnExecuter.Add_Click({
         $Form.Refresh()
 
         if (-not (Test-InternetConnection)) {
-            # Lister les scripts qui necessitent Internet
             $ScriptsInternet = $Selected | Where-Object { $_.Net } | ForEach-Object { "[$($_.Num)] $($_.Desc)" }
             $ScriptsInternetText = $ScriptsInternet -join "`n"
 
@@ -453,13 +461,11 @@ $BtnExecuter.Add_Click({
             )
 
             if ($Result -eq [System.Windows.Forms.DialogResult]::No) {
-                # Arreter completement
                 Write-LogSelective "Execution annulee par l utilisateur (pas de connexion Internet)" "WARN"
                 $ProgressLabel.Text = "Execution annulee (pas de connexion Internet)"
                 return
             }
             elseif ($Result -eq [System.Windows.Forms.DialogResult]::Yes) {
-                # Continuer sans les scripts Internet
                 $Selected = $Selected | Where-Object { -not $_.Net }
                 Write-LogSelective "Continuation sans les scripts Internet ($($ScriptsInternet.Count) script(s) ignores)" "WARN"
                 $ProgressLabel.Text = "Continuation sans les scripts necessitant Internet..."
@@ -467,7 +473,6 @@ $BtnExecuter.Add_Click({
                 Start-Sleep -Milliseconds 500
             }
             else {
-                # Cancel = revenir a la selection
                 $ProgressLabel.Text = "Pret"
                 return
             }
@@ -499,10 +504,9 @@ $BtnExecuter.Add_Click({
         $Current++
         $Percent = [math]::Round(($Current / $Total) * 100)
         $ProgressBar.Value = $Percent
-        $ProgressLabel.Text = "[$Current/$Total] Execution de $($Script.File)..."
+        $ProgressLabel.Text = "[$Current/$Total] $($Script.File)"
         $Form.Refresh()
 
-        # Couleur en cours
         $Checkboxes[$Script.Num].BackColor = [System.Drawing.Color]::LightYellow
         $Form.Refresh()
 
@@ -544,10 +548,8 @@ $BtnExecuter.Add_Click({
     $ProgressLabel.Text = "Execution terminee ($Total script(s))"
     Write-LogSelective "=== EXECUTION TERMINEE ===" "OK"
 
-    # --- Sauvegarder la selection ---
     Export-Selection -Checkboxes $Checkboxes
 
-    # --- Compter les resultats ---
     $OkCount = ($Results.Values | Where-Object { $_ -eq "OK" }).Count
     $WarnCount = ($Results.Values | Where-Object { $_ -like "WARN:*" }).Count
     $ErrCount = ($Results.Values | Where-Object { $_ -eq "ERROR" -or $_ -eq "MISSING" }).Count
