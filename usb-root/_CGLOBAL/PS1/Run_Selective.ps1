@@ -353,7 +353,7 @@ $LegendLabel.Text = "Legende :`n  Vert  = succes`n  Jaune = avertissement`n  Rou
 $LegendLabel.Font = New-Object System.Drawing.Font("Segoe UI", 9)
 $LegendLabel.Location = New-Object System.Drawing.Point($RightX, 210)
 $LegendLabel.Width = 260
-$LegendLabel.Height = 70
+$LegendLabel.Height = 80
 $Form.Controls.Add($LegendLabel)
 
 # --- Barre de progression ---
