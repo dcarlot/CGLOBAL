@@ -449,6 +449,7 @@ $BtnExecuter.Add_Click({
     if ($NeedInternet) {
         $ProgressLabel.Text = "Test de connexion Internet..."
         $Form.Refresh()
+        [System.Windows.Forms.Application]::DoEvents()
 
         if (-not (Test-InternetConnection)) {
             $ScriptsInternet = $Selected | Where-Object { $_.Net } | ForEach-Object { "[$($_.Num)] $($_.Desc)" }
@@ -471,6 +472,7 @@ $BtnExecuter.Add_Click({
                 Write-LogSelective "Continuation sans les scripts Internet ($($ScriptsInternet.Count) script(s) ignores)" "WARN"
                 $ProgressLabel.Text = "Continuation sans les scripts necessitant Internet..."
                 $Form.Refresh()
+                [System.Windows.Forms.Application]::DoEvents()
                 Start-Sleep -Milliseconds 500
             }
             else {
@@ -507,9 +509,11 @@ $BtnExecuter.Add_Click({
         $ProgressBar.Value = $Percent
         $ProgressLabel.Text = "[$Current/$Total] $($Script.File)"
         $Form.Refresh()
+        [System.Windows.Forms.Application]::DoEvents()
 
         $Checkboxes[$Script.Num].BackColor = [System.Drawing.Color]::LightYellow
         $Form.Refresh()
+        [System.Windows.Forms.Application]::DoEvents()
 
         Write-LogSelective "[$Current/$Total] Lancement : $($Script.File)" "INFO"
 
@@ -523,9 +527,16 @@ $BtnExecuter.Add_Click({
         }
 
         try {
+            # Lancement sans -Wait pour garder la fenetre reactive
             $Process = Start-Process -FilePath "powershell.exe" `
                 -ArgumentList "-ExecutionPolicy Bypass -File `"$ScriptPath`"" `
-                -Wait -PassThru -NoNewWindow
+                -PassThru -NoNewWindow
+
+            # Boucle d attente reactive
+            while (-not $Process.HasExited) {
+                [System.Windows.Forms.Application]::DoEvents()
+                Start-Sleep -Milliseconds 200
+            }
 
             if ($Process.ExitCode -eq 0) {
                 Write-LogSelective "$($Script.File) termine avec succes" "OK"
@@ -547,6 +558,8 @@ $BtnExecuter.Add_Click({
 
     $ProgressBar.Value = 100
     $ProgressLabel.Text = "Execution terminee ($Total script(s))"
+    $Form.Refresh()
+    [System.Windows.Forms.Application]::DoEvents()
     Write-LogSelective "=== EXECUTION TERMINEE ===" "OK"
 
     Export-Selection -Checkboxes $Checkboxes
