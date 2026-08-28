@@ -10,24 +10,25 @@ Initialize-CGlobalLog -LogFile $LogFile
 try {
     Write-Log "=== SUPPRESSION MICROSOFT STORE BARRE DES TACHES ===" "INFO"
 
-    $StoreUnpinned = $false
+    $ModificationFaite = $false
 
     # ------------------------------------------------------------------
     # 1. SUPPRESSION DU RACCOURCI .LNK DANS LE DOSSIER DES EPINGLES
-    #    C'est la methode la plus fiable sur Windows 11.
     # ------------------------------------------------------------------
     $PinnedFolder = "$env:APPDATA\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar"
 
     if (Test-Path $PinnedFolder) {
+        # Recherche precise : le fichier doit s'appeler exactement "Microsoft Store.lnk"
+        # ou contenir "Microsoft Store" dans son nom (pas juste "Store" pour eviter les faux positifs)
         $StoreLinks = Get-ChildItem -Path $PinnedFolder -Filter "*.lnk" -ErrorAction SilentlyContinue |
-            Where-Object { $_.BaseName -match "Microsoft Store|Store" }
+            Where-Object { $_.BaseName -match "Microsoft Store" }
 
         if ($StoreLinks) {
             foreach ($Link in $StoreLinks) {
                 try {
                     Remove-Item -Path $Link.FullName -Force -ErrorAction Stop
                     Write-Log "Raccourci supprime : $($Link.Name)" "OK"
-                    $StoreUnpinned = $true
+                    $ModificationFaite = $true
                 }
                 catch {
                     Write-Log "Echec suppression raccourci $($Link.Name) : $($_.Exception.Message)" "WARN"
@@ -42,7 +43,7 @@ try {
     # ------------------------------------------------------------------
     # 2. DEPINNING VIA COM (FALLBACK SI PAS DE .LNK)
     # ------------------------------------------------------------------
-    if (-not $StoreUnpinned) {
+    if (-not $ModificationFaite) {
         Write-Log "Tentative de depinning via COM..." "INFO"
 
         try {
@@ -59,10 +60,10 @@ try {
                         foreach ($Verb in $Verbs) {
                             $VerbName = $Verb.Name.Replace('&','')
 
-                            if ($VerbName -match 'Unpin from taskbar|Désépingler de la barre des tâches|Von Taskleiste lösen') {
+                            if ($VerbName -match 'Unpin from taskbar|Desepingler de la barre des taches|Von Taskleiste lösen') {
                                 $Verb.DoIt()
                                 Write-Log "Microsoft Store depinne via COM" "OK"
-                                $StoreUnpinned = $true
+                                $ModificationFaite = $true
                                 break
                             }
                         }
@@ -76,46 +77,7 @@ try {
     }
 
     # ------------------------------------------------------------------
-    # 3. LAYOUT XML POUR FUTURS UTILISATEURS (REPLACE, PAS APPEND)
-    #    Append ajoute des epingles ; Replace remplace le layout par defaut.
-    #    On ne garde que l'Explorateur de fichiers.
-    # ------------------------------------------------------------------
-    Write-Log "Configuration LayoutModification.xml pour futurs utilisateurs..." "INFO"
-
-    try {
-        $TaskbarXml = @'
-<?xml version="1.0" encoding="utf-8"?>
-<LayoutModificationTemplate
-    xmlns="http://schemas.microsoft.com/Start/2014/LayoutModification"
-    xmlns:defaultlayout="http://schemas.microsoft.com/Start/2014/FullDefaultLayout"
-    xmlns:start="http://schemas.microsoft.com/Start/2014/StartLayout"
-    xmlns:taskbar="http://schemas.microsoft.com/Start/2014/TaskbarLayout"
-    Version="1">
-  <CustomTaskbarLayoutCollection PinListPlacement="Replace">
-    <defaultlayout:TaskbarLayout>
-      <taskbar:TaskbarPinList>
-        <taskbar:DesktopApp DesktopApplicationLinkPath="%APPDATA%\Microsoft\Windows\Start Menu\Programs\System Tools\File Explorer.lnk" />
-      </taskbar:TaskbarPinList>
-    </defaultlayout:TaskbarLayout>
-  </CustomTaskbarLayoutCollection>
-</LayoutModificationTemplate>
-'@
-
-        $XmlPath = "$env:SystemDrive\Users\Default\AppData\Local\Microsoft\Windows\Shell"
-
-        if (-not (Test-Path $XmlPath)) {
-            New-Item -Path $XmlPath -ItemType Directory -Force | Out-Null
-        }
-
-        $TaskbarXml | Set-Content -Path "$XmlPath\LayoutModification.xml" -Encoding UTF8 -Force
-        Write-Log "LayoutModification.xml cree avec succes (mode Replace)" "OK"
-    }
-    catch {
-        Write-Log "Echec LayoutModification.xml : $($_.Exception.Message)" "WARN"
-    }
-
-    # ------------------------------------------------------------------
-    # 4. BLOCAGE VIA REGISTRE (HKCU + HKLM)
+    # 3. BLOCAGE VIA REGISTRE (HKCU + HKLM)
     # ------------------------------------------------------------------
     Write-Log "Blocage via registre..." "INFO"
 
@@ -127,6 +89,7 @@ try {
         }
         Set-ItemProperty -Path $RegPathCu -Name "NoPinningStoreToTaskbar" -Value 1 -Type DWord -Force -ErrorAction Stop
         Write-Log "Registre HKCU bloque avec succes" "OK"
+        $ModificationFaite = $true
 
         # Machine (futurs profils + politique systeme)
         $RegPathLm = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Explorer"
@@ -141,17 +104,21 @@ try {
     }
 
     # ------------------------------------------------------------------
-    # 5. REDEMARRAGE EXPLORER POUR APPLIQUER LES CHANGEMENTS
+    # 4. REDEMARRAGE EXPLORER SI UNE MODIFICATION A ETE FAITE
+    #    (suppression .lnk OU modification registre)
     # ------------------------------------------------------------------
-    if ($StoreUnpinned) {
+    if ($ModificationFaite) {
         Write-Log "Redemarrage de l'Explorateur pour appliquer..." "INFO"
         Stop-Process -Name "explorer" -Force -ErrorAction SilentlyContinue
         Start-Sleep -Seconds 2
         Write-Log "Explorateur redemarre" "OK"
     }
+    else {
+        Write-Log "Aucune modification effectuee, pas de redemarrage necessaire" "WARN"
+    }
 
     # ------------------------------------------------------------------
-    # 6. MESSAGE DE SUCCES
+    # 5. MESSAGE DE SUCCES
     # ------------------------------------------------------------------
     Write-Log "=== SUPPRESSION MICROSOFT STORE TERMINE ===" "OK"
 
