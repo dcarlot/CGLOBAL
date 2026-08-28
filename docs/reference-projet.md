@@ -3,7 +3,7 @@
 - 1\. Contexte général
 - 2\. Principes techniques retenus
 - 3\. Arborescence du kit
-- 4\. Batch principal : Run_Install.cmd
+- 4\. Mode sélectif : Run_Selective.cmd + Run_Selective.ps1
 - 5\. Ordre des scripts
 - Glossaire
 - Tableau récapitulatif des scripts
@@ -208,61 +208,7 @@ Le dossier `Temp` peut être créé temporairement par certains scripts, puis su
 
 ---
 
-## 4\. Batch principal : Run_Install.cmd
-
-### Fonctions principales
-
-- Vérifie les droits administrateur.
-- Se relance en administrateur si nécessaire.
-- Détecte automatiquement le chemin de la clé USB.
-- Synchronise `_CGLOBAL` vers `C:\_CGLOBAL` avec Robocopy.
-- Supprime et recrée `C:\_CGLOBAL\Logs` à chaque lancement.
-- Lance les scripts PowerShell stockés dans `C:\_CGLOBAL\PS1`.
-- Utilise une sous-routine `:RunPS` afin d'éviter de répéter la logique d'appel.
-- Si un script retourne une erreur, affiche un avertissement puis continue avec le script suivant.
-
-### Principe de la sous-routine
-
-```
-call :RunPS "01_Bureau.ps1"
-call :RunPS "02_MenuContextuelClassique.ps1"
-```
-
-La sous-routine appelle :
-
-```
-powershell.exe -ExecutionPolicy Bypass -File "C:\_CGLOBAL\PS1\%~1"
-```
-
-En cas d'échec :
-
-```
-[WARN] Le script a retourné une erreur
-```
-
-Le déploiement continue.
-
-### Contrôle Internet
-
-Un contrôle Internet doit être effectué avant les scripts nécessitant un accès en ligne, notamment :
-
-- WinGet ;
-- TeamViewer QuickSupport.
-
-**Statut :** ✅ VALIDÉ
-
-**Implémentation :** Le batch utilise une popup graphique via `Show-CGlobalPopup` (module `CGLOBAL.Common.psm1`) pour demander à l'utilisateur de réessayer ou d'interrompre le déploiement.
-
-**Comportement :**
-
-1. Test automatique au lancement (download.microsoft.com + get.teamviewer.com)
-2. Si échec : popup "Aucun acces Internet detecte. Winget et TeamViewer necessitent une connexion Internet. Voulez-vous reessayer ?"
-3. Boutons : Oui (réessayer) / Non (interrompre)
-4. Boucle jusqu'à succès ou interruption utilisateur
-
----
-
-## 4b. Mode sélectif : Run_Selective.cmd + Run_Selective.ps1
+## 4\. Mode sélectif : Run_Selective.cmd + Run_Selective.ps1
 
 ### Objectif
 
@@ -312,6 +258,10 @@ Permettre de choisir manuellement les scripts à exécuter, plutôt que de lance
 - Relancer un script qui a echoue lors d'un deploiement precedent
 - Deboguer un nouveau script en phase de developpement
 - Personnaliser le deploiement selon le contexte client
+
+**Lancement :** `Run_Selective.cmd` se lance minimisé (`start /min`) dès le début pour ne pas occuper l'écran. Seule la fenêtre graphique PowerShell est visible.
+
+**Fenêtre déplaçable pendant l'exécution :** La boucle d'attente des scripts appelle `[System.Windows.Forms.Application]::DoEvents()` toutes les 200 ms, ce qui maintient la fenêtre réactive et déplaçable même pendant l'exécution d'un script long.
 
 **État :** ✅ VALIDÉ
 
@@ -773,13 +723,12 @@ Le script 90 reste volontairement le dernier script fonctionnel avant le script 
 - Les scripts PowerShell sont stockés dans `_CGLOBAL\PS1`.
 - Les logs sont stockés dans `C:\_CGLOBAL\Logs`.
 - Les anciens logs sont supprimés à chaque lancement du batch.
-- Le batch continue après l'échec d'un script.
 - La génération automatique des chemins de log est centralisée dans le module `CGLOBAL.Common.psm1`.
 - Chaque script actif utilise `Get-CGlobalLogFile` pour obtenir son chemin de log automatiquement.
 - Aucune redondance de déclaration de `$LogFile` n'existe entre les scripts.
 - Tous les scripts actifs utilisent le même en-tête standardisé avec appel au module commun.
 - Les interactions utilisateur utilisent des popups graphiques via `Show-CGlobalPopup`.
-- Le batch utilise une popup pour le contrôle Internet.
+- Le mode sélectif utilise un test de connexion Internet avant de lancer les scripts nécessitant le réseau.
 - Le script 90 utilise un formulaire Windows personnalisé pour la saisie du mot de passe.
 - Toutes les popups sont configurées avec `TopMost` pour rester au premier plan.
 - Le script 90 est renommé et positionné en fin de séquence (avant le 99) pour éviter d'imposer la saisie d'un mot de passe entre plusieurs redémarrages.
@@ -789,6 +738,9 @@ Le script 90 reste volontairement le dernier script fonctionnel avant le script 
 - Le script 18 applique les associations de fichiers à la fois pour l'utilisateur courant (via `HKCU`) et pour les futurs utilisateurs (via le montage de `NTUSER.DAT` du profil par défaut, comme le script 12). Il utilise `reg.exe` (et non les cmdlets PowerShell) pour contourner la protection UCPD sur les clés `UserChoice`.
 - Le script 17 exécute le `UninstallString` du registre en premier (méthode propre), avec fallback sur `OneDrive.exe /uninstall`. La clé de registre Uninstall est supprimée si elle existe encore, ou considérée comme déjà nettoyée si absente. Les packages AppX provisionnés sont également supprimés via `Remove-AppxProvisionedPackage`.
 - Le script 12 utilise `Set-ItemProperty` au lieu de `New-ItemProperty` pour modifier la valeur `(Default)` du registre dans le profil par défaut, car `New-ItemProperty` crée une valeur nommée au lieu de modifier la valeur par défaut native.
+- Le mode sélectif est le seul mode d'exécution retenu. `Run_Install.cmd` est abandonné au profit de `Run_Selective.cmd`.
+- `Run_Selective.cmd` se lance minimisé (`start /min`) pour ne pas occuper l'écran pendant la synchronisation Robocopy.
+- La fenêtre du mode sélectif (`Run_Selective.ps1`) reste déplaçable pendant l'exécution des scripts grâce à `[System.Windows.Forms.Application]::DoEvents()` appelé régulièrement dans la boucle d'attente des processus.
 
 ---
 
@@ -796,8 +748,7 @@ Le script 90 reste volontairement le dernier script fonctionnel avant le script 
 
 ### Prioritaires
 
-- ✅ Contrôle Internet du batch : VALIDÉ (popup graphique)
-- Valider les scripts 08 et 09 sur les cas de déploiement réel.
+- Valider les scripts 08, 09 et 18 sur les cas de déploiement réel.
 
 ### Reportés
 
