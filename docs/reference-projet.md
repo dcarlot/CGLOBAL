@@ -124,7 +124,7 @@ Décision retenue :
 
 - ne pas redémarrer Explorer après chaque script de personnalisation ;
 - le script 08 redémarre Explorer après désinstallation du package Widgets (nécessaire pour refléter la suppression) ;
-- le script 09 redémarre Explorer après suppression du raccourci Microsoft Store ;
+- le script 09 redémarre Explorer après suppression du raccourci Microsoft Store ou modification du registre ;
 - prévoir éventuellement un seul redémarrage d'Explorer en fin de séquence une fois tous les scripts d'interface validés.
 
 ---
@@ -347,6 +347,7 @@ Permettre de choisir manuellement les scripts à exécuter, plutôt que de lance
 15_ApplicationsWinget.ps1
 16_TeamViewerQS.ps1
 17_DesinstallationOneDrive.ps1
+18_AssociationsFichiers.ps1
 
 90_VerificationMotDePasseCompteLocal.ps1
 
@@ -370,7 +371,7 @@ Le script 90 reste volontairement le dernier script fonctionnel avant le script 
 | 06 | `06_RechercheBarreTaches.ps1` | Affichage uniquement de l'icône recherche | ✅ VALIDÉ | Concerne l'interface de recherche |
 | 07 | `07_MasquerVueTaches.ps1` | Masquage du bouton Vue des tâches | ✅ VALIDÉ | Valeur enregistrée dans le registre |
 | 08 | `08_MasquerWidgets.ps1` | Désinstallation complète du package Widgets | À VALIDER | Suppression AppxPackage + provisioning + restart Explorer |
-| 09 | `09_MSStoreBarreTache.ps1` | Supprimer Microsoft Store de la barre des tâches | À VALIDER | Suppression .lnk + LayoutModification.xml Replace + registre HKCU/HKLM |
+| 09 | `09_MSStoreBarreTache.ps1` | Supprimer Microsoft Store de la barre des tâches | À VALIDER | Suppression .lnk + registre HKCU/HKLM + restart Explorer |
 | 10 | `10_DesactiverReprendre.ps1` | Désactivation de l'option Reprendre | ✅ VALIDÉ | Vérifié sur Windows 11 25H2 |
 | 11 | `11_ConfidentialiteLocalisation.ps1` | Paramètres de confidentialité / localisation | ✅ VALIDÉ | Gère le cas clé absente |
 | 12 | `12_ConfigurerProfilParDefaut.ps1` | Configuration des futurs profils utilisateurs | ✅ VALIDÉ | Menu contextuel classique corrigé (Set-ItemProperty) |
@@ -379,6 +380,7 @@ Le script 90 reste volontairement le dernier script fonctionnel avant le script 
 | 15 | `15_ApplicationsWinget.ps1` | Installation et mise à jour des applications via WinGet | ✅ VALIDÉ | Gestion du cache local et synchronisation |
 | 16 | `16_TeamViewerQS.ps1` | Téléchargement et mise à jour de TeamViewer QS | ✅ VALIDÉ | API TeamViewer + téléchargement direct |
 | 17 | `17_DesinstallationOneDrive.ps1` | Détection et désinstallation de OneDrive | ✅ VALIDÉ | UninstallString + AppX provisionné + gestion erreurs gracieuse |
+| 18 | `18_AssociationsFichiers.ps1` | Associations de fichiers par défaut | À VALIDER | Adobe Reader pour PDF, 7-Zip pour archives — HKCU + profil par défaut (NTUSER.DAT) + redémarrage Explorer |
 | 90 | `90_VerificationMotDePasseCompteLocal.ps1` | Vérifier un mot de passe local | ✅ VALIDÉ | API Windows LogonUser — détection fiable du mot de passe vide |
 | 99 | `99_FinDeploiement.ps1` | Restauration du mode déploiement | ✅ VALIDÉ | Popup confirmation + restauration paramètres |
 
@@ -494,22 +496,20 @@ Le script 90 reste volontairement le dernier script fonctionnel avant le script 
 
 **Nom :** `09_MSStoreBarreTache.ps1`
 
-**Fonction :** Supprime l'épingle Microsoft Store de la barre des tâches pour l'utilisateur courant et bloque son retour pour les futurs utilisateurs.
+**Fonction :** Supprime l'épingle Microsoft Store de la barre des tâches pour l'utilisateur courant et bloque son retour.
 
 **Procédure :**
 
-1. **Suppression physique du raccourci `.lnk`** dans `%APPDATA%\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar` — méthode la plus fiable sur Windows 11
+1. **Suppression physique du raccourci `.lnk`** dans `%APPDATA%\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar` — recherche précise sur le nom "Microsoft Store"
 2. **Fallback COM** si le `.lnk` n'est pas trouvé (désépinglage via `Shell.Application`)
-3. **LayoutModification.xml** dans le profil par défaut avec `PinListPlacement="Replace"` (et non plus `Append`) pour contrôler les épingles par défaut des futurs utilisateurs — ne conserve que l'Explorateur de fichiers
-4. **Registre** `NoPinningStoreToTaskbar` en `HKCU` et `HKLM` pour bloquer l'épinglage futur
-5. **Redémarrage d'Explorer** si une modification a été appliquée
+3. **Registre** `NoPinningStoreToTaskbar` en `HKCU` et `HKLM` pour bloquer l'épinglage futur
+4. **Redémarrage d'Explorer** si une modification a été apportée (suppression `.lnk` OU modification registre)
 
 **Corrections appliquées (août 2026) :**
 
-- Remplacement de la méthode COM (fragile sur Win11) par la suppression du fichier `.lnk` + redémarrage Explorer
-- `LayoutModification.xml` passe de `Append` à `Replace` (sinon le Store restait présent)
-- Suppression de la référence à Internet Explorer (obsolète)
-- Ajout du blocage registre en `HKLM` pour les futurs profils
+- Suppression du `LayoutModification.xml` qui en mode `Replace` supprimait toutes les épingles par défaut (Edge, Explorer) pour les futurs utilisateurs
+- Le redémarrage d'Explorer est désormais déclenché aussi en cas de modification du registre (pas seulement suppression de `.lnk`)
+- Recherche du `.lnk` affinée pour éviter les faux positifs (`Microsoft Store` au lieu de `Store` seul)
 
 **État :** À VALIDER
 
@@ -677,6 +677,38 @@ Le script 90 reste volontairement le dernier script fonctionnel avant le script 
 
 ---
 
+### Script 18 : Associations de fichiers par défaut
+
+**Nom :** `18_AssociationsFichiers.ps1`
+
+**Fonction :** Définit les applications par défaut pour les fichiers PDF (Adobe Reader) et les archives (7-Zip), pour l'utilisateur courant **et** les futurs utilisateurs.
+
+**Position :** À exécuter **après** le script 15 (`15_ApplicationsWinget.ps1`) car il dépend de la présence d'Adobe Reader et 7-Zip.
+
+**Procédure :**
+
+1. **Détection d'Adobe Reader** : recherche dans `ProgramFiles` et `ProgramFiles(x86)`
+2. **Association PDF (utilisateur courant)** :
+   - Détection du ProgID dans le registre (`AcroExch.Document.DC`, `Acrobat.Document.DC` ou `AcroExch.Document`)
+   - Suppression de la clé `UserChoice` via `reg.exe delete` (contourne UCPD)
+   - Définition du ProgID via `reg.exe add` dans `HKCU\Software\Classes\.pdf`
+3. **Association PDF (profil par défaut)** :
+   - Montage de `C:\Users\Default\NTUSER.DAT` via `reg.exe load`
+   - Écriture dans `Software\Classes\.pdf`
+   - Déchargement propre de la ruche
+4. **Détection de 7-Zip** : recherche dans `ProgramFiles` et `ProgramFiles(x86)`
+5. **Associations archives** (pour chaque extension : `.zip`, `.7z`, `.rar`, `.tar`, `.gz`, `.bz2`, `.xz`, `.iso`, `.cab`, `.wim`) :
+   - Même mécanisme double (utilisateur courant + profil par défaut)
+6. **Redémarrage d'Explorer** si au moins une association a été modifiée
+
+**Méthode `reg.exe` :**
+
+`reg.exe` est utilisé à la place des cmdlets PowerShell (`Remove-Item`, `Set-ItemProperty`) car il contourne plus efficacement la protection UCPD sur les clés `UserChoice` sous Windows 11.
+
+**État :** À VALIDER
+
+---
+
 ### Script 90 : Vérification du mot de passe local
 
 **Nom :** `90_VerificationMotDePasseCompteLocal.ps1`
@@ -753,8 +785,8 @@ Le script 90 reste volontairement le dernier script fonctionnel avant le script 
 - Le script 90 est renommé et positionné en fin de séquence (avant le 99) pour éviter d'imposer la saisie d'un mot de passe entre plusieurs redémarrages.
 - Le script 90 utilise l'API Windows `LogonUser` (advapi32) avec un mot de passe vide comme méthode principale pour détecter l'état actuel du mot de passe. Si l'authentification réussit, le mot de passe est vide. Si elle échoue avec `ERROR_LOGON_FAILURE` (1326), le mot de passe est non vide.
 - Le script 08 contourne le blocage UCPD en désinstallant le package Widgets plutôt qu'en modifiant le registre.
-- Le script 09 supprime le raccourci `.lnk` du Store dans le dossier des épingles (`User Pinned\TaskBar`) et redémarre Explorer, car la méthode COM est trop fragile sur Windows 11 pour les applications UWP.
-- Le script 09 utilise `LayoutModification.xml` avec `PinListPlacement="Replace"` (et non plus `Append`) pour contrôler les épingles par défaut des futurs utilisateurs.
+- Le script 09 supprime uniquement le raccourci `.lnk` du Store (recherche précise sur "Microsoft Store") et redémarre Explorer si une modification est apportée (suppression `.lnk` OU modification registre). Le `LayoutModification.xml` a été supprimé car il supprimait toutes les épingles par défaut (Edge, Explorer) en mode `Replace`.
+- Le script 18 applique les associations de fichiers à la fois pour l'utilisateur courant (via `HKCU`) et pour les futurs utilisateurs (via le montage de `NTUSER.DAT` du profil par défaut, comme le script 12). Il utilise `reg.exe` (et non les cmdlets PowerShell) pour contourner la protection UCPD sur les clés `UserChoice`.
 - Le script 17 exécute le `UninstallString` du registre en premier (méthode propre), avec fallback sur `OneDrive.exe /uninstall`. La clé de registre Uninstall est supprimée si elle existe encore, ou considérée comme déjà nettoyée si absente. Les packages AppX provisionnés sont également supprimés via `Remove-AppxProvisionedPackage`.
 - Le script 12 utilise `Set-ItemProperty` au lieu de `New-ItemProperty` pour modifier la valeur `(Default)` du registre dans le profil par défaut, car `New-ItemProperty` crée une valeur nommée au lieu de modifier la valeur par défaut native.
 
