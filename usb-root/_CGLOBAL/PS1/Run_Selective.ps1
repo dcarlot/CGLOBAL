@@ -156,26 +156,51 @@ function Test-InternetConnection {
     return $false
 }
 
-function Show-InternetPopup {
-    Add-Type -AssemblyName System.Windows.Forms
+# ============================================================
+# Resolution de l'absence de connexion Internet
+# Retourne : "OK" (connexion retablie), "CANCEL" (annuler tout),
+#            "CONTINUE_WITHOUT" (continuer sans les scripts Internet)
+# ============================================================
+function Resolve-InternetRequirement {
+    param(
+        [array]$ScriptsNeedingNet
+    )
 
+    $ScriptsInternetText = ($ScriptsNeedingNet | ForEach-Object { "[$($_.Num)] $($_.Desc)" }) -join "`n"
+
+    # --- Boucle de reessai ---
     do {
-        $Result = [System.Windows.Forms.MessageBox]::Show(
-            "Aucun acces Internet detecte.`n`nLes scripts Winget et TeamViewer necessitent une connexion Internet.`n`nVoulez-vous reessayer ?",
+        $RetryResult = [System.Windows.Forms.MessageBox]::Show(
+            "Aucun acces Internet detecte.`n`nLes scripts suivants necessitent Internet :`n$ScriptsInternetText`n`nVoulez-vous reessayer ?",
             "Internet requis",
             [System.Windows.Forms.MessageBoxButtons]::YesNo,
             [System.Windows.Forms.MessageBoxIcon]::Question
         )
 
-        if ($Result -eq [System.Windows.Forms.DialogResult]::No) {
-            return $false
+        if ($RetryResult -eq [System.Windows.Forms.DialogResult]::No) {
+            break
         }
 
-        if (Test-InternetConnection -Silent) {
-            return $true
+        if (Test-InternetConnection) {
+            return "OK"
         }
 
     } while ($true)
+
+    # --- Toujours pas de connexion (ou l'utilisateur a refuse de reessayer) : choix final ---
+    $CancelResult = [System.Windows.Forms.MessageBox]::Show(
+        "Toujours aucun acces Internet.`n`nLes scripts suivants necessitent Internet :`n$ScriptsInternetText`n`n- OUI = Annuler tout le lancement (retour a la selection)`n- NON = Continuer SANS ces scripts (avertissement)",
+        "Internet requis",
+        [System.Windows.Forms.MessageBoxButtons]::YesNo,
+        [System.Windows.Forms.MessageBoxIcon]::Question
+    )
+
+    if ($CancelResult -eq [System.Windows.Forms.DialogResult]::Yes) {
+        return "CANCEL"
+    }
+    else {
+        return "CONTINUE_WITHOUT"
+    }
 }
 
 # ============================================================
@@ -452,32 +477,30 @@ $BtnExecuter.Add_Click({
         [System.Windows.Forms.Application]::DoEvents()
 
         if (-not (Test-InternetConnection)) {
-            $ScriptsInternet = $Selected | Where-Object { $_.Net } | ForEach-Object { "[$($_.Num)] $($_.Desc)" }
-            $ScriptsInternetText = $ScriptsInternet -join "`n"
+            $ScriptsInternet = $Selected | Where-Object { $_.Net }
 
-            $Result = [System.Windows.Forms.MessageBox]::Show(
-                "Aucun acces Internet detecte.`n`nLes scripts suivants necessitent Internet :`n$ScriptsInternetText`n`nVoulez-vous :`n- OUI = Continuer SANS ces scripts`n- NON = Arreter completement`n- ANNULER = Revenir a la selection",
-                "Internet requis",
-                [System.Windows.Forms.MessageBoxButtons]::YesNoCancel,
-                [System.Windows.Forms.MessageBoxIcon]::Question
-            )
+            $Decision = Resolve-InternetRequirement -ScriptsNeedingNet $ScriptsInternet
 
-            if ($Result -eq [System.Windows.Forms.DialogResult]::No) {
-                Write-LogSelective "Execution annulee par l utilisateur (pas de connexion Internet)" "WARN"
-                $ProgressLabel.Text = "Execution annulee (pas de connexion Internet)"
-                return
-            }
-            elseif ($Result -eq [System.Windows.Forms.DialogResult]::Yes) {
-                $Selected = $Selected | Where-Object { -not $_.Net }
-                Write-LogSelective "Continuation sans les scripts Internet ($($ScriptsInternet.Count) script(s) ignores)" "WARN"
-                $ProgressLabel.Text = "Continuation sans les scripts necessitant Internet..."
-                $Form.Refresh()
-                [System.Windows.Forms.Application]::DoEvents()
-                Start-Sleep -Milliseconds 500
-            }
-            else {
-                $ProgressLabel.Text = "Pret"
-                return
+            switch ($Decision) {
+                "CANCEL" {
+                    Write-LogSelective "Execution annulee par l utilisateur (pas de connexion Internet)" "WARN"
+                    $ProgressLabel.Text = "Execution annulee (pas de connexion Internet)"
+                    return
+                }
+                "CONTINUE_WITHOUT" {
+                    $Selected = $Selected | Where-Object { -not $_.Net }
+                    Write-LogSelective "Continuation sans les scripts Internet ($($ScriptsInternet.Count) script(s) ignores)" "WARN"
+                    $ProgressLabel.Text = "Continuation sans les scripts necessitant Internet..."
+                    $Form.Refresh()
+                    [System.Windows.Forms.Application]::DoEvents()
+                    Start-Sleep -Milliseconds 500
+                }
+                "OK" {
+                    Write-LogSelective "Connexion Internet retablie, poursuite normale" "OK"
+                    $ProgressLabel.Text = "Connexion Internet retablie"
+                    $Form.Refresh()
+                    [System.Windows.Forms.Application]::DoEvents()
+                }
             }
         }
     }
@@ -532,21 +555,31 @@ $BtnExecuter.Add_Click({
                 -ArgumentList "-ExecutionPolicy Bypass -File `"$ScriptPath`"" `
                 -PassThru -NoNewWindow
 
+            # IMPORTANT : forcer .NET a conserver le handle du processus des le depart.
+            # Sans cela, $Process.ExitCode peut rester vide (null) meme apres la sortie
+            # du processus (bug connu de Start-Process -PassThru sous PowerShell 5.1).
+            $null = $Process.Handle
+
             # Boucle d attente reactive
             while (-not $Process.HasExited) {
                 [System.Windows.Forms.Application]::DoEvents()
                 Start-Sleep -Milliseconds 200
             }
 
-            if ($Process.ExitCode -eq 0) {
+            # Synchronise proprement la sortie avant de lire le code (evite un ExitCode
+            # non encore disponible juste apres le passage de HasExited a $true)
+            $Process.WaitForExit()
+            $ExitCode = $Process.ExitCode
+
+            if ($ExitCode -eq 0) {
                 Write-LogSelective "$($Script.File) termine avec succes" "OK"
                 $Checkboxes[$Script.Num].BackColor = [System.Drawing.Color]::LightGreen
                 $Results[$Script.Num] = "OK"
             }
             else {
-                Write-LogSelective "$($Script.File) termine avec le code $($Process.ExitCode)" "WARN"
+                Write-LogSelective "$($Script.File) termine avec le code $ExitCode" "WARN"
                 $Checkboxes[$Script.Num].BackColor = [System.Drawing.Color]::LightYellow
-                $Results[$Script.Num] = "WARN:$($Process.ExitCode)"
+                $Results[$Script.Num] = "WARN:$ExitCode"
             }
         }
         catch {
