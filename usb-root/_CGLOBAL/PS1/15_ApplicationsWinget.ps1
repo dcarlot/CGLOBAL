@@ -49,8 +49,19 @@ function Invoke-LoggedCommand {
 
     Write-Log ("Commande : {0} {1}" -f $FilePath, ($Arguments -join " "))
 
-    $Output = & $FilePath @Arguments 2>&1
-    $ExitCode = $LASTEXITCODE
+    # $ErrorActionPreference = 'Stop' transformerait la moindre ligne ecrite par la
+    # commande externe sur son flux d'erreur en exception bloquante, avant meme que
+    # le code de sortie ($LASTEXITCODE) ait pu etre lu. On le neutralise le temps
+    # de l'appel, comme pour Invoke-RegCommand (script 12).
+    $PreviousEAP = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $Output = & $FilePath @Arguments 2>&1
+        $ExitCode = $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $PreviousEAP
+    }
 
     foreach ($Line in $Output) {
         if ($null -ne $Line -and $Line.ToString().Trim() -ne "") {

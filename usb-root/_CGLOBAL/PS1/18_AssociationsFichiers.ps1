@@ -164,7 +164,7 @@ try {
             # Import DISM
             Write-Log "Import via DISM..." "INFO"
             $dismArgs = "/online /Import-DefaultAppAssociations:`"$xmlPath`""
-            $proc = Start-Process -FilePath "dism.exe" -ArgumentList $dismArgs -Wait -PassThru -NoNewWindow -WindowStyle Hidden
+            $proc = Start-Process -FilePath "dism.exe" -ArgumentList $dismArgs -Wait -PassThru -NoNewWindow
 
             if ($proc.ExitCode -eq 0) {
                 Write-Log "Import DISM reussi" "OK"
@@ -185,7 +185,10 @@ try {
     if ($sevenZipFM) { $allExts += $archiveExtensions }
 
     foreach ($ext in $allExts) {
-        $null = & reg.exe delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\$ext\UserChoice" /f 2>&1 | Out-String
+        # Redirection geree entierement par cmd.exe (>nul 2>&1) : PowerShell ne voit
+        # jamais le flux d'erreur de reg.exe, donc $ErrorActionPreference = 'Stop'
+        # ne peut pas transformer un "Acces refuse" (cle protegee UCPD/hash) en exception.
+        cmd.exe /c "reg.exe delete `"HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\$ext\UserChoice`" /f >nul 2>&1"
     }
     Write-Log "UserChoice nettoyes (erreurs silencieusement ignorees)" "OK"
 

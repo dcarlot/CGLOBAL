@@ -213,6 +213,31 @@ function Set-DefaultUserString {
     }
 }
 
+function Invoke-RegCommand {
+    # Execute reg.exe en capturant stdout+stderr sans que $ErrorActionPreference = 'Stop'
+    # ne transforme une ligne de stderr (avertissement ou erreur reg.exe) en exception
+    # bloquante avant meme que le code de sortie ait pu etre lu.
+    param(
+        [Parameter(Mandatory = $true)]
+        [string[]]$Arguments
+    )
+
+    $PreviousEAP = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $Output = & reg.exe @Arguments 2>&1
+        $ExitCode = $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $PreviousEAP
+    }
+
+    return [PSCustomObject]@{
+        Output   = $Output
+        ExitCode = $ExitCode
+    }
+}
+
 function Mount-DefaultUserHive {
 
     if (-not (Test-Path $DefaultHiveFile)) {
@@ -223,8 +248,9 @@ function Mount-DefaultUserHive {
 
         Add-Warning "La ruche temporaire $HiveRegPath etait deja chargee"
 
-        $UnloadOutput = & reg.exe unload $HiveRegPath 2>&1
-        $UnloadCode = $LASTEXITCODE
+        $UnloadResult = Invoke-RegCommand -Arguments @('unload', $HiveRegPath)
+        $UnloadOutput = $UnloadResult.Output
+        $UnloadCode = $UnloadResult.ExitCode
 
         foreach ($Line in $UnloadOutput) {
             if ($null -ne $Line -and $Line.ToString().Trim() -ne "") {
@@ -239,8 +265,9 @@ function Mount-DefaultUserHive {
 
     Write-Log "Chargement de la ruche : $DefaultHiveFile"
 
-    $LoadOutput = & reg.exe load $HiveRegPath $DefaultHiveFile 2>&1
-    $LoadCode = $LASTEXITCODE
+    $LoadResult = Invoke-RegCommand -Arguments @('load', $HiveRegPath, $DefaultHiveFile)
+    $LoadOutput = $LoadResult.Output
+    $LoadCode = $LoadResult.ExitCode
 
     foreach ($Line in $LoadOutput) {
         if ($null -ne $Line -and $Line.ToString().Trim() -ne "") {
@@ -287,8 +314,9 @@ function Dismount-DefaultUserHive {
 
     Write-Log "Dechargement de la ruche $HiveRegPath"
 
-    $UnloadOutput = & reg.exe unload $HiveRegPath 2>&1
-    $UnloadCode = $LASTEXITCODE
+    $UnloadResult = Invoke-RegCommand -Arguments @('unload', $HiveRegPath)
+    $UnloadOutput = $UnloadResult.Output
+    $UnloadCode = $UnloadResult.ExitCode
 
     foreach ($Line in $UnloadOutput) {
         if ($null -ne $Line -and $Line.ToString().Trim() -ne "") {
