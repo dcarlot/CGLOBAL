@@ -330,7 +330,7 @@ Le script 90 reste volontairement le dernier script fonctionnel avant le script 
 | 15 | `15_ApplicationsWinget.ps1` | Installation et mise à jour des applications via WinGet | ✅ VALIDÉ | Gestion du cache local et synchronisation |
 | 16 | `16_TeamViewerQS.ps1` | Téléchargement et mise à jour de TeamViewer QS | ✅ VALIDÉ | API TeamViewer + téléchargement direct |
 | 17 | `17_DesinstallationOneDrive.ps1` | Détection et désinstallation de OneDrive | ✅ VALIDÉ | UninstallString + AppX provisionné + gestion erreurs gracieuse |
-| 18 | `18_AssociationsFichiers.ps1` | Associations de fichiers par défaut | À VALIDER | Adobe Reader pour PDF, 7-Zip pour archives — HKCU + profil par défaut (NTUSER.DAT) + redémarrage Explorer |
+| 18 | `18_AssociationsFichiers.ps1` | Associations de fichiers par défaut | À VALIDER | Méthode DISM (XML + Import-DefaultAppAssociations) + création ProgID 7-Zip + nettoyage UserChoice |
 | 90 | `90_VerificationMotDePasseCompteLocal.ps1` | Vérifier un mot de passe local | ✅ VALIDÉ | API Windows LogonUser — détection fiable du mot de passe vide |
 | 99 | `99_FinDeploiement.ps1` | Restauration du mode déploiement | ✅ VALIDÉ | Popup confirmation + restauration paramètres |
 
@@ -637,23 +637,18 @@ Le script 90 reste volontairement le dernier script fonctionnel avant le script 
 
 **Procédure :**
 
-1. **Détection d'Adobe Reader** : recherche dans `ProgramFiles` et `ProgramFiles(x86)`
-2. **Association PDF (utilisateur courant)** :
-   - Détection du ProgID dans le registre (`AcroExch.Document.DC`, `Acrobat.Document.DC` ou `AcroExch.Document`)
-   - Suppression de la clé `UserChoice` via `reg.exe delete` (contourne UCPD)
-   - Définition du ProgID via `reg.exe add` dans `HKCU\Software\Classes\.pdf`
-3. **Association PDF (profil par défaut)** :
-   - Montage de `C:\Users\Default\NTUSER.DAT` via `reg.exe load`
-   - Écriture dans `Software\Classes\.pdf`
-   - Déchargement propre de la ruche
-4. **Détection de 7-Zip** : recherche dans `ProgramFiles` et `ProgramFiles(x86)`
-5. **Associations archives** (pour chaque extension : `.zip`, `.7z`, `.rar`, `.tar`, `.gz`, `.bz2`, `.xz`, `.iso`, `.cab`, `.wim`) :
-   - Même mécanisme double (utilisateur courant + profil par défaut)
-6. **Redémarrage d'Explorer** si au moins une association a été modifiée
+1. **Détection d'Adobe Reader** : recherche dans `HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\` (Acrobat.exe / AcroRd32.exe) + fallback chemins directs
+2. **Détection de 7-Zip** : recherche dans `App Paths\7zFM.exe` + fallback chemins directs
+3. **Récupération du ProgID PDF** : lecture dans `HKEY_CLASSES_ROOT\.pdf\OpenWithProgids` ou `HKCU\Software\Classes\.pdf\OpenWithProgids`
+4. **Création des ProgID 7-Zip** : `7-Zip.zip`, `7-Zip.7z`, etc. dans `HKEY_CLASSES_ROOT` avec commande d'ouverture, icône et description
+5. **Génération du XML DefaultAppAssociations** : fichier temporaire listant toutes les associations
+6. **Import via DISM** : `dism.exe /online /Import-DefaultAppAssociations:"fichier.xml"` — méthode officielle Microsoft, appliquée au niveau machine
+7. **Nettoyage silencieux de UserChoice** : suppression des clés `UserChoice` pour l'utilisateur courant (erreurs ignorées)
+8. **Redémarrage d'Explorer**
 
-**Méthode `reg.exe` :**
+**Méthode DISM :**
 
-`reg.exe` est utilisé à la place des cmdlets PowerShell (`Remove-Item`, `Set-ItemProperty`) car il contourne plus efficacement la protection UCPD sur les clés `UserChoice` sous Windows 11.
+Depuis Windows 10 1903, Microsoft a verrouillé `UserChoice` avec un hash anti-détournement. La seule méthode officielle et supportée pour forcer une association est l'import XML via DISM (`Import-DefaultAppAssociations`). Cette méthode s'applique de façon garantie aux **nouveaux profils** et fonctionne souvent sur le profil courant après un redémarrage complet.
 
 **État :** À VALIDER
 
