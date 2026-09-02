@@ -533,6 +533,12 @@ function Invoke-WingetPackageDownload {
         -Arguments $DownloadArgs
 
     if ($Result.ExitCode -ne 0) {
+        $HashMismatch = $Result.OutputText -match "hash does not match"
+        if ($HashMismatch) {
+            Write-Log "Hash mismatch detecte lors du telechargement : le manifeste Winget n'est pas synchronise avec le fichier distant" "WARN"
+            Write-Log "Passage en mode installation en ligne directe pour $PackageId" "WARN"
+            return
+        }
         throw "Echec du telechargement de $PackageId"
     }
 
@@ -931,87 +937,111 @@ try {
     $DownloadedUpdates = $false
 
     foreach ($App in $Apps) {
+        try {
+            Write-Log "----------------------------------------"
+            Write-Log ("Traitement : {0} ({1})" -f $App.Name, $App.Id)
 
-        Write-Log "----------------------------------------"
-        Write-Log ("Traitement : {0} ({1})" -f $App.Name, $App.Id)
-
-        if ($script:OnlineSourceAvailable) {
-            $OnlineVersion = Get-WingetLatestVersion -PackageId $App.Id
-        }
-        else {
-            Write-Log "Sources en ligne indisponibles : utilisation directe du cache local pour $($App.Name)" "WARN"
-            $OnlineVersion = $null
-        }
-
-        $LocalCache = Get-LocalWingetCache `
-            -PackageId $App.Id `
-            -PreferredVersion $OnlineVersion
-
-        if ($null -eq $LocalCache) {
-
-            Write-Log "Aucun cache local trouve pour $($App.Name)" "WARN"
-
-            if ($null -eq $OnlineVersion -or $OnlineVersion -eq "") {
-                throw "Impossible de continuer sans cache ni version en ligne pour $($App.Name)"
+            if ($script:OnlineSourceAvailable) {
+                $OnlineVersion = Get-WingetLatestVersion -PackageId $App.Id
             }
-
-            Invoke-WingetPackageDownload -PackageId $App.Id -TargetVersion $OnlineVersion
-            $DownloadedUpdates = $true
+            else {
+                Write-Log "Sources en ligne indisponibles : utilisation directe du cache local pour $($App.Name)" "WARN"
+                $OnlineVersion = $null
+            }
 
             $LocalCache = Get-LocalWingetCache `
                 -PackageId $App.Id `
                 -PreferredVersion $OnlineVersion
-        }
-        else {
 
-            Write-Log ("Version locale : {0}" -f $LocalCache.Version)
+            if ($null -eq $LocalCache) {
 
-            if ($null -ne $OnlineVersion -and $OnlineVersion -ne "") {
+                Write-Log "Aucun cache local trouve pour $($App.Name)" "WARN"
 
-                Write-Log ("Version en ligne : {0}" -f $OnlineVersion)
-
-                $VersionComparison = Compare-WingetVersion `
-                    -VersionA $OnlineVersion `
-                    -VersionB $LocalCache.Version
-
-                if ($VersionComparison -gt 0) {
-
-                    Write-Log ("Version en ligne plus recente pour $($App.Name) ({0} > {1})" -f $OnlineVersion, $LocalCache.Version) "WARN"
-
-                    Invoke-WingetPackageDownload -PackageId $App.Id -TargetVersion $OnlineVersion
-                    $DownloadedUpdates = $true
-
-                    $LocalCache = Get-LocalWingetCache `
-                        -PackageId $App.Id `
-                        -PreferredVersion $OnlineVersion
+                if ($null -eq $OnlineVersion -or $OnlineVersion -eq "") {
+                    throw "Impossible de continuer sans cache ni version en ligne pour $($App.Name)"
                 }
-                elseif ($VersionComparison -lt 0) {
 
-                    Write-Log ("Version locale ({0}) plus recente ou non comparable a la version en ligne ({1}) : cache conserve" -f $LocalCache.Version, $OnlineVersion) "WARN"
-                }
-                else {
-                    Write-Log "Cache local a jour" "OK"
-                }
+                Invoke-WingetPackageDownload -PackageId $App.Id -TargetVersion $OnlineVersion
+                $DownloadedUpdates = $true
+
+                $LocalCache = Get-LocalWingetCache `
+                    -PackageId $App.Id `
+                    -PreferredVersion $OnlineVersion
             }
             else {
-                Write-Log "Comparaison en ligne impossible, utilisation du cache local" "WARN"
+
+                Write-Log ("Version locale : {0}" -f $LocalCache.Version)
+
+                if ($null -ne $OnlineVersion -and $OnlineVersion -ne "") {
+
+                    Write-Log ("Version en ligne : {0}" -f $OnlineVersion)
+
+                    $VersionComparison = Compare-WingetVersion `
+                        -VersionA $OnlineVersion `
+                        -VersionB $LocalCache.Version
+
+                    if ($VersionComparison -gt 0) {
+
+                        Write-Log ("Version en ligne plus recente pour $($App.Name) ({0} > {1})" -f $OnlineVersion, $LocalCache.Version) "WARN"
+
+                        Invoke-WingetPackageDownload -PackageId $App.Id -TargetVersion $OnlineVersion
+                        $DownloadedUpdates = $true
+
+                        $LocalCache = Get-LocalWingetCache `
+                            -PackageId $App.Id `
+                            -PreferredVersion $OnlineVersion
+                    }
+                    elseif ($VersionComparison -lt 0) {
+
+                        Write-Log ("Version locale ({0}) plus recente ou non comparable a la version en ligne ({1}) : cache conserve" -f $LocalCache.Version, $OnlineVersion) "WARN"
+                    }
+                    else {
+                        Write-Log "Cache local a jour" "OK"
+                    }
+                }
+                else {
+                    Write-Log "Comparaison en ligne impossible, utilisation du cache local" "WARN"
+                }
             }
+
+            if ($null -eq $LocalCache) {
+                if ($script:OnlineSourceAvailable) {
+                    Write-Log "Cache local indisponible apres echec de download : tentative installation en ligne directe" "WARN"
+                    $Fallback = Invoke-LoggedCommand `
+                        -FilePath "winget.exe" `
+                        -Arguments @(
+                            "install",
+                            "--id", $App.Id,
+                            "-e",
+                            "--source", "winget",
+                            "--silent",
+                            "--accept-package-agreements",
+                            "--accept-source-agreements",
+                            "--disable-interactivity"
+                        )
+                    if ($Fallback.ExitCode -ne 0) {
+                        throw "Echec installation en ligne de $($App.Name)"
+                    }
+                    Write-Log "$($App.Name) installe en ligne (fallback apres hash mismatch)" "OK"
+                    continue
+                }
+                throw "Cache local introuvable pour $($App.Name)"
+            }
+
+            if (-not (Test-Path $LocalCache.ManifestPath)) {
+                throw "Manifest local introuvable pour $($App.Name)"
+            }
+
+            Write-Log ("Manifest detecte : {0}" -f $LocalCache.ManifestPath)
+            Write-Log ("Dossier cache     : {0}" -f $LocalCache.RootPath)
+
+            Install-Or-UpgradeFromCache `
+                -App $App `
+                -Cache $LocalCache
         }
-
-        if ($null -eq $LocalCache) {
-            throw "Cache local introuvable pour $($App.Name)"
+        catch {
+            Write-Log ("ERREUR sur {0} : {1}" -f $App.Name, $_.Exception.Message) "ERROR"
         }
-
-        if (-not (Test-Path $LocalCache.ManifestPath)) {
-            throw "Manifest local introuvable pour $($App.Name)"
-        }
-
-        Write-Log ("Manifest detecte : {0}" -f $LocalCache.ManifestPath)
-        Write-Log ("Dossier cache     : {0}" -f $LocalCache.RootPath)
-
-        Install-Or-UpgradeFromCache `
-            -App $App `
-            -Cache $LocalCache
     }
 
     Write-Log "----------------------------------------"
