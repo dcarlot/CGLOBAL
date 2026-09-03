@@ -252,8 +252,17 @@ foreach ($item in $officeInstalls) {
 # Etape 3 : Validation utilisateur
 # ------------------------------------------------------------------
 
+$listeProduits = ($officeInstalls | ForEach-Object {
+    " - {0} (Version : {1}, Type : {2})" -f $_.Nom, $_.Version, $_.Type
+}) -join "`n"
+
+$messagePopup = (
+    "Les produits Office / OneNote suivants ont ete detectes :`n`n{0}`n`n" +
+    "Voulez-vous TOUS les desinstaller ?`n`nCette action est irreversible."
+) -f $listeProduits
+
 $reponse = Show-CGlobalPopup `
-    -Message "Voulez-vous desinstaller TOUTES ces versions d'Office / OneNote ?`n`nCette action est irreversible." `
+    -Message $messagePopup `
     -Title "Desinstallation Office / OneNote" `
     -Buttons "YesNo" `
     -Icon "Exclamation"
