@@ -1,6 +1,22 @@
 # Charger System.Windows.Forms
 Add-Type -AssemblyName System.Windows.Forms -ErrorAction SilentlyContinue
 
+# ============================================================
+# DPI Awareness : evite le flou des popups a 125% (et autres)
+# Doit etre appele AVANT la creation de tout controle Windows Forms
+# ============================================================
+Add-Type -TypeDefinition @"
+using System.Runtime.InteropServices;
+public class CGlobalDpiHelper {
+    [DllImport("user32.dll")]
+    public static extern bool SetProcessDPIAware();
+}
+"@ -ErrorAction SilentlyContinue
+
+if ("CGlobalDpiHelper" -as [type]) {
+    [CGlobalDpiHelper]::SetProcessDPIAware() | Out-Null
+}
+
 $script:CGLOBAL_LogFolder = "C:\_CGLOBAL\Logs"
 $script:CGLOBAL_LogFile   = $null
 

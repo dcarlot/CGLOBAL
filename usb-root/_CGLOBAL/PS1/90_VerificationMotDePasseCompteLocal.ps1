@@ -234,6 +234,7 @@ try {
         $PasswordForm.FormBorderStyle = "FixedDialog"
         $PasswordForm.MaximizeBox = $false
         $PasswordForm.MinimizeBox = $false
+        $PasswordForm.AutoScaleMode = [System.Windows.Forms.AutoScaleMode]::Dpi
 
         $Label1 = New-Object System.Windows.Forms.Label
         $Label1.Text = "Entrez le mot de passe :"
@@ -316,6 +317,10 @@ try {
             $ErrorForm.Height = 150
             $ErrorForm.StartPosition = "CenterScreen"
             $ErrorForm.TopMost = $true
+            $ErrorForm.FormBorderStyle = "FixedDialog"
+            $ErrorForm.MaximizeBox = $false
+            $ErrorForm.MinimizeBox = $false
+            $ErrorForm.AutoScaleMode = [System.Windows.Forms.AutoScaleMode]::Dpi
 
             $ErrorLabel = New-Object System.Windows.Forms.Label
             $ErrorLabel.Text = "Les mots de passe ne correspondent pas."
