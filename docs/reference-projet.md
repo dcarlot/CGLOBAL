@@ -173,7 +173,7 @@ Outil de synchronisation de fichiers intégré à Windows, utilisé pour recopie
 
 ### Log / journalisation
 
-Fichier de trace produit par chaque script, stocké dans `C:\_CGLOBAL\Logs\` avec un nom dérivé automatiquement du nom du script (ex. : `Log01_Bureau.txt` pour le script `01_Bureau.ps1`). Les opérations, avertissements et erreurs y sont enregistrés dans un journal distinct par script via la fonction `Write-Log` du module centralisé.
+Fichier de trace produit par chaque script, stocké dans `C:\_CGLOBAL\Logs\` avec un nom dérivé automatiquement du nom du script (ex. : `Log01_Bureau.txt` pour le script `01_Bureau.ps1`). Les opérations, avertissements et erreurs y sont enregistrées dans un journal distinct par script via la fonction `Write-Log` du module centralisé.
 
 ### Profil par défaut
 
@@ -221,7 +221,7 @@ Permettre de choisir manuellement les scripts à exécuter, plutôt que de lance
 
 ### Interface
 
-- Liste des 20 scripts dans l'ordre de numérotation, avec description
+- Liste des scripts dans l'ordre de numérotation, avec description
 - Cases à cocher individuelles pour chaque script
 - Scripts nécessitant Internet (15, 16) affichés en **orange**
 - Bouton **"Tous"** : coche tous les scripts
@@ -297,7 +297,6 @@ Permettre de choisir manuellement les scripts à exécuter, plutôt que de lance
 15_ApplicationsWinget.ps1
 16_TeamViewerQS.ps1
 17_DesinstallationOneDrive.ps1
-18_AssociationsFichiers.ps1
 
 90_VerificationMotDePasseCompteLocal.ps1
 
@@ -330,7 +329,7 @@ Le script 90 reste volontairement le dernier script fonctionnel avant le script 
 | 15 | `15_ApplicationsWinget.ps1` | Installation et mise à jour des applications via WinGet | ✅ VALIDÉ | Gestion du cache local et synchronisation |
 | 16 | `16_TeamViewerQS.ps1` | Téléchargement et mise à jour de TeamViewer QS | ✅ VALIDÉ | API TeamViewer + téléchargement direct |
 | 17 | `17_DesinstallationOneDrive.ps1` | Détection et désinstallation de OneDrive | ✅ VALIDÉ | UninstallString + AppX provisionné + gestion erreurs gracieuse |
-| 18 | `18_AssociationsFichiers.ps1` | Associations de fichiers par défaut | À VALIDER | Méthode DISM (XML + Import-DefaultAppAssociations) + création ProgID 7-Zip + nettoyage UserChoice |
+| 18 | `18_AssociationsFichiers.ps1` | Associations de fichiers par défaut | ⛔ SUSPENDU | Algorithme UserChoice obsolète sur Windows 11 24H2/25H2 ; méthodes DISM et ProgID insuffisantes pour l'utilisateur courant. À réétudier avec SetUserFTA ou une approche GPO/MDM. |
 | 90 | `90_VerificationMotDePasseCompteLocal.ps1` | Vérifier un mot de passe local | ✅ VALIDÉ | API Windows LogonUser — détection fiable du mot de passe vide |
 | 99 | `99_FinDeploiement.ps1` | Restauration du mode déploiement | ✅ VALIDÉ | Popup confirmation + restauration paramètres |
 
@@ -650,7 +649,18 @@ Le script 90 reste volontairement le dernier script fonctionnel avant le script 
 
 Depuis Windows 10 1903, Microsoft a verrouillé `UserChoice` avec un hash anti-détournement. La seule méthode officielle et supportée pour forcer une association est l'import XML via DISM (`Import-DefaultAppAssociations`). Cette méthode s'applique de façon garantie aux **nouveaux profils** et fonctionne souvent sur le profil courant après un redémarrage complet.
 
-**État :** À VALIDER
+**Problème identifié (septembre 2026) :**
+
+L'algorithme de hash `UserChoice` utilisé dans le script (issu du projet PS-SFTA de 2022) n'est plus reconnu comme valide par Windows 11 24H2/25H2. Windows ignore silencieusement la clé `UserChoice` si le hash ne correspond pas à sa version interne actuelle. Les symptômes observés :
+- Le script affiche « OK (vérifié) » car il vérifie seulement l'écriture dans le registre, pas l'acceptation par Windows.
+- Les fichiers `.zip` restent associés à l'Explorateur.
+- L'interface Options de 7-Zip ne voit aucune association.
+
+**Suspension :**
+
+Le script 18 est **suspendu** en attendant une solution viable (SetUserFTA, approche GPO/MDM, ou nouvelle méthode Microsoft). Il ne doit pas être exécuté en production.
+
+**État :** ⛔ SUSPENDU
 
 ---
 
@@ -730,12 +740,12 @@ Depuis Windows 10 1903, Microsoft a verrouillé `UserChoice` avec un hash anti-d
 - Le script 90 utilise l'API Windows `LogonUser` (advapi32) avec un mot de passe vide comme méthode principale pour détecter l'état actuel du mot de passe. Si l'authentification réussit, le mot de passe est vide. Si elle échoue avec `ERROR_LOGON_FAILURE` (1326), le mot de passe est non vide.
 - Le script 08 contourne le blocage UCPD en désinstallant le package Widgets plutôt qu'en modifiant le registre.
 - Le script 09 supprime uniquement le raccourci `.lnk` du Store (recherche précise sur "Microsoft Store") et redémarre Explorer si une modification est apportée (suppression `.lnk` OU modification registre). Le `LayoutModification.xml` a été supprimé car il supprimait toutes les épingles par défaut (Edge, Explorer) en mode `Replace`.
-- Le script 18 applique les associations de fichiers à la fois pour l'utilisateur courant (via `HKCU`) et pour les futurs utilisateurs (via le montage de `NTUSER.DAT` du profil par défaut, comme le script 12). Il utilise `reg.exe` (et non les cmdlets PowerShell) pour contourner la protection UCPD sur les clés `UserChoice`.
 - Le script 17 exécute le `UninstallString` du registre en premier (méthode propre), avec fallback sur `OneDrive.exe /uninstall`. La clé de registre Uninstall est supprimée si elle existe encore, ou considérée comme déjà nettoyée si absente. Les packages AppX provisionnés sont également supprimés via `Remove-AppxProvisionedPackage`.
 - Le script 12 utilise `Set-ItemProperty` au lieu de `New-ItemProperty` pour modifier la valeur `(Default)` du registre dans le profil par défaut, car `New-ItemProperty` crée une valeur nommée au lieu de modifier la valeur par défaut native.
 - Le mode sélectif est le seul mode d'exécution retenu. `Run_Install.cmd` est abandonné au profit de `Run_Selective.cmd`.
 - `Run_Selective.cmd` se lance minimisé (`start /min`) pour ne pas occuper l'écran pendant la synchronisation Robocopy.
 - La fenêtre du mode sélectif (`Run_Selective.ps1`) reste déplaçable pendant l'exécution des scripts grâce à `[System.Windows.Forms.Application]::DoEvents()` appelé régulièrement dans la boucle d'attente des processus.
+- **Le script 18 est suspendu** (septembre 2026) : l'algorithme UserChoice (PS-SFTA) n'est plus valide sur Windows 11 24H2/25H2. Le script ne doit pas être exécuté en production. Une solution alternative (SetUserFTA, GPO/MDM) est à l'étude.
 
 ---
 
@@ -743,7 +753,8 @@ Depuis Windows 10 1903, Microsoft a verrouillé `UserChoice` avec un hash anti-d
 
 ### Prioritaires
 
-- Valider les scripts 08, 09 et 18 sur les cas de déploiement réel.
+- Valider les scripts 08 et 09 sur les cas de déploiement réel.
+- Trouver une solution viable pour les associations de fichiers (remplacement du script 18 suspendu).
 
 ### Reportés
 
@@ -766,3 +777,5 @@ Voici le fichier de référence du projet. Utilise-le comme contexte et tiens co
 Puis joindre ou coller ce fichier : `reference-projet.md`
 
 Lorsqu'une nouvelle modification est validée, mettre à jour ce document afin qu'il reste la source de référence du projet.
+
+```
