@@ -223,7 +223,7 @@ Permettre de choisir manuellement les scripts à exécuter, plutôt que de lance
 
 - Liste des scripts dans l'ordre de numérotation, avec description
 - Cases à cocher individuelles pour chaque script
-- Scripts nécessitant Internet (15, 16) affichés en **orange**
+- Scripts nécessitant Internet (15, 16, 19) affichés en **orange**
 - Bouton **"Tous"** : coche tous les scripts
 - Bouton **"Aucun"** : décoche tous les scripts
 - Bouton **"Exécuter"** : lance les scripts cochés dans l'ordre
@@ -297,6 +297,8 @@ Permettre de choisir manuellement les scripts à exécuter, plutôt que de lance
 15_ApplicationsWinget.ps1
 16_TeamViewerQS.ps1
 17_DesinstallationOneDrive.ps1
+18_AssociationsFichiers.ps1  [SUSPENDU]
+19_MisesAJourConstructeur.ps1
 
 90_VerificationMotDePasseCompteLocal.ps1
 
@@ -330,6 +332,7 @@ Le script 90 reste volontairement le dernier script fonctionnel avant le script 
 | 16 | `16_TeamViewerQS.ps1` | Téléchargement et mise à jour de TeamViewer QS | ✅ VALIDÉ | API TeamViewer + téléchargement direct |
 | 17 | `17_DesinstallationOneDrive.ps1` | Détection et désinstallation de OneDrive | ✅ VALIDÉ | UninstallString + AppX provisionné + gestion erreurs gracieuse |
 | 18 | `18_AssociationsFichiers.ps1` | Associations de fichiers par défaut | ⛔ SUSPENDU | Algorithme UserChoice obsolète sur Windows 11 24H2/25H2 ; méthodes DISM et ProgID insuffisantes pour l'utilisateur courant. À réétudier avec SetUserFTA ou une approche GPO/MDM. |
+| 19 | `19_MisesAJourConstructeur.ps1` | Mises à jour pilotes, BIOS, firmwares et applications constructeur | À VALIDER | Lenovo et Dell pris en charge ; popup pour autoriser ou empêcher le redémarrage constructeur |
 | 90 | `90_VerificationMotDePasseCompteLocal.ps1` | Vérifier un mot de passe local | ✅ VALIDÉ | API Windows LogonUser — détection fiable du mot de passe vide |
 | 99 | `99_FinDeploiement.ps1` | Restauration du mode déploiement | ✅ VALIDÉ | Popup confirmation + restauration paramètres |
 
@@ -664,6 +667,53 @@ Le script 18 est **suspendu** en attendant une solution viable (SetUserFTA, appr
 
 ---
 
+### Script 19 : Mises à jour constructeur
+
+**Nom :** `19_MisesAJourConstructeur.ps1`
+
+**Fonction :** Détecte le constructeur du poste et pilote les outils officiels de mise à jour pour installer les pilotes, applications, BIOS et firmwares disponibles.
+
+**Position :** Après le script 18 et avant le script 90. Le script nécessite Internet et doit être déclaré avec `Net=$true` dans `Run_Selective.ps1`.
+
+**Constructeurs :**
+- **Lenovo** : vérification ou installation de Lenovo Commercial Vantage depuis le Microsoft Store, puis de Lenovo System Update ;
+- **Dell** : vérification ou installation de Dell Command Update via WinGet ;
+- **HP** : détecté et journalisé, mais HP Image Assistant n'est pas encore automatisé ;
+- **ASUS** : détecté et journalisé, mais l'automatisation de MyASUS n'est pas implémentée ;
+- **autre constructeur** : aucune action, log `WARN` et sortie normale.
+
+**Popup de choix sur Lenovo et Dell :**
+- **Oui** : autorise toutes les mises à jour, BIOS et firmwares inclus, ainsi que le redémarrage constructeur si nécessaire. Le poste peut redémarrer avant la fin de CGLOBAL ;
+- **Non** : installe les mises à jour sans redémarrage forcé pendant la séquence CGLOBAL ;
+- **Annuler** : ignore uniquement le script 19, retourne `0` et laisse `Run_Selective.ps1` poursuivre les scripts suivants.
+
+**Lenovo :**
+- détection AppX de Lenovo Vantage ou Lenovo Commercial Vantage ;
+- installation Microsoft Store avec l'identifiant `9NR5B8GVVM13` si nécessaire ;
+- installation de `Lenovo.SystemUpdate` via WinGet si `tvsu.exe` est absent ;
+- configuration de `AdminCommandLine` dans les stratégies Lenovo 32 et 64 bits ;
+- désactivation de la planification automatique (`SchedulerAbility = NO`) ;
+- mode complet : types de redémarrage `1,3,4,5` ;
+- mode sans redémarrage forcé : types `1,3` avec `-noreboot`, types `4,5` exclus.
+
+**Dell :**
+- détection de `dcu-cli.exe` sous Program Files 64 ou 32 bits ;
+- installation de `Dell.CommandUpdate` via WinGet si nécessaire ;
+- catégories traitées : BIOS, firmware, pilote, application et autres ;
+- mode complet : `-reboot=enable` ;
+- mode sans redémarrage forcé : `-reboot=disable` ;
+- journal Dell : `C:\_CGLOBAL\Logs\DellCommandUpdate.log`.
+
+**Journal principal :** `C:\_CGLOBAL\Logs\Log19_MisesAJourConstructeur.txt`
+
+**Codes retour :**
+- `0` : réussite, annulation utilisateur ou constructeur non pris en charge ;
+- `1` : erreur empêchant le traitement d'un constructeur reconnu.
+
+**État :** À VALIDER sur postes Lenovo et Dell, notamment pour les mises à jour BIOS/firmware et les codes retour constructeurs.
+
+---
+
 ### Script 90 : Vérification du mot de passe local
 
 **Nom :** `90_VerificationMotDePasseCompteLocal.ps1`
@@ -746,6 +796,8 @@ Le script 18 est **suspendu** en attendant une solution viable (SetUserFTA, appr
 - `Run_Selective.cmd` se lance minimisé (`start /min`) pour ne pas occuper l'écran pendant la synchronisation Robocopy.
 - La fenêtre du mode sélectif (`Run_Selective.ps1`) reste déplaçable pendant l'exécution des scripts grâce à `[System.Windows.Forms.Application]::DoEvents()` appelé régulièrement dans la boucle d'attente des processus.
 - **Le script 18 est suspendu** (septembre 2026) : l'algorithme UserChoice (PS-SFTA) n'est plus valide sur Windows 11 24H2/25H2. Le script ne doit pas être exécuté en production. Une solution alternative (SetUserFTA, GPO/MDM) est à l'étude.
+- Le script 19 centralise les mises à jour constructeur. Lenovo et Dell sont pris en charge ; HP et ASUS restent détectés mais non automatisés.
+- Le script 19 propose par popup toutes les mises à jour, les mises à jour sans redémarrage forcé, ou l'annulation du seul script 19 avec retour `0`.
 
 ---
 
@@ -754,10 +806,13 @@ Le script 18 est **suspendu** en attendant une solution viable (SetUserFTA, appr
 ### Prioritaires
 
 - Valider les scripts 08 et 09 sur les cas de déploiement réel.
+- Valider le script 19 sur des postes Lenovo et Dell, avec et sans redémarrage constructeur autorisé.
 - Trouver une solution viable pour les associations de fichiers (remplacement du script 18 suspendu).
 
 ### Reportés
 
+- Intégrer HP Image Assistant au script 19.
+- Réévaluer l’automatisation ASUS si une interface de commande officielle devient disponible.
 - Désactivation complète des Widgets (au-delà de la suppression du package).
 - Exécution automatique du script 02 au premier logon de chaque nouvel utilisateur (optionnel, le script 12 corrige maintenant le menu contextuel pour les futurs profils).
 - Éventuel redémarrage unique d'Explorer après les scripts d'interface.
