@@ -11,15 +11,13 @@ $script:RebootRequired = $false
 
 function Invoke-LoggedCommand {
     param(
-        [Parameter(Mandatory = $true)]
-        [string]$FilePath,
+        [Parameter(Mandatory = $true)][string]$FilePath,
         [string[]]$Arguments = @()
     )
 
     Write-Log ("Commande : {0} {1}" -f $FilePath, ($Arguments -join ' '))
     $PreviousEAP = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
-
     try {
         $Output = & $FilePath @Arguments 2>&1
         $ExitCode = $LASTEXITCODE
@@ -63,29 +61,10 @@ function Test-WingetAvailable {
     Write-Log 'Winget detecte' 'OK'
 }
 
-function Test-AppxPackageInstalled {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string[]]$NamePatterns
-    )
-
-    $Packages = @(Get-AppxPackage -AllUsers -ErrorAction SilentlyContinue)
-    foreach ($Package in $Packages) {
-        foreach ($Pattern in $NamePatterns) {
-            if ($Package.Name -like $Pattern -or $Package.PackageFamilyName -like $Pattern) {
-                return $true
-            }
-        }
-    }
-    return $false
-}
-
 function Install-WingetPackage {
     param(
-        [Parameter(Mandatory = $true)]
-        [string]$PackageId,
-        [ValidateSet('winget', 'msstore')]
-        [string]$Source = 'winget'
+        [Parameter(Mandatory = $true)][string]$PackageId,
+        [ValidateSet('winget', 'msstore')][string]$Source = 'winget'
     )
 
     $Result = Invoke-LoggedCommand -FilePath 'winget.exe' -Arguments @(
@@ -98,6 +77,52 @@ function Install-WingetPackage {
         throw "Echec de l'installation du package $PackageId (code $($Result.ExitCode))"
     }
     Write-Log "$PackageId installe" 'OK'
+}
+
+function Get-UpdateMode {
+    param([Parameter(Mandatory = $true)][string]$ManufacturerName)
+
+    $Message = @"
+Choisissez le mode d'installation pour $ManufacturerName :
+
+Oui = TOUTES les mises a jour (BIOS / Firmware inclus)
+      Le poste peut redemarrer avant la fin des scripts CGLOBAL.
+
+Non = Mises a jour sans redemarrage force
+      Les mises a jour peuvent demander un redemarrage, mais celui-ci
+      ne sera pas declenche automatiquement pendant la sequence CGLOBAL.
+
+Annuler = Ignorer CE script et continuer les scripts suivants.
+"@
+
+    $Choice = Show-CGlobalPopup -Message $Message -Title 'Mises a jour constructeur' `
+        -Buttons 'YesNoCancel' -Icon 'Question'
+
+    if ($Choice -eq [System.Windows.Forms.DialogResult]::Yes) {
+        Write-Log 'Mode choisi : toutes les mises a jour, redemarrage constructeur autorise' 'WARN'
+        return 'ALL'
+    }
+    if ($Choice -eq [System.Windows.Forms.DialogResult]::No) {
+        Write-Log 'Mode choisi : mises a jour sans redemarrage force' 'OK'
+        return 'NO_FORCED_REBOOT'
+    }
+
+    Write-Log 'Script 19 ignore par l utilisateur : poursuite des scripts suivants' 'WARN'
+    return 'CANCEL'
+}
+
+function Test-AppxPackageInstalled {
+    param([Parameter(Mandatory = $true)][string[]]$NamePatterns)
+
+    $Packages = @(Get-AppxPackage -AllUsers -ErrorAction SilentlyContinue)
+    foreach ($Package in $Packages) {
+        foreach ($Pattern in $NamePatterns) {
+            if ($Package.Name -like $Pattern -or $Package.PackageFamilyName -like $Pattern) {
+                return $true
+            }
+        }
+    }
+    return $false
 }
 
 function Install-LenovoCommercialVantage {
@@ -127,7 +152,6 @@ function Get-LenovoSystemUpdatePath {
         'C:\Program Files (x86)\Lenovo\System Update\tvsu.exe',
         'C:\Program Files\Lenovo\System Update\tvsu.exe'
     )
-
     foreach ($Path in $Paths) {
         if (Test-Path -LiteralPath $Path) { return $Path }
     }
@@ -142,8 +166,7 @@ function Install-LenovoSystemUpdate {
     }
 
     Write-Log 'Lenovo System Update absent : installation via Winget' 'WARN'
-    Install-WingetPackage -PackageId 'Lenovo.SystemUpdate' -Source 'winget'
-
+    Install-WingetPackage -PackageId 'Lenovo.SystemUpdate'
     $TvsuPath = Get-LenovoSystemUpdatePath
     if ($null -eq $TvsuPath) {
         throw 'tvsu.exe introuvable apres installation de Lenovo System Update'
@@ -152,43 +175,10 @@ function Install-LenovoSystemUpdate {
     return $TvsuPath
 }
 
-function Get-LenovoUpdateMode {
-    $Message = @"
-Choisissez le mode d'installation :
-
-Oui = TOUTES les mises a jour (BIOS / Firmware inclus)
-      ATTENTION : le poste peut redemarrer avant la fin des scripts CGLOBAL.
-
-Non = Uniquement les mises a jour sans redemarrage
-      La sequence CGLOBAL pourra continuer normalement.
-
-Annuler = Ignorer CE script et continuer les scripts suivants.
-"@
-
-    $Choice = Show-CGlobalPopup `
-        -Message $Message `
-        -Title 'Mises a jour constructeur' `
-        -Buttons 'YesNoCancel' `
-        -Icon 'Question'
-
-    if ($Choice -eq [System.Windows.Forms.DialogResult]::Yes) {
-        Write-Log 'Mode choisi : toutes les mises a jour, redemarrage constructeur autorise' 'WARN'
-        return 'ALL'
-    }
-    if ($Choice -eq [System.Windows.Forms.DialogResult]::No) {
-        Write-Log 'Mode choisi : mises a jour sans redemarrage uniquement' 'OK'
-        return 'NO_REBOOT'
-    }
-
-    Write-Log 'Script 19 ignore par l utilisateur : poursuite des scripts suivants' 'WARN'
-    return 'CANCEL'
-}
-
 function Set-LenovoSystemUpdatePolicy {
     param(
         [Parameter(Mandatory = $true)]
-        [ValidateSet('ALL', 'NO_REBOOT')]
-        [string]$UpdateMode
+        [ValidateSet('ALL', 'NO_FORCED_REBOOT')][string]$UpdateMode
     )
 
     $PolicyPaths = @(
@@ -200,8 +190,9 @@ function Set-LenovoSystemUpdatePolicy {
         $AdminCommandLine = '/CM -search A -action INSTALL -includerebootpackages 1,3,4,5 -nolicense -noicon -exporttowmi'
     }
     else {
-        # Sans -includerebootpackages, seuls les packages de type 0 sont traites.
-        $AdminCommandLine = '/CM -search A -action INSTALL -nolicense -noicon -exporttowmi'
+        # Types 1 et 3 autorises ; redemarrage du type 3 neutralise.
+        # Types 4 (arret) et 5 (redemarrage obligatoire) exclus.
+        $AdminCommandLine = '/CM -search A -action INSTALL -includerebootpackages 1,3 -noreboot -nolicense -noicon -exporttowmi'
     }
 
     foreach ($PolicyPath in $PolicyPaths) {
@@ -211,14 +202,7 @@ function Set-LenovoSystemUpdatePolicy {
         New-ItemProperty -Path $PolicyPath -Name 'AdminCommandLine' `
             -PropertyType String -Value $AdminCommandLine -Force | Out-Null
     }
-
     Write-Log "Politique Lenovo configuree : $AdminCommandLine" 'OK'
-    if ($UpdateMode -eq 'ALL') {
-        Write-Log 'Toutes les mises a jour Lenovo sont autorisees, y compris celles pouvant redemarrer ou arreter le poste' 'WARN'
-    }
-    else {
-        Write-Log 'Seules les mises a jour Lenovo ne demandant aucun redemarrage sont autorisees' 'OK'
-    }
 }
 
 function Disable-LenovoAutomaticScheduler {
@@ -234,8 +218,7 @@ function Disable-LenovoAutomaticScheduler {
 function Invoke-LenovoUpdates {
     param(
         [Parameter(Mandatory = $true)]
-        [ValidateSet('ALL', 'NO_REBOOT')]
-        [string]$UpdateMode
+        [ValidateSet('ALL', 'NO_FORCED_REBOOT')][string]$UpdateMode
     )
 
     Test-WingetAvailable
@@ -244,26 +227,90 @@ function Invoke-LenovoUpdates {
     Set-LenovoSystemUpdatePolicy -UpdateMode $UpdateMode
     Disable-LenovoAutomaticScheduler
 
-    if ($UpdateMode -eq 'ALL') {
-        Write-Log 'Recherche et installation de toutes les mises a jour Lenovo' 'WARN'
-    }
-    else {
-        Write-Log 'Recherche et installation des mises a jour Lenovo sans redemarrage'
-    }
-
     $Result = Invoke-LoggedCommand -FilePath $TvsuPath -Arguments @('/CM')
-
-    if ($Result.ExitCode -eq 0) {
-        Write-Log 'Traitement Lenovo System Update termine' 'OK'
-    }
-    elseif ($Result.ExitCode -eq 3010) {
+    if ($Result.ExitCode -eq 3010) {
         $script:RebootRequired = $true
         Write-Log 'Traitement Lenovo termine : redemarrage requis' 'WARN'
     }
-    else {
+    elseif ($Result.ExitCode -ne 0) {
         throw "Lenovo System Update a retourne le code $($Result.ExitCode)"
     }
+    else {
+        Write-Log 'Traitement Lenovo System Update termine' 'OK'
+    }
+}
 
+function Get-DellCommandUpdatePath {
+    $Paths = @(
+        'C:\Program Files\Dell\CommandUpdate\dcu-cli.exe',
+        'C:\Program Files (x86)\Dell\CommandUpdate\dcu-cli.exe'
+    )
+    foreach ($Path in $Paths) {
+        if (Test-Path -LiteralPath $Path) { return $Path }
+    }
+    return $null
+}
+
+function Install-DellCommandUpdate {
+    $DcuPath = Get-DellCommandUpdatePath
+    if ($null -ne $DcuPath) {
+        Write-Log "Dell Command Update deja installe : $DcuPath" 'OK'
+        return $DcuPath
+    }
+
+    Test-WingetAvailable
+    Write-Log 'Dell Command Update absent : installation via Winget' 'WARN'
+    Install-WingetPackage -PackageId 'Dell.CommandUpdate'
+
+    $DcuPath = Get-DellCommandUpdatePath
+    if ($null -eq $DcuPath) {
+        throw 'dcu-cli.exe introuvable apres installation de Dell Command Update'
+    }
+    Write-Log "Dell Command Update installe : $DcuPath" 'OK'
+    return $DcuPath
+}
+
+function Invoke-DellUpdates {
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateSet('ALL', 'NO_FORCED_REBOOT')][string]$UpdateMode
+    )
+
+    $DcuPath = Install-DellCommandUpdate
+    $DellLog = 'C:\_CGLOBAL\Logs\DellCommandUpdate.log'
+
+    if ($UpdateMode -eq 'ALL') {
+        $RebootArgument = '-reboot=enable'
+        Write-Log 'Dell : toutes les mises a jour sont autorisees avec redemarrage automatique' 'WARN'
+    }
+    else {
+        $RebootArgument = '-reboot=disable'
+        Write-Log 'Dell : redemarrage automatique desactive pour poursuivre CGLOBAL' 'OK'
+    }
+
+    $Result = Invoke-LoggedCommand -FilePath $DcuPath -Arguments @(
+        '/applyUpdates',
+        '-updateType=bios,firmware,driver,application,others',
+        '-silent',
+        $RebootArgument,
+        "-outputLog=$DellLog"
+    )
+
+    # 0 : succes ; 1 : redemarrage requis selon les versions DCU.
+    # Les autres codes sont journalises comme erreurs de traitement.
+    if ($Result.ExitCode -eq 0) {
+        Write-Log 'Traitement Dell Command Update termine' 'OK'
+    }
+    elseif ($Result.ExitCode -eq 1 -or $Result.ExitCode -eq 3010) {
+        $script:RebootRequired = $true
+        Write-Log "Traitement Dell termine avec le code $($Result.ExitCode) : redemarrage requis" 'WARN'
+    }
+    else {
+        throw "Dell Command Update a retourne le code $($Result.ExitCode)"
+    }
+}
+
+function Test-PendingReboot {
     if (
         (Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending') -or
         (Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired')
@@ -285,25 +332,22 @@ try {
 
     switch ($Manufacturer) {
         'LENOVO' {
-            Write-Log 'Traitement constructeur Lenovo'
-            $UpdateMode = Get-LenovoUpdateMode
-            if ($UpdateMode -eq 'CANCEL') {
-                Write-Log 'Fin du script 19 sans action' 'OK'
-                exit 0
-            }
+            $UpdateMode = Get-UpdateMode -ManufacturerName 'Lenovo'
+            if ($UpdateMode -eq 'CANCEL') { exit 0 }
             Invoke-LenovoUpdates -UpdateMode $UpdateMode
+            Test-PendingReboot
         }
         'DELL' {
-            Write-Log 'Poste Dell detecte' 'WARN'
-            Write-Log 'Dell Command Update n est pas encore active dans cette version' 'WARN'
+            $UpdateMode = Get-UpdateMode -ManufacturerName 'Dell'
+            if ($UpdateMode -eq 'CANCEL') { exit 0 }
+            Invoke-DellUpdates -UpdateMode $UpdateMode
+            Test-PendingReboot
         }
         'HP' {
-            Write-Log 'Poste HP detecte' 'WARN'
-            Write-Log 'HP Image Assistant n est pas encore active dans cette version' 'WARN'
+            Write-Log 'Poste HP detecte : HP Image Assistant non encore active dans cette version' 'WARN'
         }
         'ASUS' {
-            Write-Log 'Poste ASUS detecte' 'WARN'
-            Write-Log 'MyASUS ne fournit pas de ligne de commande documentee equivalente' 'WARN'
+            Write-Log 'Poste ASUS detecte : automatisation MyASUS non implementee' 'WARN'
         }
         default {
             Write-Log 'Constructeur non pris en charge : aucune action effectuee' 'WARN'
