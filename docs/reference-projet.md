@@ -46,7 +46,8 @@ Un module PowerShell partagé centralise les fonctionnalités communes :
 - **`Get-CGlobalLogFile`** : génère automatiquement le chemin du fichier log en fonction du nom du script courant ;
 - **`Initialize-CGlobalLog`** : initialise la journalisation (crée dossiers et fichier log si nécessaire) ;
 - **`Write-Log`** : enregistre les messages de log avec timestamp, niveau et couleur console ;
-- **`Show-CGlobalPopup`** : affiche une popup graphique pour les interactions utilisateur.
+- **`Show-CGlobalPopup`** : affiche une popup graphique pour les interactions utilisateur ;
+- **`Show-CGlobalInputBox`** : affiche une boîte de dialogue de saisie texte (OK/Annuler), utilisée notamment pour la saisie d'un nouveau nom de poste.
 
 #### En-tête standardisé des scripts actifs
 
@@ -300,6 +301,8 @@ Permettre de choisir manuellement les scripts à exécuter, plutôt que de lance
 18_AssociationsFichiers.ps1  [SUSPENDU]
 19_MisesAJourConstructeur.ps1
 
+85_RenommagePoste.ps1
+
 90_VerificationMotDePasseCompteLocal.ps1
 
 99_FinDeploiement.ps1
@@ -333,6 +336,7 @@ Le script 90 reste volontairement le dernier script fonctionnel avant le script 
 | 17 | `17_DesinstallationOneDrive.ps1` | Détection et désinstallation de OneDrive | ✅ VALIDÉ | UninstallString + AppX provisionné + gestion erreurs gracieuse |
 | 18 | `18_AssociationsFichiers.ps1` | Associations de fichiers par défaut | ⛔ SUSPENDU | Algorithme UserChoice obsolète sur Windows 11 24H2/25H2 ; méthodes DISM et ProgID insuffisantes pour l'utilisateur courant. À réétudier avec SetUserFTA ou une approche GPO/MDM. |
 | 19 | `19_MisesAJourConstructeur.ps1` | Mises à jour pilotes, BIOS, firmwares et applications constructeur | À VALIDER | Lenovo et Dell pris en charge ; popup pour autoriser ou empêcher le redémarrage constructeur |
+| 85 | `85_RenommagePoste.ps1` | Renommer le poste après vérification de compatibilité | À VALIDER | Popup Oui/Non/Annuler puis saisie avec contrôle lettre/chiffre/trait d'union, boucle de ressaisie, warning redémarrage |
 | 90 | `90_VerificationMotDePasseCompteLocal.ps1` | Vérifier un mot de passe local | ✅ VALIDÉ | API Windows LogonUser — détection fiable du mot de passe vide |
 | 99 | `99_FinDeploiement.ps1` | Restauration du mode déploiement | ✅ VALIDÉ | Popup confirmation + restauration paramètres |
 
@@ -711,6 +715,42 @@ Le script 18 est **suspendu** en attendant une solution viable (SetUserFTA, appr
 - `1` : erreur empêchant le traitement d'un constructeur reconnu.
 
 **État :** À VALIDER sur postes Lenovo et Dell, notamment pour les mises à jour BIOS/firmware et les codes retour constructeurs.
+
+---
+
+### Script 85 : Renommage du poste
+
+**Nom :** `85_RenommagePoste.ps1`
+
+**Fonction :** Affiche le nom actuel du poste, propose de le modifier, vérifie la compatibilité du nouveau nom avec les règles Windows/NetBIOS, puis effectue le renommage si le nom est valide.
+
+**Position :** Après le script 19 et avant le script 90. Le script ne nécessite pas Internet (`Net=$false`).
+
+**Déroulement :**
+1. Popup **Oui/Non/Annuler** affichant le nom actuel et demandant s'il faut le modifier.
+   - **Non** ou **Annuler** : le script se termine normalement (`0`), sans aucune action.
+2. Si **Oui** : saisie du nouveau nom via `Show-CGlobalInputBox` (champ pré-rempli avec le nom actuel rappelé dans le message).
+   - Si l'utilisateur clique sur **Annuler** dans la saisie : fin normale du script (`0`).
+   - Si le nom saisi est identique au nom actuel (insensible à la casse) : popup d'information, aucune action, fin normale (`0`).
+3. **Contrôle de compatibilité** du nom saisi :
+   - lettres, chiffres et trait d'union uniquement (`^[A-Za-z0-9-]+$`) ;
+   - pas de trait d'union en première ou dernière position ;
+   - pas un nom composé uniquement de chiffres ;
+   - longueur maximale de 15 caractères (limite historique NetBIOS toujours appliquée par Windows).
+   - Si le nom est invalide : popup **OK/Annuler** avec le motif du refus — **OK** relance une nouvelle saisie, **Annuler** abandonne (`0`).
+4. **Renommage** via `Rename-Computer -NewName ... -Force`, sans l'option `-Restart` (le redémarrage n'est jamais déclenché automatiquement par CGLOBAL).
+   - En cas d'échec (nom déjà pris sur le domaine, etc.) : popup **OK/Annuler** — **OK** relance une nouvelle saisie, **Annuler** abandonne.
+5. En cas de succès : popup d'avertissement indiquant que le redémarrage est **obligatoire** pour que le nouveau nom soit pris en compte, puis fin normale (`0`).
+
+**Nouvelle fonction commune :** `Show-CGlobalInputBox` a été ajoutée à `CGLOBAL.Common.psm1` pour la saisie de texte (boîte de dialogue WinForms avec boutons OK/Annuler ; retourne `$null` en cas d'annulation, ce qui lève toute ambiguïté avec une saisie vide validée par OK).
+
+**Journal principal :** `C:\_CGLOBAL\Logs\Log85_RenommagePoste.txt`
+
+**Codes retour :**
+- `0` : réussite, refus de l'utilisateur ou abandon volontaire à n'importe quelle étape ;
+- `1` : erreur inattendue (module introuvable, exception non gérée).
+
+**État :** À VALIDER — le script n'a pas encore été testé sur un poste réel (comportement de `Rename-Computer` en environnement domaine/AD notamment).
 
 ---
 
