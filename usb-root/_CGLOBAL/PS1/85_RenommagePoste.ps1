@@ -11,13 +11,25 @@ Initialize-CGlobalLog -LogFile $LogFile
 $script:MaxComputerNameLength = 15
 
 function Test-ComputerNameCompatibility {
-    param([Parameter(Mandatory = $true)][string]$Name)
+    param(
+        [Parameter(Mandatory = $true)][AllowEmptyString()][string]$Name,
+        [Parameter(Mandatory = $true)][string]$CurrentName
+    )
 
+    # Saisie vide (y compris un champ efface puis valide avec OK) : traitee ici,
+    # distincte du clic sur Annuler qui renvoie $null a un niveau au-dessus.
     if ([string]::IsNullOrWhiteSpace($Name)) {
         return [PSCustomObject]@{ IsValid = $false; Reason = 'Le nom ne peut pas etre vide.' }
     }
 
     $Trimmed = $Name.Trim()
+
+    if ($Trimmed.ToUpperInvariant() -eq $CurrentName.ToUpperInvariant()) {
+        return [PSCustomObject]@{
+            IsValid = $false
+            Reason  = "Le nom saisi est identique au nom actuel ($CurrentName)."
+        }
+    }
 
     if ($Trimmed.Length -gt $script:MaxComputerNameLength) {
         return [PSCustomObject]@{
@@ -91,14 +103,7 @@ Voulez-vous modifier le nom du poste ?
 
         $NewName = $NewName.Trim()
 
-        if ($NewName.ToUpperInvariant() -eq $CurrentName.ToUpperInvariant()) {
-            Show-CGlobalPopup -Title 'Renommage du poste' -Buttons 'OK' -Icon 'Information' `
-                -Message "Le nom saisi est identique au nom actuel ($CurrentName).`n`nAucune modification n'est necessaire." | Out-Null
-            Write-Log 'Nom saisi identique au nom actuel : aucune modification effectuee' 'OK'
-            exit 0
-        }
-
-        $Check = Test-ComputerNameCompatibility -Name $NewName
+        $Check = Test-ComputerNameCompatibility -Name $NewName -CurrentName $CurrentName
 
         if (-not $Check.IsValid) {
             Write-Log "Nom refuse ($NewName) : $($Check.Reason)" 'WARN'
