@@ -25,11 +25,16 @@ set "USBPath=%USBPath:~0,-1%"
 if not exist "C:\_CGLOBAL" mkdir "C:\_CGLOBAL"
 
 :: --- Etape 1 : Copie des dossiers Installers et PS1 en /MIR ---
-robocopy "%USBPath%\_CGLOBAL\Installers" "C:\_CGLOBAL\Installers" /E /MIR /NFL /NDL /NJH /NJS >nul
-robocopy "%USBPath%\_CGLOBAL\PS1" "C:\_CGLOBAL\PS1" /E /MIR /NFL /NDL /NJH /NJS >nul
+echo [1/3] Copie des installateurs vers C:\_CGLOBAL\Installers ...
+robocopy "%USBPath%\_CGLOBAL\Installers" "C:\_CGLOBAL\Installers" /E /MIR /NFL /NDL
+echo [2/3] Copie des scripts vers C:\_CGLOBAL\PS1 ...
+robocopy "%USBPath%\_CGLOBAL\PS1" "C:\_CGLOBAL\PS1" /E /MIR /NFL /NDL
 
 :: --- Etape 2 : Copie du reste SANS /MIR (ne supprime pas) ---
-robocopy "%USBPath%\_CGLOBAL" "C:\_CGLOBAL" /E /XD Installer PS1 /NFL /NDL /NJH /NJS >nul
+echo [3/3] Copie des fichiers restants vers C:\_CGLOBAL ...
+robocopy "%USBPath%\_CGLOBAL" "C:\_CGLOBAL" /E /XD Installer PS1 /NFL /NDL
+
+echo Copie terminee.
 
 if %errorlevel% geq 8 (
     exit /b 1
