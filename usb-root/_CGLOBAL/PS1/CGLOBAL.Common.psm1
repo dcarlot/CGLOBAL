@@ -110,4 +110,59 @@ function Show-CGlobalPopup {
     return $dialogResult
 }
 
-Export-ModuleMember -Function Get-CGlobalLogFile, Initialize-CGlobalLog, Write-Log, Show-CGlobalPopup
+function Show-CGlobalInputBox {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Message,
+
+        [string]$Title = "Post-Installation PC",
+
+        [string]$DefaultText = ""
+    )
+
+    $Form = New-Object System.Windows.Forms.Form
+    $Form.Text = $Title
+    $Form.StartPosition = 'CenterScreen'
+    $Form.FormBorderStyle = 'FixedDialog'
+    $Form.MinimizeBox = $false
+    $Form.MaximizeBox = $false
+    $Form.Width = 420
+    $Form.Height = 180
+    $Form.Topmost = $true
+
+    $Label = New-Object System.Windows.Forms.Label
+    $Label.Text = $Message
+    $Label.SetBounds(10, 10, 390, 60)
+    $Form.Controls.Add($Label)
+
+    $TextBox = New-Object System.Windows.Forms.TextBox
+    $TextBox.Text = $DefaultText
+    $TextBox.SetBounds(10, 75, 385, 24)
+    $Form.Controls.Add($TextBox)
+
+    $OkButton = New-Object System.Windows.Forms.Button
+    $OkButton.Text = 'OK'
+    $OkButton.SetBounds(220, 105, 80, 28)
+    $OkButton.DialogResult = [System.Windows.Forms.DialogResult]::OK
+    $Form.Controls.Add($OkButton)
+    $Form.AcceptButton = $OkButton
+
+    $CancelButton = New-Object System.Windows.Forms.Button
+    $CancelButton.Text = 'Annuler'
+    $CancelButton.SetBounds(310, 105, 85, 28)
+    $CancelButton.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
+    $Form.Controls.Add($CancelButton)
+    $Form.CancelButton = $CancelButton
+
+    $Result = $Form.ShowDialog()
+    $Form.Dispose()
+
+    if ($Result -eq [System.Windows.Forms.DialogResult]::OK) {
+        return $TextBox.Text
+    }
+
+    # $null distingue explicitement l'annulation d'une saisie vide validee par OK
+    return $null
+}
+
+Export-ModuleMember -Function Get-CGlobalLogFile, Initialize-CGlobalLog, Write-Log, Show-CGlobalPopup, Show-CGlobalInputBox
