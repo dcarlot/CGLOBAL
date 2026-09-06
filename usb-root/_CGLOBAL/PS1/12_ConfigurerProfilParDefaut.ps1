@@ -61,10 +61,26 @@ function Write-Log {
         $Level, `
         $Message
 
-    Add-Content `
-        -Path $LogFile `
-        -Value $Line `
-        -Encoding UTF8
+    # Reessai en cas de verrou transitoire sur le fichier (ex. antivirus).
+    # Une erreur d'ecriture de log ne doit jamais interrompre le script.
+    for ($Attempt = 1; $Attempt -le 10; $Attempt++) {
+        try {
+            Add-Content `
+                -Path $LogFile `
+                -Value $Line `
+                -Encoding UTF8 `
+                -ErrorAction Stop
+            break
+        }
+        catch {
+            if ($Attempt -ge 10) {
+                Write-Host "[ECHEC ECRITURE LOG] $Line" -ForegroundColor Red
+            }
+            else {
+                Start-Sleep -Milliseconds 150
+            }
+        }
+    }
 
     $Color = @{
         INFO = 'Cyan'
