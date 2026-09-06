@@ -139,6 +139,7 @@ function Install-LenovoCommercialVantage {
     }
 
     Write-Log 'Lenovo Commercial Vantage absent : installation depuis Microsoft Store' 'WARN'
+    Test-WingetAvailable
     Install-WingetPackage -PackageId '9NR5B8GVVM13' -Source 'msstore'
 
     if (-not (Test-AppxPackageInstalled -NamePatterns $Patterns)) {
@@ -166,6 +167,7 @@ function Install-LenovoSystemUpdate {
     }
 
     Write-Log 'Lenovo System Update absent : installation via Winget' 'WARN'
+    Test-WingetAvailable
     Install-WingetPackage -PackageId 'Lenovo.SystemUpdate'
     $TvsuPath = Get-LenovoSystemUpdatePath
     if ($null -eq $TvsuPath) {
@@ -206,13 +208,22 @@ function Set-LenovoSystemUpdatePolicy {
 }
 
 function Disable-LenovoAutomaticScheduler {
-    $SchedulerPath = 'HKLM:\SOFTWARE\WOW6432Node\Lenovo\System Update\Preferences\UserSettings\Scheduler'
-    if (-not (Test-Path -LiteralPath $SchedulerPath)) {
-        New-Item -Path $SchedulerPath -Force | Out-Null
+    # Les deux vues de registre sont ecrites car Lenovo System Update peut etre
+    # installe en version 32 ou 64 bits selon le poste (cf. Get-LenovoSystemUpdatePath),
+    # de la meme maniere que Set-LenovoSystemUpdatePolicy pour AdminCommandLine.
+    $SchedulerPaths = @(
+        'HKLM:\SOFTWARE\Lenovo\System Update\Preferences\UserSettings\Scheduler',
+        'HKLM:\SOFTWARE\WOW6432Node\Lenovo\System Update\Preferences\UserSettings\Scheduler'
+    )
+
+    foreach ($SchedulerPath in $SchedulerPaths) {
+        if (-not (Test-Path -LiteralPath $SchedulerPath)) {
+            New-Item -Path $SchedulerPath -Force | Out-Null
+        }
+        New-ItemProperty -Path $SchedulerPath -Name 'SchedulerAbility' `
+            -PropertyType String -Value 'NO' -Force | Out-Null
     }
-    New-ItemProperty -Path $SchedulerPath -Name 'SchedulerAbility' `
-        -PropertyType String -Value 'NO' -Force | Out-Null
-    Write-Log 'Planification automatique Lenovo System Update desactivee' 'OK'
+    Write-Log 'Planification automatique Lenovo System Update desactivee (32 et 64 bits)' 'OK'
 }
 
 function Invoke-LenovoUpdates {
@@ -221,7 +232,6 @@ function Invoke-LenovoUpdates {
         [ValidateSet('ALL', 'NO_FORCED_REBOOT')][string]$UpdateMode
     )
 
-    Test-WingetAvailable
     Install-LenovoCommercialVantage
     $TvsuPath = Install-LenovoSystemUpdate
     Set-LenovoSystemUpdatePolicy -UpdateMode $UpdateMode
@@ -352,6 +362,12 @@ try {
         default {
             Write-Log 'Constructeur non pris en charge : aucune action effectuee' 'WARN'
         }
+    }
+
+    if ($script:RebootRequired) {
+        Show-CGlobalPopup -Message "Les mises a jour constructeur necessitent un redemarrage du poste.`n`nPensez a redemarrer avant de considerer le deploiement termine." `
+            -Title 'Redemarrage requis' -Buttons 'OK' -Icon 'Exclamation' | Out-Null
+        Write-Log 'Popup de redemarrage requis affichee a l operateur' 'WARN'
     }
 
     Write-Log 'Mises a jour constructeur terminees' 'OK'
