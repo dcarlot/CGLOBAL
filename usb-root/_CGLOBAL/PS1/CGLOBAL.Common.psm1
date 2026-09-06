@@ -109,7 +109,7 @@ function Write-Log {
 
     # Reessai en cas de verrou transitoire sur le fichier (ex. lecture concurrente,
     # antivirus). Une erreur d'ecriture de log ne doit jamais interrompre le script appelant.
-    $MaxAttempts = 5
+    $MaxAttempts = 10
     for ($Attempt = 1; $Attempt -le $MaxAttempts; $Attempt++) {
         try {
             Add-Content -Path $script:CGLOBAL_LogFile -Value $Line -Encoding UTF8 -ErrorAction Stop
@@ -120,7 +120,7 @@ function Write-Log {
                 Write-Host "[ECHEC ECRITURE LOG] $Line" -ForegroundColor Red
             }
             else {
-                Start-Sleep -Milliseconds 100
+                Start-Sleep -Milliseconds 150
             }
         }
     }

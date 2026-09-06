@@ -33,13 +33,13 @@ function Write-LogSelective {
     )
     $Line = "[{0}] [{1,-5}] {2}" -f (Get-Date -Format "HH:mm:ss"), $Level, $Message
 
-    for ($Attempt = 1; $Attempt -le 5; $Attempt++) {
+    for ($Attempt = 1; $Attempt -le 10; $Attempt++) {
         try {
             Add-Content -Path $LogFile -Value $Line -Encoding UTF8 -ErrorAction Stop
             break
         }
         catch {
-            if ($Attempt -lt 5) { Start-Sleep -Milliseconds 100 }
+            if ($Attempt -lt 10) { Start-Sleep -Milliseconds 150 }
         }
     }
 
@@ -168,6 +168,77 @@ function Test-InternetConnection {
 }
 
 # ============================================================
+# Wi-Fi invite du bureau : detection + connexion automatique proposee
+# ============================================================
+$script:GuestWifiSSID = "CGLOBAL INVITES"
+$script:GuestWifiPassword = "01Visiteurs!"
+
+function Test-GuestWifiAvailable {
+    try {
+        $Networks = (netsh wlan show networks) -join "`n"
+        return $Networks -match [regex]::Escape($script:GuestWifiSSID)
+    }
+    catch {
+        return $false
+    }
+}
+
+function Connect-CGlobalGuestWifi {
+    Write-LogSelective "Tentative de connexion au Wi-Fi invite '$($script:GuestWifiSSID)'" "INFO"
+
+    $ProfileXml = @"
+<?xml version="1.0"?>
+<WLANProfile xmlns="http://www.microsoft.com/networking/WLAN/profile/v1">
+    <name>$($script:GuestWifiSSID)</name>
+    <SSIDConfig>
+        <SSID>
+            <name>$($script:GuestWifiSSID)</name>
+        </SSID>
+    </SSIDConfig>
+    <connectionType>ESS</connectionType>
+    <connectionMode>manual</connectionMode>
+    <MSM>
+        <security>
+            <authEncryption>
+                <authentication>WPA2PSK</authentication>
+                <encryption>AES</encryption>
+                <useOneX>false</useOneX>
+            </authEncryption>
+            <sharedKey>
+                <keyType>passPhrase</keyType>
+                <protected>false</protected>
+                <keyMaterial>$($script:GuestWifiPassword)</keyMaterial>
+            </sharedKey>
+        </security>
+    </MSM>
+</WLANProfile>
+"@
+
+    $ProfilePath = Join-Path $env:TEMP "CGlobalGuestWifi.xml"
+
+    try {
+        Set-Content -Path $ProfilePath -Value $ProfileXml -Encoding UTF8
+
+        $AddResult = (netsh wlan add profile filename="$ProfilePath" user=all) -join " "
+        Write-LogSelective "Ajout du profil Wi-Fi invite : $AddResult" "INFO"
+
+        $ConnectResult = (netsh wlan connect name="$($script:GuestWifiSSID)" ssid="$($script:GuestWifiSSID)") -join " "
+        Write-LogSelective "Connexion au Wi-Fi invite : $ConnectResult" "INFO"
+
+        # Laisser le temps a Windows d'etablir la connexion et d'obtenir une adresse IP
+        Start-Sleep -Seconds 5
+        return $true
+    }
+    catch {
+        Write-LogSelective "Erreur lors de la connexion au Wi-Fi invite : $($_.Exception.Message)" "ERROR"
+        return $false
+    }
+    finally {
+        Remove-Item -Path $ProfilePath -Force -ErrorAction SilentlyContinue
+    }
+}
+
+# ============================================================
 # Resolution de l'absence de connexion Internet
 # Retourne : "OK" (connexion retablie), "CANCEL" (annuler tout),
 #            "CONTINUE_WITHOUT" (continuer sans les scripts Internet)
@@ -178,6 +249,29 @@ function Resolve-InternetRequirement {
     )
 
     $ScriptsInternetText = ($ScriptsNeedingNet | ForEach-Object { "[$($_.Num)] $($_.Desc)" }) -join "`n"
+
+    # --- Wi-Fi invite du bureau detecte a proximite : proposition de connexion automatique ---
+    if (Test-GuestWifiAvailable) {
+        Write-LogSelective "Reseau Wi-Fi invite '$($script:GuestWifiSSID)' detecte a proximite" "INFO"
+
+        $WifiChoice = [System.Windows.Forms.MessageBox]::Show(
+            "Aucun acces Internet detecte, mais le reseau Wi-Fi '$($script:GuestWifiSSID)' est visible a proximite.`n`nVoulez-vous vous y connecter automatiquement ?",
+            "Wi-Fi invite detecte",
+            [System.Windows.Forms.MessageBoxButtons]::YesNo,
+            [System.Windows.Forms.MessageBoxIcon]::Question
+        )
+
+        if ($WifiChoice -eq [System.Windows.Forms.DialogResult]::Yes) {
+            Connect-CGlobalGuestWifi | Out-Null
+
+            if (Test-InternetConnection) {
+                Write-LogSelective "Connexion Internet retablie via le Wi-Fi invite" "OK"
+                return "OK"
+            }
+
+            Write-LogSelective "Connexion au Wi-Fi invite tentee mais toujours aucun acces Internet" "WARN"
+        }
+    }
 
     # --- Boucle de reessai ---
     do {
