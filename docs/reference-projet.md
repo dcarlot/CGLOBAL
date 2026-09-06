@@ -731,13 +731,15 @@ Le script 18 est **suspendu** en attendant une solution viable (SetUserFTA, appr
    - **Non** ou **Annuler** : le script se termine normalement (`0`), sans aucune action.
 2. Si **Oui** : saisie du nouveau nom via `Show-CGlobalInputBox` (champ pré-rempli avec le nom actuel rappelé dans le message).
    - Si l'utilisateur clique sur **Annuler** dans la saisie : fin normale du script (`0`).
-   - Si le nom saisi est identique au nom actuel (insensible à la casse) : popup d'information, aucune action, fin normale (`0`).
-3. **Contrôle de compatibilité** du nom saisi :
+   - Si le nom saisi est vide (champ effacé puis validé par OK) : traité comme un nom invalide (voir étape 3).
+3. **Contrôle de compatibilité** du nom saisi (fonction unique `Test-ComputerNameCompatibility`, qui couvre aussi bien les règles Windows que le cas particulier « identique au nom actuel ») :
+   - non vide ;
+   - différent du nom actuel (insensible à la casse) ;
    - lettres, chiffres et trait d'union uniquement (`^[A-Za-z0-9-]+$`) ;
    - pas de trait d'union en première ou dernière position ;
    - pas un nom composé uniquement de chiffres ;
    - longueur maximale de 15 caractères (limite historique NetBIOS toujours appliquée par Windows).
-   - Si le nom est invalide : popup **OK/Annuler** avec le motif du refus — **OK** relance une nouvelle saisie, **Annuler** abandonne (`0`).
+   - Dans tous les cas de refus (y compris nom identique) : popup **OK/Annuler** avec le motif du refus — **OK** relance une nouvelle saisie, **Annuler** abandonne (`0`).
 4. **Renommage** via `Rename-Computer -NewName ... -Force`, sans l'option `-Restart` (le redémarrage n'est jamais déclenché automatiquement par CGLOBAL).
    - En cas d'échec (nom déjà pris sur le domaine, etc.) : popup **OK/Annuler** — **OK** relance une nouvelle saisie, **Annuler** abandonne.
 5. En cas de succès : popup d'avertissement indiquant que le redémarrage est **obligatoire** pour que le nouveau nom soit pris en compte, puis fin normale (`0`).
