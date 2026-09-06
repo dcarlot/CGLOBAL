@@ -17,6 +17,39 @@ if ("CGlobalDpiHelper" -as [type]) {
     [CGlobalDpiHelper]::SetProcessDPIAware() | Out-Null
 }
 
+# ============================================================
+# Forcage au premier plan : Windows empeche par defaut un processus
+# sans focus de voler l'avant-plan (anti-vol-de-focus). TopMost seul
+# ne suffit pas toujours ; SetForegroundWindow force reellement l'activation.
+# ============================================================
+Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+public class CGlobalForegroundHelper {
+    [DllImport("user32.dll")]
+    public static extern bool SetForegroundWindow(IntPtr hWnd);
+}
+"@ -ErrorAction SilentlyContinue
+
+function New-CGlobalTopMostOwner {
+    $OwnerForm = New-Object System.Windows.Forms.Form
+    $OwnerForm.StartPosition = 'CenterScreen'
+    $OwnerForm.Size = New-Object System.Drawing.Size(1, 1)
+    $OwnerForm.FormBorderStyle = 'None'
+    $OwnerForm.ShowInTaskbar = $false
+    $OwnerForm.Opacity = 0
+    $OwnerForm.TopMost = $true
+
+    [void]$OwnerForm.Show()
+    $OwnerForm.Activate()
+
+    if ("CGlobalForegroundHelper" -as [type]) {
+        [CGlobalForegroundHelper]::SetForegroundWindow($OwnerForm.Handle) | Out-Null
+    }
+
+    return $OwnerForm
+}
+
 $script:CGLOBAL_LogFolder = "C:\_CGLOBAL\Logs"
 $script:CGLOBAL_LogFile   = $null
 
@@ -100,12 +133,18 @@ function Show-CGlobalPopup {
         [string]$Icon = 'Information'
     )
 
+    $OwnerForm = New-CGlobalTopMostOwner
+
     $dialogResult = [System.Windows.Forms.MessageBox]::Show(
+        $OwnerForm,
         $Message,
         $Title,
         [System.Windows.Forms.MessageBoxButtons]::$Buttons,
         [System.Windows.Forms.MessageBoxIcon]::$Icon
     )
+
+    $OwnerForm.Close()
+    $OwnerForm.Dispose()
 
     return $dialogResult
 }
@@ -153,6 +192,15 @@ function Show-CGlobalInputBox {
     $CancelButton.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
     $Form.Controls.Add($CancelButton)
     $Form.CancelButton = $CancelButton
+
+    $Form.Add_Shown({
+        $Form.Activate()
+        if ("CGlobalForegroundHelper" -as [type]) {
+            [CGlobalForegroundHelper]::SetForegroundWindow($Form.Handle) | Out-Null
+        }
+        $TextBox.Focus()
+        $TextBox.SelectAll()
+    })
 
     $Result = $Form.ShowDialog()
     $Form.Dispose()

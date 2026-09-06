@@ -222,7 +222,7 @@ Add-Type -AssemblyName System.Drawing
 $Form = New-Object System.Windows.Forms.Form
 $Form.Text = "CGLOBAL - Mode Selectif"
 $Form.Width = 920
-$Form.Height = 720
+$Form.Height = 860
 $Form.StartPosition = "CenterScreen"
 $Form.FormBorderStyle = "FixedDialog"
 $Form.MaximizeBox = $false
@@ -426,6 +426,45 @@ $BtnQuitter.Add_Click({
 })
 $Form.Controls.Add($BtnQuitter)
 
+# --- Journal en direct du script en cours ---
+$LogLabel = New-Object System.Windows.Forms.Label
+$LogLabel.Text = "Journal en direct du script en cours :"
+$LogLabel.Font = New-Object System.Drawing.Font("Segoe UI", 9, [System.Drawing.FontStyle]::Bold)
+$LogLabel.Location = New-Object System.Drawing.Point(20, 650)
+$LogLabel.Width = 860
+$LogLabel.Height = 20
+$Form.Controls.Add($LogLabel)
+
+$LogBox = New-Object System.Windows.Forms.RichTextBox
+$LogBox.Location = New-Object System.Drawing.Point(20, 673)
+$LogBox.Width = 860
+$LogBox.Height = 130
+$LogBox.ReadOnly = $true
+$LogBox.Font = New-Object System.Drawing.Font("Consolas", 9)
+$LogBox.BackColor = [System.Drawing.Color]::White
+$Form.Controls.Add($LogBox)
+
+function Add-LogBoxLine {
+    param(
+        [Parameter(Mandatory = $true)]
+        [System.Windows.Forms.RichTextBox]$LogBox,
+        [Parameter(Mandatory = $true)]
+        [string]$Line
+    )
+
+    $Color = [System.Drawing.Color]::Black
+    if ($Line -match '\[ERROR\]') { $Color = [System.Drawing.Color]::Red }
+    elseif ($Line -match '\[WARN \]') { $Color = [System.Drawing.Color]::DarkOrange }
+    elseif ($Line -match '\[OK   \]') { $Color = [System.Drawing.Color]::DarkGreen }
+
+    $LogBox.SelectionStart = $LogBox.TextLength
+    $LogBox.SelectionLength = 0
+    $LogBox.SelectionColor = $Color
+    $LogBox.AppendText("$Line`r`n")
+    $LogBox.SelectionStart = $LogBox.TextLength
+    $LogBox.ScrollToCaret()
+}
+
 # ============================================================
 # Chargement automatique de la derniere selection
 # ============================================================
@@ -542,6 +581,11 @@ $BtnExecuter.Add_Click({
         Write-LogSelective "[$Current/$Total] Lancement : $($Script.File)" "INFO"
 
         $ScriptPath = "C:\_CGLOBAL\PS1\$($Script.File)"
+        $ScriptLogPath = "C:\_CGLOBAL\Logs\Log$([System.IO.Path]::GetFileNameWithoutExtension($Script.File)).txt"
+
+        $LogBox.Clear()
+        Add-LogBoxLine -LogBox $LogBox -Line "=== $($Script.File) ==="
+        $LastLineCount = 0
 
         if (-not (Test-Path $ScriptPath)) {
             Write-LogSelective "Script introuvable : $ScriptPath" "ERROR"
@@ -561,10 +605,32 @@ $BtnExecuter.Add_Click({
             # du processus (bug connu de Start-Process -PassThru sous PowerShell 5.1).
             $null = $Process.Handle
 
-            # Boucle d attente reactive
+            # Boucle d attente reactive, avec suivi en direct du log du script en cours
             while (-not $Process.HasExited) {
                 [System.Windows.Forms.Application]::DoEvents()
+
+                if (Test-Path $ScriptLogPath) {
+                    $AllLines = @(Get-Content -Path $ScriptLogPath -ErrorAction SilentlyContinue)
+                    if ($AllLines.Count -gt $LastLineCount) {
+                        foreach ($NewLine in $AllLines[$LastLineCount..($AllLines.Count - 1)]) {
+                            Add-LogBoxLine -LogBox $LogBox -Line $NewLine
+                        }
+                        $LastLineCount = $AllLines.Count
+                    }
+                }
+
                 Start-Sleep -Milliseconds 200
+            }
+
+            # Derniere lecture apres la sortie du process, au cas ou des lignes
+            # auraient ete ecrites juste avant la fin et pas encore captees
+            if (Test-Path $ScriptLogPath) {
+                $AllLines = @(Get-Content -Path $ScriptLogPath -ErrorAction SilentlyContinue)
+                if ($AllLines.Count -gt $LastLineCount) {
+                    foreach ($NewLine in $AllLines[$LastLineCount..($AllLines.Count - 1)]) {
+                        Add-LogBoxLine -LogBox $LogBox -Line $NewLine
+                    }
+                }
             }
 
             # Synchronise proprement la sortie avant de lire le code (evite un ExitCode
