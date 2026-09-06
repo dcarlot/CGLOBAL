@@ -32,7 +32,17 @@ function Write-LogSelective {
         [string]$Level = 'INFO'
     )
     $Line = "[{0}] [{1,-5}] {2}" -f (Get-Date -Format "HH:mm:ss"), $Level, $Message
-    Add-Content -Path $LogFile -Value $Line -Encoding UTF8
+
+    for ($Attempt = 1; $Attempt -le 5; $Attempt++) {
+        try {
+            Add-Content -Path $LogFile -Value $Line -Encoding UTF8 -ErrorAction Stop
+            break
+        }
+        catch {
+            if ($Attempt -lt 5) { Start-Sleep -Milliseconds 100 }
+        }
+    }
+
     Write-Host $Line -ForegroundColor $(@{INFO='Cyan';OK='Green';WARN='Yellow';ERROR='Red'}[$Level])
 }
 
@@ -222,7 +232,7 @@ Add-Type -AssemblyName System.Drawing
 $Form = New-Object System.Windows.Forms.Form
 $Form.Text = "CGLOBAL - Mode Selectif"
 $Form.Width = 920
-$Form.Height = 860
+$Form.Height = 700
 $Form.StartPosition = "CenterScreen"
 $Form.FormBorderStyle = "FixedDialog"
 $Form.MaximizeBox = $false
@@ -247,12 +257,13 @@ $SubLabel.Width = 860
 $SubLabel.Height = 20
 $Form.Controls.Add($SubLabel)
 
-# --- Panel de gauche : liste des scripts (sans scroll) ---
+# --- Panel de gauche : liste des scripts (avec ascenseur si necessaire) ---
 $Panel = New-Object System.Windows.Forms.Panel
 $Panel.Location = New-Object System.Drawing.Point(20, 80)
 $Panel.Width = 560
-$Panel.Height = 560
+$Panel.Height = 340
 $Panel.BorderStyle = "FixedSingle"
+$Panel.AutoScroll = $true
 $Form.Controls.Add($Panel)
 
 # --- Tooltip global ---
@@ -270,7 +281,7 @@ foreach ($Script in $Scripts) {
     $CB = New-Object System.Windows.Forms.CheckBox
     $CB.Text = "[$($Script.Num)] $($Script.Desc)"
     $CB.Location = New-Object System.Drawing.Point(10, $Y)
-    $CB.Width = 530
+    $CB.Width = 500
     $CB.Height = 22
     $CB.Tag = $Script
 
@@ -430,19 +441,42 @@ $Form.Controls.Add($BtnQuitter)
 $LogLabel = New-Object System.Windows.Forms.Label
 $LogLabel.Text = "Journal en direct du script en cours :"
 $LogLabel.Font = New-Object System.Drawing.Font("Segoe UI", 9, [System.Drawing.FontStyle]::Bold)
-$LogLabel.Location = New-Object System.Drawing.Point(20, 650)
+$LogLabel.Location = New-Object System.Drawing.Point(20, 440)
 $LogLabel.Width = 860
 $LogLabel.Height = 20
 $Form.Controls.Add($LogLabel)
 
 $LogBox = New-Object System.Windows.Forms.RichTextBox
-$LogBox.Location = New-Object System.Drawing.Point(20, 673)
+$LogBox.Location = New-Object System.Drawing.Point(20, 463)
 $LogBox.Width = 860
-$LogBox.Height = 130
+$LogBox.Height = 140
 $LogBox.ReadOnly = $true
 $LogBox.Font = New-Object System.Drawing.Font("Consolas", 9)
 $LogBox.BackColor = [System.Drawing.Color]::White
 $Form.Controls.Add($LogBox)
+
+# Lecture du fichier de log en partage total (lecture ET ecriture), pour ne jamais
+# bloquer Add-Content dans Write-Log pendant que le script en cours ecrit ses lignes.
+# Get-Content seul provoquait des erreurs "fichier en cours d'utilisation" cote script.
+function Read-CGlobalLogLines {
+    param([string]$Path)
+
+    if (-not (Test-Path $Path)) { return @() }
+
+    try {
+        $FileStream = [System.IO.File]::Open($Path, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
+        $Reader = New-Object System.IO.StreamReader($FileStream)
+        $Content = $Reader.ReadToEnd()
+        $Reader.Close()
+        $FileStream.Close()
+    }
+    catch {
+        return @()
+    }
+
+    if ([string]::IsNullOrEmpty($Content)) { return @() }
+    return @($Content -split "`r?`n" | Where-Object { $_ -ne '' })
+}
 
 function Add-LogBoxLine {
     param(
@@ -610,7 +644,7 @@ $BtnExecuter.Add_Click({
                 [System.Windows.Forms.Application]::DoEvents()
 
                 if (Test-Path $ScriptLogPath) {
-                    $AllLines = @(Get-Content -Path $ScriptLogPath -ErrorAction SilentlyContinue)
+                    $AllLines = Read-CGlobalLogLines -Path $ScriptLogPath
                     if ($AllLines.Count -gt $LastLineCount) {
                         foreach ($NewLine in $AllLines[$LastLineCount..($AllLines.Count - 1)]) {
                             Add-LogBoxLine -LogBox $LogBox -Line $NewLine
@@ -625,7 +659,7 @@ $BtnExecuter.Add_Click({
             # Derniere lecture apres la sortie du process, au cas ou des lignes
             # auraient ete ecrites juste avant la fin et pas encore captees
             if (Test-Path $ScriptLogPath) {
-                $AllLines = @(Get-Content -Path $ScriptLogPath -ErrorAction SilentlyContinue)
+                $AllLines = Read-CGlobalLogLines -Path $ScriptLogPath
                 if ($AllLines.Count -gt $LastLineCount) {
                     foreach ($NewLine in $AllLines[$LastLineCount..($AllLines.Count - 1)]) {
                         Add-LogBoxLine -LogBox $LogBox -Line $NewLine
