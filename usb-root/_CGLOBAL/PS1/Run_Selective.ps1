@@ -49,6 +49,38 @@ function Write-LogSelective {
 Write-LogSelective "=== LANCEMENT MODE SELECTIF ===" "INFO"
 
 # ============================================================
+# Services de localisation Windows
+# Requis par "netsh wlan show networks" depuis Windows 10 1803+.
+# Sans cela, netsh renvoie une erreur de permission au lieu de la liste
+# des reseaux Wi-Fi, et la detection du Wi-Fi invite echoue silencieusement.
+# ============================================================
+function Enable-WindowsLocationServices {
+    try {
+        $LocKey = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\location"
+        if (-not (Test-Path $LocKey)) {
+            New-Item -Path $LocKey -Force | Out-Null
+        }
+
+        $CurrentValue = (Get-ItemProperty -Path $LocKey -Name "Value" -ErrorAction SilentlyContinue).Value
+
+        if ($CurrentValue -eq "Allow") {
+            Write-LogSelective "Services de localisation deja actives" "INFO"
+            return
+        }
+
+        Set-ItemProperty -Path $LocKey -Name "Value" -Value "Allow" -Type String -Force
+        Write-LogSelective "Services de localisation Windows actives (requis pour la detection Wi-Fi)" "OK"
+
+        Restart-Service -Name lfsvc -Force -ErrorAction SilentlyContinue
+    }
+    catch {
+        Write-LogSelective "Impossible d'activer les services de localisation : $($_.Exception.Message)" "WARN"
+    }
+}
+
+Enable-WindowsLocationServices
+
+# ============================================================
 # Fichier de memorisation (.sel = simple, pas de JSON)
 # ============================================================
 $SelFile = "C:\_CGLOBAL\Run_Selective.sel"
