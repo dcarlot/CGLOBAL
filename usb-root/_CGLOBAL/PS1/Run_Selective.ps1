@@ -56,25 +56,51 @@ Write-LogSelective "=== LANCEMENT MODE SELECTIF ===" "INFO"
 # ============================================================
 function Enable-WindowsLocationServices {
     try {
-        $LocKey = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\location"
-        if (-not (Test-Path $LocKey)) {
-            New-Item -Path $LocKey -Force | Out-Null
+        # --- Bascule machine (Parametres > Confidentialite > Localisation, master switch) ---
+        $LocKeyMachine = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\location"
+        if (-not (Test-Path $LocKeyMachine)) {
+            New-Item -Path $LocKeyMachine -Force | Out-Null
+        }
+        $MachineValue = (Get-ItemProperty -Path $LocKeyMachine -Name "Value" -ErrorAction SilentlyContinue).Value
+        $MachineChanged = $MachineValue -ne "Allow"
+        if ($MachineChanged) {
+            Set-ItemProperty -Path $LocKeyMachine -Name "Value" -Value "Allow" -Type String -Force
         }
 
-        $CurrentValue = (Get-ItemProperty -Path $LocKey -Name "Value" -ErrorAction SilentlyContinue).Value
+        # --- Bascule utilisateur courant (peut surcharger la bascule machine) ---
+        $LocKeyUser = "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\location"
+        if (-not (Test-Path $LocKeyUser)) {
+            New-Item -Path $LocKeyUser -Force | Out-Null
+        }
+        $UserValue = (Get-ItemProperty -Path $LocKeyUser -Name "Value" -ErrorAction SilentlyContinue).Value
+        $UserChanged = $UserValue -ne "Allow"
+        if ($UserChanged) {
+            Set-ItemProperty -Path $LocKeyUser -Name "Value" -Value "Allow" -Type String -Force
+        }
 
-        if ($CurrentValue -eq "Allow") {
-            Write-LogSelective "Services de localisation deja actives" "INFO"
+        if (-not $MachineChanged -and -not $UserChanged) {
+            Write-LogSelective "Services de localisation deja actives (machine + utilisateur)" "INFO"
             return
         }
 
-        Set-ItemProperty -Path $LocKey -Name "Value" -Value "Allow" -Type String -Force
-        Write-LogSelective "Services de localisation Windows actives (requis pour la detection Wi-Fi)" "OK"
+        # --- S'assurer que le service de localisation peut demarrer, puis le relancer ---
+        $LfSvc = Get-Service -Name lfsvc -ErrorAction SilentlyContinue
+        if ($LfSvc) {
+            if ($LfSvc.StartType -eq 'Disabled') {
+                Set-Service -Name lfsvc -StartupType Manual
+            }
+            Restart-Service -Name lfsvc -Force -ErrorAction SilentlyContinue
+        }
 
-        Restart-Service -Name lfsvc -Force -ErrorAction SilentlyContinue
+        # --- Redemarrer le service WLAN pour qu'il prenne en compte le changement ---
+        # (evite d'avoir besoin d'une deconnexion/reconnexion de session pour que
+        # "netsh wlan show networks" arrete de renvoyer une erreur de permission)
+        Restart-Service -Name WlanSvc -Force -ErrorAction SilentlyContinue
+
+        Write-LogSelective "Services de localisation Windows actives (machine + utilisateur), services lfsvc/WlanSvc redemarres" "OK"
     }
     catch {
-        Write-LogSelective "Impossible d'activer les services de localisation : $($_.Exception.Message)" "WARN"
+        Write-LogSelective "Impossible d'activer completement les services de localisation : $($_.Exception.Message)" "WARN"
     }
 }
 
@@ -203,7 +229,65 @@ function Test-InternetConnection {
 # Wi-Fi invite du bureau : detection + connexion automatique proposee
 # ============================================================
 $script:GuestWifiSSID = "CGLOBAL INVITES"
-$script:GuestWifiPassword = "01Visiteurs!"
+
+# ============================================================
+# Recuperation du mot de passe Wi-Fi invite (JAMAIS en clair dans le depot,
+# celui-ci etant public sur GitHub). Ordre de priorite :
+#   1. Variable d'environnement CGLOBAL_WIFI_PASSWORD
+#   2. Fichier local non versionne C:\_CGLOBAL\wifi.secret
+#   3. Saisie manuelle (boite de dialogue), avec proposition de sauvegarde locale
+# ============================================================
+function Get-GuestWifiPassword {
+    $SecretFile = "C:\_CGLOBAL\wifi.secret"
+
+    if ($env:CGLOBAL_WIFI_PASSWORD) {
+        Write-LogSelective "Mot de passe Wi-Fi invite recupere depuis la variable d'environnement" "INFO"
+        return $env:CGLOBAL_WIFI_PASSWORD
+    }
+
+    if (Test-Path $SecretFile) {
+        try {
+            $Content = (Get-Content -Path $SecretFile -Encoding UTF8 -ErrorAction Stop | Select-Object -First 1)
+            if (-not [string]::IsNullOrWhiteSpace($Content)) {
+                Write-LogSelective "Mot de passe Wi-Fi invite recupere depuis $SecretFile" "INFO"
+                return $Content.Trim()
+            }
+        }
+        catch {
+            Write-LogSelective "Impossible de lire $SecretFile : $($_.Exception.Message)" "WARN"
+        }
+    }
+
+    Write-LogSelective "Aucun mot de passe Wi-Fi invite trouve (env/variable ou fichier), saisie manuelle demandee" "WARN"
+
+    Add-Type -AssemblyName Microsoft.VisualBasic
+    $Entered = [Microsoft.VisualBasic.Interaction]::InputBox(
+        "Mot de passe du Wi-Fi invite '$($script:GuestWifiSSID)' introuvable.`n`nSaisissez-le pour cette session :",
+        "Mot de passe Wi-Fi invite requis",
+        ""
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Entered)) {
+        Write-LogSelective "Aucun mot de passe saisi : connexion automatique au Wi-Fi invite desactivee pour cette session" "WARN"
+        return $null
+    }
+
+    try {
+        $SecretFolder = Split-Path -Path $SecretFile -Parent
+        if (-not (Test-Path $SecretFolder)) {
+            New-Item -Path $SecretFolder -ItemType Directory -Force | Out-Null
+        }
+        Set-Content -Path $SecretFile -Value $Entered -Encoding UTF8 -Force
+        Write-LogSelective "Mot de passe Wi-Fi invite sauvegarde localement dans $SecretFile pour les prochains lancements" "OK"
+    }
+    catch {
+        Write-LogSelective "Impossible de sauvegarder le mot de passe localement : $($_.Exception.Message)" "WARN"
+    }
+
+    return $Entered
+}
+
+$script:GuestWifiPassword = Get-GuestWifiPassword
 
 function Test-GuestWifiAvailable {
     try {
@@ -283,7 +367,10 @@ function Resolve-InternetRequirement {
     $ScriptsInternetText = ($ScriptsNeedingNet | ForEach-Object { "[$($_.Num)] $($_.Desc)" }) -join "`n"
 
     # --- Wi-Fi invite du bureau detecte a proximite : proposition de connexion automatique ---
-    if (Test-GuestWifiAvailable) {
+    if ([string]::IsNullOrWhiteSpace($script:GuestWifiPassword)) {
+        Write-LogSelective "Connexion automatique au Wi-Fi invite ignoree (aucun mot de passe disponible)" "WARN"
+    }
+    elseif (Test-GuestWifiAvailable) {
         Write-LogSelective "Reseau Wi-Fi invite '$($script:GuestWifiSSID)' detecte a proximite" "INFO"
 
         $WifiChoice = [System.Windows.Forms.MessageBox]::Show(
