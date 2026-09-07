@@ -13,6 +13,7 @@ temp/
 *.credentials
 secrets.json
 passwords.txt
+wifi.secret
 
 # OS files
 .DS_Store
