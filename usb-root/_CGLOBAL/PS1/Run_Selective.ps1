@@ -605,6 +605,10 @@ $Form.Add_Shown({
 # ============================================================
 $BtnExecuter.Add_Click({
 
+    $script:ExecutionInProgress = $true
+    $script:CancelRequested = $false
+    $script:CurrentChildProcess = $null
+
     # --- Recuperer les scripts coches ---
     $Selected = @()
     foreach ($Script in $Scripts) {
@@ -695,6 +699,11 @@ $BtnExecuter.Add_Click({
     Write-LogSelective "Execution de $Total script(s) selectionne(s)" "INFO"
 
     foreach ($Script in $Selected) {
+        if ($script:CancelRequested) {
+            Write-LogSelective "Execution interrompue par la fermeture de la fenetre" "WARN"
+            break
+        }
+
         $Current++
         $Percent = [math]::Round(($Current / $Total) * 100)
         $ProgressBar.Value = $Percent
@@ -732,10 +741,16 @@ $BtnExecuter.Add_Click({
             # Sans cela, $Process.ExitCode peut rester vide (null) meme apres la sortie
             # du processus (bug connu de Start-Process -PassThru sous PowerShell 5.1).
             $null = $Process.Handle
+            $script:CurrentChildProcess = $Process
 
             # Boucle d attente reactive, avec suivi en direct du log du script en cours
             while (-not $Process.HasExited) {
                 [System.Windows.Forms.Application]::DoEvents()
+
+                if ($script:CancelRequested) {
+                    try { $Process.Kill() } catch { }
+                    break
+                }
 
                 if (Test-Path $ScriptLogPath) {
                     $AllLines = Read-CGlobalLogLines -Path $ScriptLogPath
@@ -759,6 +774,13 @@ $BtnExecuter.Add_Click({
                         Add-LogBoxLine -LogBox $LogBox -Line $NewLine
                     }
                 }
+            }
+
+            if ($script:CancelRequested) {
+                Write-LogSelective "$($Script.File) interrompu (fermeture de la fenetre)" "WARN"
+                $Checkboxes[$Script.Num].BackColor = [System.Drawing.Color]::LightCoral
+                $Results[$Script.Num] = "CANCELLED"
+                break
             }
 
             # Synchronise proprement la sortie avant de lire le code (evite un ExitCode
@@ -827,3 +849,20 @@ $Form.Add_FormClosing({
 Write-LogSelective "Affichage de l interface de selection" "INFO"
 [void]$Form.ShowDialog()
 Write-LogSelective "=== FERMETURE MODE SELECTIF ===" "INFO"
+
+# Fermeture explicite de la fenetre DOS parente (Run_Selective.cmd). On ne compte
+# plus sur le simple retour du .cmd apres cet appel PowerShell : ca laissait parfois
+# une fenetre residuelle. On ne ferme que si le parent direct est bien un cmd.exe,
+# par securite (evite de tuer un autre processus si le script est lance autrement).
+try {
+    $ParentProcessId = (Get-CimInstance Win32_Process -Filter "ProcessId=$PID" -ErrorAction Stop).ParentProcessId
+    $ParentProcess = Get-Process -Id $ParentProcessId -ErrorAction SilentlyContinue
+    if ($ParentProcess -and $ParentProcess.ProcessName -eq 'cmd') {
+        Stop-Process -Id $ParentProcessId -Force -ErrorAction SilentlyContinue
+    }
+}
+catch {
+    # Non bloquant : si la fermeture forcee echoue, le script se termine normalement quand meme
+}
+
+exit 0

@@ -306,7 +306,8 @@ function Invoke-DellUpdates {
         "-outputLog=$DellLog"
     )
 
-    # 0 : succes ; 1 : redemarrage requis selon les versions DCU.
+    # 0 : succes ; 1/3010 : redemarrage requis selon les versions DCU ;
+    # 500 : aucune mise a jour disponible (constate sur le terrain, pas une erreur).
     # Les autres codes sont journalises comme erreurs de traitement.
     if ($Result.ExitCode -eq 0) {
         Write-Log 'Traitement Dell Command Update termine' 'OK'
@@ -314,6 +315,11 @@ function Invoke-DellUpdates {
     elseif ($Result.ExitCode -eq 1 -or $Result.ExitCode -eq 3010) {
         $script:RebootRequired = $true
         Write-Log "Traitement Dell termine avec le code $($Result.ExitCode) : redemarrage requis" 'WARN'
+    }
+    elseif ($Result.ExitCode -eq 500) {
+        Write-Log 'Dell Command Update : aucune mise a jour disponible (code 500)' 'WARN'
+        Show-CGlobalPopup -Title 'Mises a jour Dell' -Buttons 'OK' -Icon 'Information' `
+            -Message "Dell Command Update n'a trouve aucune mise a jour disponible pour ce poste." | Out-Null
     }
     else {
         throw "Dell Command Update a retourne le code $($Result.ExitCode)"
