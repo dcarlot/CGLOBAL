@@ -287,7 +287,12 @@ function Get-GuestWifiPassword {
     return $Entered
 }
 
-$script:GuestWifiPassword = Get-GuestWifiPassword
+# NOTE (correctif) : on ne recupere plus le mot de passe ici de facon systematique.
+# Il est desormais demande "a la volee", uniquement si le SSID invite est reellement
+# detecte a proximite (voir Resolve-InternetRequirement). Cela evite d'afficher une
+# InputBox au tout debut du script, sans contexte, meme quand Internet est deja
+# disponible ou que le Wi-Fi invite n'est pas a portee.
+$script:GuestWifiPassword = $null
 
 function Test-GuestWifiAvailable {
     try {
@@ -367,29 +372,45 @@ function Resolve-InternetRequirement {
     $ScriptsInternetText = ($ScriptsNeedingNet | ForEach-Object { "[$($_.Num)] $($_.Desc)" }) -join "`n"
 
     # --- Wi-Fi invite du bureau detecte a proximite : proposition de connexion automatique ---
-    if ([string]::IsNullOrWhiteSpace($script:GuestWifiPassword)) {
-        Write-LogSelective "Connexion automatique au Wi-Fi invite ignoree (aucun mot de passe disponible)" "WARN"
-    }
-    elseif (Test-GuestWifiAvailable) {
+    # CORRECTIF : la detection du SSID est desormais testee EN PREMIER, independamment
+    # du fait qu'un mot de passe soit deja connu. Auparavant, si $script:GuestWifiPassword
+    # etait vide, Test-GuestWifiAvailable n'etait jamais appele et la popup de proposition
+    # de connexion n'apparaissait donc jamais, meme quand le reseau etait bien visible.
+    if (Test-GuestWifiAvailable) {
         Write-LogSelective "Reseau Wi-Fi invite '$($script:GuestWifiSSID)' detecte a proximite" "INFO"
 
-        $WifiChoice = [System.Windows.Forms.MessageBox]::Show(
-            "Aucun acces Internet detecte, mais le reseau Wi-Fi '$($script:GuestWifiSSID)' est visible a proximite.`n`nVoulez-vous vous y connecter automatiquement ?",
-            "Wi-Fi invite detecte",
-            [System.Windows.Forms.MessageBoxButtons]::YesNo,
-            [System.Windows.Forms.MessageBoxIcon]::Question
-        )
-
-        if ($WifiChoice -eq [System.Windows.Forms.DialogResult]::Yes) {
-            Connect-CGlobalGuestWifi | Out-Null
-
-            if (Test-InternetConnection) {
-                Write-LogSelective "Connexion Internet retablie via le Wi-Fi invite" "OK"
-                return "OK"
-            }
-
-            Write-LogSelective "Connexion au Wi-Fi invite tentee mais toujours aucun acces Internet" "WARN"
+        # Le mot de passe n'est demande qu'a ce moment precis (SSID reellement visible),
+        # ce qui est beaucoup plus clair pour l'utilisateur qu'une InputBox surprise au
+        # tout debut du script.
+        if ([string]::IsNullOrWhiteSpace($script:GuestWifiPassword)) {
+            $script:GuestWifiPassword = Get-GuestWifiPassword
         }
+
+        if ([string]::IsNullOrWhiteSpace($script:GuestWifiPassword)) {
+            Write-LogSelective "SSID detecte mais aucun mot de passe fourni : connexion automatique au Wi-Fi invite ignoree" "WARN"
+        }
+        else {
+            $WifiChoice = [System.Windows.Forms.MessageBox]::Show(
+                "Aucun acces Internet detecte, mais le reseau Wi-Fi '$($script:GuestWifiSSID)' est visible a proximite.`n`nVoulez-vous vous y connecter automatiquement ?",
+                "Wi-Fi invite detecte",
+                [System.Windows.Forms.MessageBoxButtons]::YesNo,
+                [System.Windows.Forms.MessageBoxIcon]::Question
+            )
+
+            if ($WifiChoice -eq [System.Windows.Forms.DialogResult]::Yes) {
+                Connect-CGlobalGuestWifi | Out-Null
+
+                if (Test-InternetConnection) {
+                    Write-LogSelective "Connexion Internet retablie via le Wi-Fi invite" "OK"
+                    return "OK"
+                }
+
+                Write-LogSelective "Connexion au Wi-Fi invite tentee mais toujours aucun acces Internet" "WARN"
+            }
+        }
+    }
+    else {
+        Write-LogSelective "Wi-Fi invite '$($script:GuestWifiSSID)' non detecte a proximite" "INFO"
     }
 
     # --- Boucle de reessai ---
