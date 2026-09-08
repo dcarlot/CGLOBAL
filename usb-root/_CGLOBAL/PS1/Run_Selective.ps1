@@ -363,6 +363,55 @@ function Get-GuestWifiPassword {
 # disponible ou que le Wi-Fi invite n'est pas a portee.
 $script:GuestWifiPassword = $null
 
+# ============================================================
+# Detection Wi-Fi via le fournisseur WMI natif NDIS (sans compilation, sans outil externe)
+# ------------------------------------------------------------
+# root\wmi\MSNdis_80211_BSSIList est un fournisseur WMI historique qui interroge
+# directement le pilote de la carte Wi-Fi (miniport NDIS) pour obtenir la liste des
+# reseaux 802.11 visibles. Il est ANTERIEUR a la couche de consentement de
+# localisation introduite avec l'API WLAN moderne (WlanGetAvailableNetworkList,
+# utilisee par netsh wlan show networks) et n'est donc pas soumis a cette
+# restriction : c'est une simple requete WMI en PowerShell pur, sans compilation
+# ni executable externe a maintenir.
+# ============================================================
+
+function Get-WifiSsidListViaWmi {
+    # Retourne la liste des SSID visibles (tableau de chaines, eventuellement vide),
+    # ou $null si le fournisseur WMI n'est pas disponible/interrogeable sur ce poste.
+    try {
+        $BssiLists = Get-CimInstance -Namespace "root\wmi" -ClassName "MSNdis_80211_BSSIList" -ErrorAction Stop
+    }
+    catch {
+        Write-LogSelective "Fournisseur WMI MSNdis_80211_BSSIList indisponible sur ce poste : $($_.Exception.Message)" "WARN"
+        return $null
+    }
+
+    $SsidList = [System.Collections.Generic.List[string]]::new()
+
+    foreach ($Item in $BssiLists) {
+        foreach ($Bssi in $Item.Ndis80211BssiList) {
+            try {
+                $SsidInfo = $Bssi.Ndis80211Ssid
+                $Len = [int]$SsidInfo.Ndis80211SsidLength
+                if ($Len -gt 0 -and $Len -le $SsidInfo.Ndis80211Ssid.Length) {
+                    $Bytes = $SsidInfo.Ndis80211Ssid[0..($Len - 1)]
+                    $Ssid = [System.Text.Encoding]::UTF8.GetString([byte[]]$Bytes)
+                    if (-not [string]::IsNullOrWhiteSpace($Ssid)) {
+                        $SsidList.Add($Ssid)
+                    }
+                }
+            }
+            catch {
+                # Une entree malformee ou un format inattendu ne doit pas interrompre
+                # le parcours des autres reseaux detectes.
+                continue
+            }
+        }
+    }
+
+    return $SsidList
+}
+
 function Test-GuestWifiAvailable {
     # Retourne "Found", "NotFound" ou "Unknown" (detection impossible, ex. permission
     # de localisation refusee malgre toutes les cles de registre correctes -- ce cas
@@ -404,7 +453,26 @@ function Test-GuestWifiAvailable {
         Write-LogSelective "Impossible d'interroger les adaptateurs reseau (Get-NetAdapter) : $($_.Exception.Message)" "WARN"
     }
 
-    # --- Interroger les reseaux Wi-Fi visibles ---
+    # --- Methode 1 (prioritaire) : fournisseur WMI natif NDIS, non soumis a la
+    # restriction de permission de localisation qui bloque netsh sur ce parc. ---
+    $VisibleSsids = Get-WifiSsidListViaWmi
+    if ($null -ne $VisibleSsids) {
+        Write-LogSelective "Reseaux Wi-Fi visibles (via WMI root\wmi\MSNdis_80211_BSSIList) : $($VisibleSsids -join ', ')" "INFO"
+        if ($VisibleSsids -contains $script:GuestWifiSSID) {
+            return "Found"
+        }
+        if ($VisibleSsids.Count -gt 0) {
+            # Le fournisseur WMI a bien renvoye des reseaux (donc il fonctionne), mais
+            # aucun ne correspond au SSID invite : resultat fiable.
+            return "NotFound"
+        }
+        # Liste vide : peu fiable (le fournisseur WMI peut renvoyer une liste vide meme
+        # quand il fonctionne mal), on tente la methode de repli plutot que de conclure
+        # trop vite a une absence de reseau.
+        Write-LogSelective "Le fournisseur WMI MSNdis_80211_BSSIList n'a renvoye aucun reseau, tentative via netsh en repli" "WARN"
+    }
+
+    # --- Methode 2 (repli) : netsh wlan show networks (soumis a la restriction connue) ---
     try {
         $RawOutput = & netsh wlan show networks 2>&1
         $ExitCode = $LASTEXITCODE
