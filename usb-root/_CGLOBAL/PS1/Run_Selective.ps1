@@ -141,7 +141,43 @@ function Enable-WindowsLocationServices {
             Set-ItemProperty -Path $LocKeyUserDesktop -Name "Value" -Value "Allow" -Type String -Force
         }
 
-        $Changed = $MasterChanged -or $MachineChanged -or $UserChanged -or $MachineDesktopChanged -or $UserDesktopChanged
+        # --- CORRECTIF : entrees PAR APPLICATION sous NonPackaged -----------------
+        # Les deux blocs precedents (cle "NonPackaged" elle-meme, cote machine et
+        # cote utilisateur) ne suffisent PAS : Windows ne consulte pas la propriete
+        # "Value" du conteneur NonPackaged, mais celle d'une SOUS-CLE creee
+        # automatiquement pour CHAQUE application Win32 (netsh.exe, powershell.exe...)
+        # des son premier appel a une API necessitant la localisation. Si cette
+        # sous-cle a ete creee AVANT que les commutateurs ci-dessus soient corriges,
+        # elle reste bloquee sur "Deny" indefiniment, meme apres correction des
+        # reglages generaux : c'est exactement le cas observe sur ce parc (message
+        # "Acces refuse" de netsh malgre master + machine + utilisateur a Allow).
+        # On force donc "Allow" sur TOUTES les sous-cles deja existantes, cote
+        # machine ET utilisateur, sans avoir besoin de connaitre leur nom exact
+        # (l'encodage du chemin de l'executable dans le nom de cle n'est pas
+        # documente de facon stable par Microsoft, donc on ne cherche pas a la
+        # deviner : on corrige tout ce qui existe deja).
+        $PerAppChanged = $false
+        foreach ($NonPackagedKey in @($LocKeyMachineDesktop, $LocKeyUserDesktop)) {
+            if (Test-Path $NonPackagedKey) {
+                Get-ChildItem -Path $NonPackagedKey -ErrorAction SilentlyContinue | ForEach-Object {
+                    $AppKeyPath = $_.PSPath
+                    $AppName = $_.PSChildName
+                    try {
+                        $AppValue = (Get-ItemProperty -Path $AppKeyPath -Name "Value" -ErrorAction SilentlyContinue).Value
+                        if ($AppValue -ne "Allow") {
+                            Set-ItemProperty -Path $AppKeyPath -Name "Value" -Value "Allow" -Type String -Force
+                            Write-LogSelective "Entree de consentement par application corrigee : $AppName (etait '$AppValue')" "OK"
+                            $PerAppChanged = $true
+                        }
+                    }
+                    catch {
+                        Write-LogSelective "Impossible de corriger l'entree par application '$AppName' : $($_.Exception.Message)" "WARN"
+                    }
+                }
+            }
+        }
+
+        $Changed = $MasterChanged -or $MachineChanged -or $UserChanged -or $MachineDesktopChanged -or $UserDesktopChanged -or $PerAppChanged
 
         if (-not $Changed) {
             Write-LogSelective "Services de localisation deja actifs (maitre + apps + apps de bureau, machine + utilisateur)" "INFO"
@@ -481,11 +517,29 @@ function Test-GuestWifiAvailable {
         Write-LogSelective "Sortie de 'netsh wlan show networks' (code $ExitCode) :`r`n$NetworksText" "INFO"
 
         if ($NetworksText -match 'autorisation de localisation|location permission|Access is denied|Acc.s refus.') {
-            # La detection elle-meme est bloquee par la restriction systeme de
-            # localisation (connue pour persister meme apres correction du registre,
-            # tant qu'un redemarrage complet n'a pas ete effectue). On ne peut pas
-            # savoir si le SSID est present ou non : etat indetermine, pas "absent".
-            Write-LogSelective "Impossible de scanner les reseaux Wi-Fi : restriction de permission de localisation active (necessite probablement un redemarrage complet du poste). Une tentative de connexion directe sera proposee malgre tout." "WARN"
+            # CORRECTIF : sur un poste ou aucune application n'a JAMAIS appele une API
+            # de localisation, la sous-cle par application (netsh.exe) sous NonPackaged
+            # n'existe pas encore : elle est creee A CET INSTANT, potentiellement a
+            # "Deny" si elle est creee avant que Enable-WindowsLocationServices n'ait pu
+            # la corriger (ordre d'execution). On relance donc la correction registre
+            # puis on retente UNE fois immediatement, sans attendre le prochain
+            # lancement du script.
+            Write-LogSelective "Scan Wi-Fi refuse (permission de localisation), nouvelle tentative de correction registre puis retry" "WARN"
+            Enable-WindowsLocationServices
+            Start-Sleep -Seconds 1
+
+            $RawOutput = & netsh wlan show networks 2>&1
+            $ExitCode = $LASTEXITCODE
+            $NetworksText = ($RawOutput | Out-String)
+            Write-LogSelective "Sortie de 'netsh wlan show networks' apres retry (code $ExitCode) :`r`n$NetworksText" "INFO"
+        }
+
+        if ($NetworksText -match 'autorisation de localisation|location permission|Access is denied|Acc.s refus.') {
+            # Toujours bloque apres correction + retry : la restriction persiste
+            # reellement (necessite probablement un redemarrage complet du poste).
+            # On ne peut pas savoir si le SSID est present ou non : etat indetermine,
+            # pas "absent".
+            Write-LogSelective "Impossible de scanner les reseaux Wi-Fi malgre la correction : restriction de permission de localisation toujours active (necessite probablement un redemarrage complet du poste). Une tentative de connexion directe sera proposee malgre tout." "WARN"
             return "Unknown"
         }
 
