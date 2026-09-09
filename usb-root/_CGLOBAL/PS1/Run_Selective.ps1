@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 #Requires -RunAsAdministrator
 
 [CmdletBinding()]
@@ -47,169 +47,6 @@ function Write-LogSelective {
 }
 
 Write-LogSelective "=== LANCEMENT MODE SELECTIF ===" "INFO"
-
-# ============================================================
-# Services de localisation Windows
-# Requis par "netsh wlan show networks" depuis Windows 10 1803+.
-# Sans cela, netsh renvoie une erreur de permission au lieu de la liste
-# des reseaux Wi-Fi, et la detection du Wi-Fi invite echoue silencieusement.
-# ============================================================
-function Enable-WindowsLocationServices {
-    # --- Verifier d'abord si une strategie de groupe (GPO/MDM) desactive purement et
-    # simplement la localisation. Si c'est le cas, aucune cle ConsentStore locale ne
-    # pourra la contourner : c'est une decision d'administration du parc, a lever
-    # cote GPO/Intune, pas via ce script.
-    try {
-        $GpoKey = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\LocationAndSensors"
-        if (Test-Path $GpoKey) {
-            $GpoValue = (Get-ItemProperty -Path $GpoKey -Name "DisableLocation" -ErrorAction SilentlyContinue).DisableLocation
-            if ($GpoValue -eq 1) {
-                Write-LogSelective "La localisation est desactivee par strategie de groupe (GPO/MDM) : $GpoKey\DisableLocation = 1. Impossible de l'activer depuis ce script, il faut modifier la strategie appliquee au poste." "ERROR"
-                return
-            }
-        }
-    }
-    catch {
-        Write-LogSelective "Impossible de verifier la strategie de groupe de localisation : $($_.Exception.Message)" "WARN"
-    }
-
-    try {
-        $Changed = $false
-
-        # --- Commutateur MAITRE "Services de localisation" (Parametres > Confidentialite
-        # et securite > Localisation, tout en haut de la page). C'est CETTE cle qui est
-        # responsable du message "Access refuse / autorisation de localisation requise"
-        # renvoye par netsh, meme quand le consentement par application (ci-dessous) est
-        # deja sur Allow. Sans elle, netsh wlan show networks echoue systematiquement.
-        $LocKeyMaster = "HKLM:\SYSTEM\CurrentControlSet\Services\lfsvc\Service\Configuration"
-        if (-not (Test-Path $LocKeyMaster)) {
-            New-Item -Path $LocKeyMaster -Force | Out-Null
-        }
-        $MasterValue = (Get-ItemProperty -Path $LocKeyMaster -Name "Status" -ErrorAction SilentlyContinue).Status
-        $MasterChanged = $MasterValue -ne 1
-        if ($MasterChanged) {
-            Set-ItemProperty -Path $LocKeyMaster -Name "Status" -Value 1 -Type DWord -Force
-        }
-
-        # --- Bascule machine ("Autoriser les applications a acceder a la position") ---
-        $LocKeyMachine = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\location"
-        if (-not (Test-Path $LocKeyMachine)) {
-            New-Item -Path $LocKeyMachine -Force | Out-Null
-        }
-        $MachineValue = (Get-ItemProperty -Path $LocKeyMachine -Name "Value" -ErrorAction SilentlyContinue).Value
-        $MachineChanged = $MachineValue -ne "Allow"
-        if ($MachineChanged) {
-            Set-ItemProperty -Path $LocKeyMachine -Name "Value" -Value "Allow" -Type String -Force
-        }
-
-        # --- Bascule utilisateur courant (peut surcharger la bascule machine) ---
-        $LocKeyUser = "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\location"
-        if (-not (Test-Path $LocKeyUser)) {
-            New-Item -Path $LocKeyUser -Force | Out-Null
-        }
-        $UserValue = (Get-ItemProperty -Path $LocKeyUser -Name "Value" -ErrorAction SilentlyContinue).Value
-        $UserChanged = $UserValue -ne "Allow"
-        if ($UserChanged) {
-            Set-ItemProperty -Path $LocKeyUser -Name "Value" -Value "Allow" -Type String -Force
-        }
-
-        # --- "Autoriser les applications DE BUREAU a acceder a la position" ---
-        # Cle distincte et INDISPENSABLE pour netsh.exe : c'est une application Win32
-        # situee dans C:\Windows\System32, donc concernee par la bascule "applications
-        # de bureau" (NonPackaged) et non par la bascule "applications" ci-dessus (qui
-        # vise les apps UWP/Store). D'apres la documentation Microsoft, les processus
-        # situes dans System32 ne declenchent JAMAIS l'invite de consentement a
-        # l'utilisateur : sans cette cle deja a "Allow", ils sont refuses silencieusement,
-        # meme avec les deux bascules precedentes et le commutateur maitre actives.
-        $LocKeyMachineDesktop = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\location\NonPackaged"
-        if (-not (Test-Path $LocKeyMachineDesktop)) {
-            New-Item -Path $LocKeyMachineDesktop -Force | Out-Null
-        }
-        $MachineDesktopValue = (Get-ItemProperty -Path $LocKeyMachineDesktop -Name "Value" -ErrorAction SilentlyContinue).Value
-        $MachineDesktopChanged = $MachineDesktopValue -ne "Allow"
-        if ($MachineDesktopChanged) {
-            Set-ItemProperty -Path $LocKeyMachineDesktop -Name "Value" -Value "Allow" -Type String -Force
-        }
-
-        $LocKeyUserDesktop = "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\location\NonPackaged"
-        if (-not (Test-Path $LocKeyUserDesktop)) {
-            New-Item -Path $LocKeyUserDesktop -Force | Out-Null
-        }
-        $UserDesktopValue = (Get-ItemProperty -Path $LocKeyUserDesktop -Name "Value" -ErrorAction SilentlyContinue).Value
-        $UserDesktopChanged = $UserDesktopValue -ne "Allow"
-        if ($UserDesktopChanged) {
-            Set-ItemProperty -Path $LocKeyUserDesktop -Name "Value" -Value "Allow" -Type String -Force
-        }
-
-        # --- CORRECTIF : entrees PAR APPLICATION sous NonPackaged -----------------
-        # Les deux blocs precedents (cle "NonPackaged" elle-meme, cote machine et
-        # cote utilisateur) ne suffisent PAS : Windows ne consulte pas la propriete
-        # "Value" du conteneur NonPackaged, mais celle d'une SOUS-CLE creee
-        # automatiquement pour CHAQUE application Win32 (netsh.exe, powershell.exe...)
-        # des son premier appel a une API necessitant la localisation. Si cette
-        # sous-cle a ete creee AVANT que les commutateurs ci-dessus soient corriges,
-        # elle reste bloquee sur "Deny" indefiniment, meme apres correction des
-        # reglages generaux : c'est exactement le cas observe sur ce parc (message
-        # "Acces refuse" de netsh malgre master + machine + utilisateur a Allow).
-        # On force donc "Allow" sur TOUTES les sous-cles deja existantes, cote
-        # machine ET utilisateur, sans avoir besoin de connaitre leur nom exact
-        # (l'encodage du chemin de l'executable dans le nom de cle n'est pas
-        # documente de facon stable par Microsoft, donc on ne cherche pas a la
-        # deviner : on corrige tout ce qui existe deja).
-        $PerAppChanged = $false
-        foreach ($NonPackagedKey in @($LocKeyMachineDesktop, $LocKeyUserDesktop)) {
-            if (Test-Path $NonPackagedKey) {
-                Get-ChildItem -Path $NonPackagedKey -ErrorAction SilentlyContinue | ForEach-Object {
-                    $AppKeyPath = $_.PSPath
-                    $AppName = $_.PSChildName
-                    try {
-                        $AppValue = (Get-ItemProperty -Path $AppKeyPath -Name "Value" -ErrorAction SilentlyContinue).Value
-                        if ($AppValue -ne "Allow") {
-                            Set-ItemProperty -Path $AppKeyPath -Name "Value" -Value "Allow" -Type String -Force
-                            Write-LogSelective "Entree de consentement par application corrigee : $AppName (etait '$AppValue')" "OK"
-                            $PerAppChanged = $true
-                        }
-                    }
-                    catch {
-                        Write-LogSelective "Impossible de corriger l'entree par application '$AppName' : $($_.Exception.Message)" "WARN"
-                    }
-                }
-            }
-        }
-
-        $Changed = $MasterChanged -or $MachineChanged -or $UserChanged -or $MachineDesktopChanged -or $UserDesktopChanged -or $PerAppChanged
-
-        if (-not $Changed) {
-            Write-LogSelective "Services de localisation deja actifs (maitre + apps + apps de bureau, machine + utilisateur)" "INFO"
-            return
-        }
-
-        # --- S'assurer que le service de localisation peut demarrer, puis le relancer ---
-        $LfSvc = Get-Service -Name lfsvc -ErrorAction SilentlyContinue
-        if ($LfSvc) {
-            if ($LfSvc.StartType -eq 'Disabled') {
-                Set-Service -Name lfsvc -StartupType Manual
-            }
-            Restart-Service -Name lfsvc -Force -ErrorAction SilentlyContinue
-        }
-
-        # --- Redemarrer le service WLAN pour qu'il prenne en compte le changement ---
-        # (evite d'avoir besoin d'une deconnexion/reconnexion de session pour que
-        # "netsh wlan show networks" arrete de renvoyer une erreur de permission)
-        Restart-Service -Name WlanSvc -Force -ErrorAction SilentlyContinue
-
-        # Laisser le temps aux services de redemarrer completement avant que le
-        # reste du script n'appelle netsh wlan show networks.
-        Start-Sleep -Seconds 2
-
-        Write-LogSelective "Services de localisation Windows actives (maitre + apps + apps de bureau, machine + utilisateur), services lfsvc/WlanSvc redemarres" "OK"
-    }
-    catch {
-        Write-LogSelective "Impossible d'activer completement les services de localisation : $($_.Exception.Message)" "WARN"
-    }
-}
-
-Enable-WindowsLocationServices
 
 # ============================================================
 # Fichier de memorisation (.sel = simple, pas de JSON)
@@ -338,17 +175,11 @@ $script:GuestWifiSSID = "CGLOBAL INVITES"
 # ============================================================
 # Recuperation du mot de passe Wi-Fi invite (JAMAIS en clair dans le depot,
 # celui-ci etant public sur GitHub). Ordre de priorite :
-#   1. Variable d'environnement CGLOBAL_WIFI_PASSWORD
-#   2. Fichier local non versionne C:\_CGLOBAL\wifi.secret
-#   3. Saisie manuelle (boite de dialogue), avec proposition de sauvegarde locale
+#   1. Fichier local non versionne C:\_CGLOBAL\wifi.secret
+#   2. Saisie manuelle (boite de dialogue), avec proposition de sauvegarde locale
 # ============================================================
 function Get-GuestWifiPassword {
     $SecretFile = "C:\_CGLOBAL\wifi.secret"
-
-    if ($env:CGLOBAL_WIFI_PASSWORD) {
-        Write-LogSelective "Mot de passe Wi-Fi invite recupere depuis la variable d'environnement" "INFO"
-        return $env:CGLOBAL_WIFI_PASSWORD
-    }
 
     if (Test-Path $SecretFile) {
         try {
@@ -400,173 +231,9 @@ function Get-GuestWifiPassword {
 $script:GuestWifiPassword = $null
 
 # ============================================================
-# Detection Wi-Fi via le fournisseur WMI natif NDIS (sans compilation, sans outil externe)
-# ------------------------------------------------------------
-# root\wmi\MSNdis_80211_BSSIList est un fournisseur WMI historique qui interroge
-# directement le pilote de la carte Wi-Fi (miniport NDIS) pour obtenir la liste des
-# reseaux 802.11 visibles. Il est ANTERIEUR a la couche de consentement de
-# localisation introduite avec l'API WLAN moderne (WlanGetAvailableNetworkList,
-# utilisee par netsh wlan show networks) et n'est donc pas soumis a cette
-# restriction : c'est une simple requete WMI en PowerShell pur, sans compilation
-# ni executable externe a maintenir.
+# Connexion directe au Wi-Fi invite
+# Aucun scan des reseaux disponibles n'est effectue.
 # ============================================================
-
-function Get-WifiSsidListViaWmi {
-    # Retourne la liste des SSID visibles (tableau de chaines, eventuellement vide),
-    # ou $null si le fournisseur WMI n'est pas disponible/interrogeable sur ce poste.
-    try {
-        $BssiLists = Get-CimInstance -Namespace "root\wmi" -ClassName "MSNdis_80211_BSSIList" -ErrorAction Stop
-    }
-    catch {
-        Write-LogSelective "Fournisseur WMI MSNdis_80211_BSSIList indisponible sur ce poste : $($_.Exception.Message)" "WARN"
-        return $null
-    }
-
-    $SsidList = [System.Collections.Generic.List[string]]::new()
-
-    foreach ($Item in $BssiLists) {
-        foreach ($Bssi in $Item.Ndis80211BssiList) {
-            try {
-                $SsidInfo = $Bssi.Ndis80211Ssid
-                $Len = [int]$SsidInfo.Ndis80211SsidLength
-                if ($Len -gt 0 -and $Len -le $SsidInfo.Ndis80211Ssid.Length) {
-                    $Bytes = $SsidInfo.Ndis80211Ssid[0..($Len - 1)]
-                    $Ssid = [System.Text.Encoding]::UTF8.GetString([byte[]]$Bytes)
-                    if (-not [string]::IsNullOrWhiteSpace($Ssid)) {
-                        $SsidList.Add($Ssid)
-                    }
-                }
-            }
-            catch {
-                # Une entree malformee ou un format inattendu ne doit pas interrompre
-                # le parcours des autres reseaux detectes.
-                continue
-            }
-        }
-    }
-
-    return $SsidList
-}
-
-function Test-GuestWifiAvailable {
-    # Retourne "Found", "NotFound" ou "Unknown" (detection impossible, ex. permission
-    # de localisation refusee malgre toutes les cles de registre correctes -- ce cas
-    # necessite normalement un redemarrage complet du poste pour etre resolu, ce que
-    # ce script ne peut pas forcer silencieusement). "Unknown" permet a l'appelant de
-    # quand meme proposer une tentative de connexion "a l'aveugle", puisque la commande
-    # de connexion (netsh wlan connect) n'est elle-meme pas soumise a cette restriction.
-
-    # --- Verifier qu'un adaptateur Wi-Fi existe et est actif ---
-    try {
-        $WifiAdapters = Get-NetAdapter -ErrorAction Stop | Where-Object { $_.MediaType -eq 'Native 802.11' }
-
-        if (-not $WifiAdapters) {
-            Write-LogSelective "Aucun adaptateur Wi-Fi detecte sur ce poste" "WARN"
-            return "NotFound"
-        }
-
-        foreach ($Adapter in $WifiAdapters) {
-            Write-LogSelective "Adaptateur Wi-Fi trouve : $($Adapter.Name) - Statut : $($Adapter.Status)" "INFO"
-
-            if ($Adapter.Status -eq 'Not Present') {
-                continue
-            }
-
-            if ($Adapter.Status -eq 'Disabled') {
-                Write-LogSelective "Adaptateur Wi-Fi '$($Adapter.Name)' desactive, tentative de reactivation" "WARN"
-                try {
-                    Enable-NetAdapter -Name $Adapter.Name -Confirm:$false -ErrorAction Stop
-                    Start-Sleep -Seconds 3
-                    Write-LogSelective "Adaptateur Wi-Fi '$($Adapter.Name)' reactive" "OK"
-                }
-                catch {
-                    Write-LogSelective "Impossible de reactiver l'adaptateur Wi-Fi '$($Adapter.Name)' : $($_.Exception.Message)" "ERROR"
-                }
-            }
-        }
-    }
-    catch {
-        Write-LogSelective "Impossible d'interroger les adaptateurs reseau (Get-NetAdapter) : $($_.Exception.Message)" "WARN"
-    }
-
-    # --- Methode 1 (prioritaire) : fournisseur WMI natif NDIS, non soumis a la
-    # restriction de permission de localisation qui bloque netsh sur ce parc. ---
-    $VisibleSsids = Get-WifiSsidListViaWmi
-    if ($null -ne $VisibleSsids) {
-        Write-LogSelective "Reseaux Wi-Fi visibles (via WMI root\wmi\MSNdis_80211_BSSIList) : $($VisibleSsids -join ', ')" "INFO"
-        if ($VisibleSsids -contains $script:GuestWifiSSID) {
-            return "Found"
-        }
-        if ($VisibleSsids.Count -gt 0) {
-            # Le fournisseur WMI a bien renvoye des reseaux (donc il fonctionne), mais
-            # aucun ne correspond au SSID invite : resultat fiable.
-            return "NotFound"
-        }
-        # Liste vide : peu fiable (le fournisseur WMI peut renvoyer une liste vide meme
-        # quand il fonctionne mal), on tente la methode de repli plutot que de conclure
-        # trop vite a une absence de reseau.
-        Write-LogSelective "Le fournisseur WMI MSNdis_80211_BSSIList n'a renvoye aucun reseau, tentative via netsh en repli" "WARN"
-    }
-
-    # --- Methode 2 (repli) : netsh wlan show networks (soumis a la restriction connue) ---
-    try {
-        $RawOutput = & netsh wlan show networks 2>&1
-        $ExitCode = $LASTEXITCODE
-        $NetworksText = ($RawOutput | Out-String)
-
-        Write-LogSelective "Sortie de 'netsh wlan show networks' (code $ExitCode) :`r`n$NetworksText" "INFO"
-
-        if ($NetworksText -match 'autorisation de localisation|location permission|Access is denied|Acc.s refus.') {
-            # CORRECTIF : sur un poste ou aucune application n'a JAMAIS appele une API
-            # de localisation, la sous-cle par application (netsh.exe) sous NonPackaged
-            # n'existe pas encore : elle est creee A CET INSTANT, potentiellement a
-            # "Deny" si elle est creee avant que Enable-WindowsLocationServices n'ait pu
-            # la corriger (ordre d'execution). On relance donc la correction registre
-            # puis on retente UNE fois immediatement, sans attendre le prochain
-            # lancement du script.
-            Write-LogSelective "Scan Wi-Fi refuse (permission de localisation), nouvelle tentative de correction registre puis retry" "WARN"
-            Enable-WindowsLocationServices
-            Start-Sleep -Seconds 1
-
-            $RawOutput = & netsh wlan show networks 2>&1
-            $ExitCode = $LASTEXITCODE
-            $NetworksText = ($RawOutput | Out-String)
-            Write-LogSelective "Sortie de 'netsh wlan show networks' apres retry (code $ExitCode) :`r`n$NetworksText" "INFO"
-        }
-
-        if ($NetworksText -match 'autorisation de localisation|location permission|Access is denied|Acc.s refus.') {
-            # Toujours bloque apres correction + retry : la restriction persiste
-            # reellement (necessite probablement un redemarrage complet du poste).
-            # On ne peut pas savoir si le SSID est present ou non : etat indetermine,
-            # pas "absent".
-            Write-LogSelective "Impossible de scanner les reseaux Wi-Fi malgre la correction : restriction de permission de localisation toujours active (necessite probablement un redemarrage complet du poste). Une tentative de connexion directe sera proposee malgre tout." "WARN"
-            return "Unknown"
-        }
-
-        if ([string]::IsNullOrWhiteSpace($NetworksText)) {
-            Write-LogSelective "netsh n'a renvoye aucune sortie : verifier que le service WLAN AutoConfig (WlanSvc) est bien demarre" "WARN"
-            return "Unknown"
-        }
-
-        if ($NetworksText -match 'non g.r.e sur cette interface|not supported on this interface|no wireless interface') {
-            Write-LogSelective "netsh indique l'absence d'interface Wi-Fi geree sur ce poste" "ERROR"
-            return "NotFound"
-        }
-
-        $Found = $NetworksText -match [regex]::Escape($script:GuestWifiSSID)
-        if ($Found) {
-            return "Found"
-        }
-
-        Write-LogSelective "SSID '$($script:GuestWifiSSID)' non trouve dans la liste des reseaux visibles" "WARN"
-        return "NotFound"
-    }
-    catch {
-        Write-LogSelective "Erreur lors de l'appel a 'netsh wlan show networks' : $($_.Exception.Message)" "ERROR"
-        return "Unknown"
-    }
-}
-
 function Connect-CGlobalGuestWifi {
     Write-LogSelective "Tentative de connexion au Wi-Fi invite '$($script:GuestWifiSSID)'" "INFO"
 
@@ -634,64 +301,47 @@ function Resolve-InternetRequirement {
 
     $ScriptsInternetText = ($ScriptsNeedingNet | ForEach-Object { "[$($_.Num)] $($_.Desc)" }) -join "`n"
 
-    # --- Wi-Fi invite du bureau detecte a proximite : proposition de connexion automatique ---
-    # CORRECTIF : la detection du SSID est testee EN PREMIER, independamment du fait
-    # qu'un mot de passe soit deja connu. Test-GuestWifiAvailable renvoie desormais
-    # "Found" / "NotFound" / "Unknown" : "Unknown" correspond au cas ou le scan lui-meme
-    # est bloque par la restriction de permission de localisation de Windows (netsh wlan
-    # show networks refuse l'acces meme avec toutes les cles de registre correctes, tant
-    # qu'un redemarrage complet du poste n'a pas eu lieu). Dans ce cas, on ne sait pas si
-    # le reseau est present, mais on peut quand meme PROPOSER une connexion directe : la
-    # commande "netsh wlan connect" n'est elle-meme pas soumise a cette restriction.
-    $WifiDetection = Test-GuestWifiAvailable
+    # --- Proposition directe, sans scan prealable des reseaux Wi-Fi disponibles ---
+    $WifiChoice = [System.Windows.Forms.MessageBox]::Show(
+        "Pas de connexion Internet.`n`nVoulez-vous essayer de vous connecter au Wi-Fi '$($script:GuestWifiSSID)' (si disponible) ?",
+        "Connexion Internet requise",
+        [System.Windows.Forms.MessageBoxButtons]::YesNo,
+        [System.Windows.Forms.MessageBoxIcon]::Question
+    )
 
-    if ($WifiDetection -eq "NotFound") {
-        Write-LogSelective "Wi-Fi invite '$($script:GuestWifiSSID)' non detecte a proximite" "INFO"
-    }
-    else {
-        if ($WifiDetection -eq "Found") {
-            Write-LogSelective "Reseau Wi-Fi invite '$($script:GuestWifiSSID)' detecte a proximite" "INFO"
-            $PromptMessage = "Aucun acces Internet detecte, mais le reseau Wi-Fi '$($script:GuestWifiSSID)' est visible a proximite.`n`nVoulez-vous vous y connecter automatiquement ?"
-        }
-        else {
-            # $WifiDetection -eq "Unknown"
-            $PromptMessage = "Aucun acces Internet detecte. La detection automatique des reseaux Wi-Fi est bloquee par une restriction systeme (permission de localisation), mais le reseau invite '$($script:GuestWifiSSID)' est peut-etre tout de meme a portee.`n`nVoulez-vous tenter de vous y connecter directement ?"
-        }
-
-        # Le mot de passe n'est demande qu'a ce moment precis, ce qui est beaucoup plus
-        # clair pour l'utilisateur qu'une InputBox surprise au tout debut du script.
+    if ($WifiChoice -eq [System.Windows.Forms.DialogResult]::Yes) {
+        # Le mot de passe n'est recherche ou demande que si l'utilisateur accepte
+        # la tentative de connexion au Wi-Fi invite.
         if ([string]::IsNullOrWhiteSpace($script:GuestWifiPassword)) {
             $script:GuestWifiPassword = Get-GuestWifiPassword
         }
 
         if ([string]::IsNullOrWhiteSpace($script:GuestWifiPassword)) {
-            Write-LogSelective "Aucun mot de passe fourni : connexion automatique au Wi-Fi invite ignoree" "WARN"
+            Write-LogSelective "Aucun mot de passe fourni : tentative de connexion au Wi-Fi invite abandonnee" "WARN"
         }
         else {
-            $WifiChoice = [System.Windows.Forms.MessageBox]::Show(
-                $PromptMessage,
-                "Wi-Fi invite",
-                [System.Windows.Forms.MessageBoxButtons]::YesNo,
-                [System.Windows.Forms.MessageBoxIcon]::Question
-            )
+            $WifiConnectionStarted = Connect-CGlobalGuestWifi
 
-            if ($WifiChoice -eq [System.Windows.Forms.DialogResult]::Yes) {
-                Connect-CGlobalGuestWifi | Out-Null
-
-                if (Test-InternetConnection) {
-                    Write-LogSelective "Connexion Internet retablie via le Wi-Fi invite" "OK"
-                    return "OK"
-                }
-
-                Write-LogSelective "Connexion au Wi-Fi invite tentee mais toujours aucun acces Internet" "WARN"
+            if (-not $WifiConnectionStarted) {
+                Write-LogSelective "La tentative de connexion au Wi-Fi '$($script:GuestWifiSSID)' a echoue" "WARN"
+            }
+            elseif (Test-InternetConnection) {
+                Write-LogSelective "Connexion Internet retablie via le Wi-Fi '$($script:GuestWifiSSID)'" "OK"
+                return "OK"
+            }
+            else {
+                Write-LogSelective "Connexion au Wi-Fi '$($script:GuestWifiSSID)' tentee, mais aucun acces Internet n'est disponible" "WARN"
             }
         }
     }
+    else {
+        Write-LogSelective "Tentative de connexion au Wi-Fi '$($script:GuestWifiSSID)' refusee par l'utilisateur" "INFO"
+    }
 
-    # --- Boucle de reessai ---
+    # --- Boucle de reessai de l'acces Internet ---
     do {
         $RetryResult = [System.Windows.Forms.MessageBox]::Show(
-            "Aucun acces Internet detecte.`n`nLes scripts suivants necessitent Internet :`n$ScriptsInternetText`n`nVoulez-vous reessayer ?",
+            "Aucun acces Internet detecte.`n`nLes scripts suivants necessitent Internet :`n$ScriptsInternetText`n`nVerifiez la connexion reseau, puis cliquez sur OUI pour tester de nouveau.`n`nVoulez-vous reessayer ?",
             "Internet requis",
             [System.Windows.Forms.MessageBoxButtons]::YesNo,
             [System.Windows.Forms.MessageBoxIcon]::Question
@@ -702,12 +352,12 @@ function Resolve-InternetRequirement {
         }
 
         if (Test-InternetConnection) {
+            Write-LogSelective "Connexion Internet detectee apres une nouvelle verification" "OK"
             return "OK"
         }
-
     } while ($true)
 
-    # --- Toujours pas de connexion (ou l'utilisateur a refuse de reessayer) : choix final ---
+    # --- Toujours pas de connexion : choix final ---
     $CancelResult = [System.Windows.Forms.MessageBox]::Show(
         "Toujours aucun acces Internet.`n`nLes scripts suivants necessitent Internet :`n$ScriptsInternetText`n`n- OUI = Annuler tout le lancement (retour a la selection)`n- NON = Continuer SANS ces scripts (avertissement)",
         "Internet requis",
@@ -718,9 +368,8 @@ function Resolve-InternetRequirement {
     if ($CancelResult -eq [System.Windows.Forms.DialogResult]::Yes) {
         return "CANCEL"
     }
-    else {
-        return "CONTINUE_WITHOUT"
-    }
+
+    return "CONTINUE_WITHOUT"
 }
 
 # ============================================================
