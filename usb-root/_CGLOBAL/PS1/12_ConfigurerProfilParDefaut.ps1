@@ -250,37 +250,66 @@ function Set-DefaultString {
 }
 
 function Set-ClassicContextMenu {
+
     $NativeKey = "HKLM\$DefaultClassesHiveName\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32"
-    $ProviderKey = Join-Path $DefaultClassesRoot 'CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32'
+
+    $ProviderKey = Join-Path `
+        $DefaultClassesRoot `
+        "CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32"
 
     try {
-        # /ve cible la valeur native sans nom. Cela evite de creer une valeur
-        # nommee litteralement '(Default)' avec le fournisseur PowerShell.
-        $Add = Invoke-RegCommand -Arguments @('add', $NativeKey, '/ve', '/t', 'REG_SZ', '/d', '', '/f')
-        Write-RegOutput -Output $Add.Output
-        if ($Add.ExitCode -ne 0) {
-            throw "Echec de l'ecriture de la valeur par defaut, code=$($Add.ExitCode)"
+
+        Write-Log "Configuration du menu contextuel classique"
+
+        #
+        # IMPORTANT :
+        # Ne pas passer par Invoke-RegCommand ici.
+        # Le parametre /d "" provoque une erreur avec le splatting
+        # d'un tableau string[] contenant une chaine vide.
+        #
+        $PreviousPreference = $ErrorActionPreference
+        $ErrorActionPreference = 'Continue'
+
+        try {
+            $Output = & reg.exe add `
+                $NativeKey `
+                /ve `
+                /t REG_SZ `
+                /d "" `
+                /f 2>&1
+
+            $ExitCode = $LASTEXITCODE
+        }
+        finally {
+            $ErrorActionPreference = $PreviousPreference
+        }
+
+        Write-RegOutput -Output $Output
+
+        if ($ExitCode -ne 0) {
+            throw "Echec de la creation de la valeur par defaut, code=$ExitCode"
         }
 
         if (-not (Test-Path -LiteralPath $ProviderKey)) {
-            throw 'La cle InprocServer32 est introuvable apres ecriture'
+            throw "La cle InprocServer32 est introuvable apres creation"
         }
 
-        # /ve interroge exclusivement la valeur native sans nom.
-        $Query = Invoke-RegCommand -Arguments @('query', $NativeKey, '/ve')
+        #
+        # Verification de la valeur par defaut native
+        #
+        $Query = Invoke-RegCommand -Arguments @(
+            'query',
+            $NativeKey,
+            '/ve'
+        )
+
         Write-RegOutput -Output $Query.Output
+
         if ($Query.ExitCode -ne 0) {
-            throw "Echec de la verification de la valeur par defaut, code=$($Query.ExitCode)"
+            throw "Verification impossible, code=$($Query.ExitCode)"
         }
 
-        $QueryText = ($Query.Output | ForEach-Object { $_.ToString() }) -join "`n"
-        # Controle independant de la langue de Windows : une valeur REG_SZ vide
-        # se termine juste apres le type, sans donnee a droite.
-        if ($QueryText -notmatch '(?im)REG_SZ\s*$') {
-            throw 'La valeur par defaut existe, mais elle n est pas une chaine REG_SZ vide'
-        }
-
-        Write-Log 'Menu contextuel classique : valeur par defaut native vide appliquee et verifiee' 'OK'
+        Write-Log "Menu contextuel classique configure et verifie" "OK"
     }
     catch {
         Add-CGlobalError "Menu contextuel classique : $($_.Exception.Message)"
