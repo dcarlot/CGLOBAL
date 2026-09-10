@@ -175,6 +175,64 @@ function Dismount-CGlobalHive {
     Write-Log "Ruche HKLM\$HiveName dechargee" "OK"
 }
 
+
+function New-DefaultClassesHive {
+    <#
+        UsrClass.dat peut ne pas exister dans C:\Users\Default.
+        Il ne faut surtout pas le creer avec New-Item : cela produirait
+        un fichier ordinaire et non une ruche Registry.
+
+        On cree une petite ruche temporaire sous HKLM, puis on la sauvegarde
+        avec reg.exe save. Le fichier obtenu est une vraie ruche Registry.
+    #>
+
+    if (Test-Path -LiteralPath $DefaultClassesHiveFile) {
+        Write-Log "UsrClass.dat existe deja : aucune creation necessaire"
+        return
+    }
+
+    if (-not (Test-Path -LiteralPath $DefaultClassesDirectory)) {
+        New-Item -Path $DefaultClassesDirectory -ItemType Directory -Force | Out-Null
+    }
+
+    $temporaryKeyName = "CGLOBAL_CreateDefaultClasses"
+    $temporaryRoot = "Registry::HKEY_LOCAL_MACHINE\$temporaryKeyName"
+
+    Write-Log "UsrClass.dat absent du profil Default : creation d'une ruche Registry valide"
+
+    try {
+        if (Test-Path -LiteralPath $temporaryRoot) {
+            $delete = Invoke-RegCommand -Arguments @("delete", "HKLM\$temporaryKeyName", "/f")
+            Write-RegOutput -Output $delete.Output
+            if ($delete.ExitCode -ne 0) {
+                throw "Impossible de supprimer l'ancienne ruche temporaire HKLM\$temporaryKeyName"
+            }
+        }
+
+        New-Item -Path $temporaryRoot -Force | Out-Null
+
+        $save = Invoke-RegCommand -Arguments @(
+            "save",
+            "HKLM\$temporaryKeyName",
+            $DefaultClassesHiveFile,
+            "/y"
+        )
+        Write-RegOutput -Output $save.Output
+
+        if ($save.ExitCode -ne 0 -or -not (Test-Path -LiteralPath $DefaultClassesHiveFile)) {
+            throw "Impossible de creer la ruche UsrClass.dat, code=$($save.ExitCode)"
+        }
+
+        Write-Log "UsrClass.dat cree comme vraie ruche Registry" "OK"
+    }
+    finally {
+        if (Test-Path -LiteralPath $temporaryRoot) {
+            $delete = Invoke-RegCommand -Arguments @("delete", "HKLM\$temporaryKeyName", "/f")
+            Write-RegOutput -Output $delete.Output
+        }
+    }
+}
+
 function Set-DefaultDWord {
     param(
         [Parameter(Mandatory = $true)]
@@ -341,6 +399,8 @@ try {
     # ------------------------------------------------------------
     # 2. UsrClass.dat : HKCU\Software\Classes
     # ------------------------------------------------------------
+    New-DefaultClassesHive
+
     Mount-CGlobalHive `
         -HiveName $DefaultClassesHiveName `
         -HiveFile $DefaultClassesHiveFile `
