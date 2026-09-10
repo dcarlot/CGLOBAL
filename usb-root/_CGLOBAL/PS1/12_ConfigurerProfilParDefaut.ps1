@@ -1,23 +1,25 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 #Requires -RunAsAdministrator
 
 <#
 .SYNOPSIS
- Configure le profil utilisateur par defaut de Windows.
+    Configure le profil utilisateur par defaut de Windows.
 
 .DESCRIPTION
- Charge C:\Users\Default\NTUSER.DAT dans une ruche temporaire,
- applique les reglages utilisateur valides dans la chaine CGLOBAL,
- puis decharge proprement la ruche.
+    Configure les parametres communs des futurs profils en modifiant :
+      - C:\Users\Default\NTUSER.DAT pour les parametres HKCU classiques ;
+      - C:\Users\Default\AppData\Local\Microsoft\Windows\UsrClass.dat
+        pour les parametres HKCU\Software\Classes.
 
- Les reglages seront appliques uniquement aux nouveaux profils
- utilisateurs crees apres l'execution du script.
+    Le menu contextuel classique est stocke dans UsrClass.dat.
+    Le modifier uniquement dans NTUSER.DAT ne se propage donc pas aux nouveaux utilisateurs.
 
- Ce script ne copie pas le profil courant dans son integralite.
+    Les reglages sont appliques uniquement aux nouveaux profils crees apres
+    l'execution du script.
 
 .NOTES
- Compatible avec Windows PowerShell 5.1.
- Execution avec privileges administrateur requise.
+    Compatible Windows PowerShell 5.1.
+    Execution administrateur requise.
 #>
 
 [CmdletBinding()]
@@ -25,113 +27,155 @@ param()
 
 $ErrorActionPreference = 'Stop'
 
-$LogFolder = "C:\_CGLOBAL\Logs"
-$LogFile = "$LogFolder\Log12_ConfigurerProfilParDefaut.txt"
+$ModulePath = "C:\_CGLOBAL\PS1\CGLOBAL.Common.psm1"
+if (-not (Test-Path -LiteralPath $ModulePath)) {
+    throw "Module commun introuvable : $ModulePath"
+}
+
+Import-Module $ModulePath -Force
+
+$LogFile = Get-CGlobalLogFile -ScriptPath $MyInvocation.MyCommand.Path
+Initialize-CGlobalLog -LogFile $LogFile
 
 $DefaultProfilePath = Join-Path $env:SystemDrive "Users\Default"
-$DefaultHiveFile = Join-Path $DefaultProfilePath "NTUSER.DAT"
+$DefaultUserHiveFile = Join-Path $DefaultProfilePath "NTUSER.DAT"
+$DefaultClassesHiveFile = Join-Path $DefaultProfilePath "AppData\Local\Microsoft\Windows\UsrClass.dat"
 
-$HiveName = "CGLOBAL_DefaultUser"
-$HiveRegPath = "HKLM\$HiveName"
-$HivePowerShell = "Registry::HKEY_LOCAL_MACHINE\$HiveName"
+$DefaultUserHiveName = "CGLOBAL_DefaultUser"
+$DefaultClassesHiveName = "CGLOBAL_DefaultUserClasses"
 
-$HiveLoadedByScript = $false
+$DefaultUserRoot = "Registry::HKEY_LOCAL_MACHINE\$DefaultUserHiveName"
+$DefaultClassesRoot = "Registry::HKEY_LOCAL_MACHINE\$DefaultClassesHiveName"
+
+$DefaultUserLoaded = $false
+$DefaultClassesLoaded = $false
 $WarningCount = 0
 $ErrorCount = 0
 
-if (-not (Test-Path $LogFolder)) {
-    New-Item `
-        -Path $LogFolder `
-        -ItemType Directory `
-        -Force | Out-Null
-}
-
-function Write-Log {
-
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$Message,
-
-        [ValidateSet('INFO', 'OK', 'WARN', 'ERROR')]
-        [string]$Level = 'INFO'
-    )
-
-    $Line = "[{0}] [{1,-5}] {2}" -f `
-        (Get-Date -Format "HH:mm:ss"), `
-        $Level, `
-        $Message
-
-    # Reessai en cas de verrou transitoire sur le fichier (ex. antivirus).
-    # Une erreur d'ecriture de log ne doit jamais interrompre le script.
-    for ($Attempt = 1; $Attempt -le 10; $Attempt++) {
-        try {
-            Add-Content `
-                -Path $LogFile `
-                -Value $Line `
-                -Encoding UTF8 `
-                -ErrorAction Stop
-            break
-        }
-        catch {
-            if ($Attempt -ge 10) {
-                Write-Host "[ECHEC ECRITURE LOG] $Line" -ForegroundColor Red
-            }
-            else {
-                Start-Sleep -Milliseconds 150
-            }
-        }
-    }
-
-    $Color = @{
-        INFO = 'Cyan'
-        OK = 'Green'
-        WARN = 'Yellow'
-        ERROR = 'Red'
-    }
-
-    Write-Host $Line -ForegroundColor $Color[$Level]
-}
-
-function Add-Warning {
-
-    param(
-        [string]$Message
-    )
+function Add-CGlobalWarning {
+    param([Parameter(Mandatory = $true)][string]$Message)
 
     $script:WarningCount++
     Write-Log $Message "WARN"
 }
 
-function Add-Error {
-
-    param(
-        [string]$Message
-    )
+function Add-CGlobalError {
+    param([Parameter(Mandatory = $true)][string]$Message)
 
     $script:ErrorCount++
     Write-Log $Message "ERROR"
 }
 
-function Test-RegistryKey {
-
+function Invoke-RegCommand {
     param(
         [Parameter(Mandatory = $true)]
-        [string]$Path
+        [string[]]$Arguments
     )
 
-    if (-not (Test-Path $Path)) {
+    $previousPreference = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
 
-        New-Item `
-            -Path $Path `
-            -ItemType Directory `
-            -Force | Out-Null
+    try {
+        $output = & reg.exe @Arguments 2>&1
+        $exitCode = $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $previousPreference
+    }
 
-        Write-Log "Cle creee : $Path"
+    [PSCustomObject]@{
+        Output   = $output
+        ExitCode = $exitCode
     }
 }
 
-function Set-DefaultUserDWord {
+function Write-RegOutput {
+    param(
+        [Parameter(Mandatory = $true)]
+        [object[]]$Output
+    )
 
+    foreach ($line in $Output) {
+        if ($null -ne $line -and $line.ToString().Trim() -ne "") {
+            Write-Log $line.ToString()
+        }
+    }
+}
+
+function Mount-CGlobalHive {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$HiveName,
+
+        [Parameter(Mandatory = $true)]
+        [string]$HiveFile,
+
+        [Parameter(Mandatory = $true)]
+        [string]$ProviderPath
+    )
+
+    if (-not (Test-Path -LiteralPath $HiveFile)) {
+        throw "Fichier de ruche introuvable : $HiveFile"
+    }
+
+    if (Test-Path -LiteralPath $ProviderPath) {
+        Add-CGlobalWarning "La ruche $HiveName etait deja chargee ; tentative de dechargement"
+
+        $unload = Invoke-RegCommand -Arguments @("unload", "HKLM\$HiveName")
+        Write-RegOutput -Output $unload.Output
+
+        if ($unload.ExitCode -ne 0 -or (Test-Path -LiteralPath $ProviderPath)) {
+            throw "Impossible de decharger la ruche deja chargee : HKLM\$HiveName"
+        }
+    }
+
+    Write-Log "Chargement de la ruche : $HiveFile"
+
+    $load = Invoke-RegCommand -Arguments @("load", "HKLM\$HiveName", $HiveFile)
+    Write-RegOutput -Output $load.Output
+
+    if ($load.ExitCode -ne 0 -or -not (Test-Path -LiteralPath $ProviderPath)) {
+        throw "Echec du chargement de la ruche HKLM\$HiveName, code=$($load.ExitCode)"
+    }
+
+    Write-Log "Ruche chargee : HKLM\$HiveName" "OK"
+    return $true
+}
+
+function Dismount-CGlobalHive {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$HiveName,
+
+        [Parameter(Mandatory = $true)]
+        [string]$ProviderPath
+    )
+
+    if (-not (Test-Path -LiteralPath $ProviderPath)) {
+        return
+    }
+
+    # Aucun objet RegistryKey n'est conserve volontairement :
+    # toutes les operations passent par le provider puis sont relachees.
+    [System.GC]::Collect()
+    [System.GC]::WaitForPendingFinalizers()
+    [System.GC]::Collect()
+    Start-Sleep -Milliseconds 500
+
+    Write-Log "Dechargement de la ruche HKLM\$HiveName"
+
+    $unload = Invoke-RegCommand -Arguments @("unload", "HKLM\$HiveName")
+    Write-RegOutput -Output $unload.Output
+
+    if ($unload.ExitCode -ne 0 -or (Test-Path -LiteralPath $ProviderPath)) {
+        Add-CGlobalError "Echec du dechargement de HKLM\$HiveName, code=$($unload.ExitCode)"
+        return
+    }
+
+    Write-Log "Ruche HKLM\$HiveName dechargee" "OK"
+}
+
+function Set-DefaultDWord {
     param(
         [Parameter(Mandatory = $true)]
         [string]$Path,
@@ -147,39 +191,31 @@ function Set-DefaultUserDWord {
     )
 
     try {
+        if (-not (Test-Path -LiteralPath $Path)) {
+            New-Item -Path $Path -Force | Out-Null
+        }
 
-        Test-RegistryKey -Path $Path
-
-        # CORRECTION : Set-ItemProperty au lieu de New-ItemProperty
-        # Set-ItemProperty cree ou modifie la valeur existante
-        Set-ItemProperty `
+        New-ItemProperty `
             -Path $Path `
             -Name $Name `
+            -PropertyType DWord `
             -Value $Value `
             -Force | Out-Null
 
-        $ReadValue = (
-            Get-ItemProperty `
-                -Path $Path `
-                -Name $Name `
-                -ErrorAction Stop
-        ).$Name
+        $read = (Get-ItemProperty -Path $Path -Name $Name -ErrorAction Stop).$Name
 
-        if ($ReadValue -eq $Value) {
-            Write-Log "$Description : valeur $Value appliquee" "OK"
+        if ([int]$read -ne $Value) {
+            throw "Verification incorrecte : valeur lue=$read, valeur attendue=$Value"
         }
-        else {
-            Add-Warning "$Description : verification incorrecte, valeur lue=$ReadValue"
-        }
+
+        Write-Log "$Description : valeur $Value appliquee" "OK"
     }
     catch {
-
-        Add-Error "$Description : $($_.Exception.Message)"
+        Add-CGlobalError "$Description : $($_.Exception.Message)"
     }
 }
 
-function Set-DefaultUserString {
-
+function Set-DefaultString {
     param(
         [Parameter(Mandatory = $true)]
         [string]$Path,
@@ -195,330 +231,170 @@ function Set-DefaultUserString {
     )
 
     try {
+        if (-not (Test-Path -LiteralPath $Path)) {
+            New-Item -Path $Path -Force | Out-Null
+        }
 
-        Test-RegistryKey -Path $Path
-
-        # CORRECTION : Set-ItemProperty au lieu de New-ItemProperty
-        # New-ItemProperty -Name "(Default)" cree une valeur NOMMEE "(Default)"
-        # au lieu de modifier la valeur par defaut de la cle.
-        # Set-ItemProperty interprete correctement "(Default)" comme la
-        # valeur par defaut native de la cle de registre.
-        Set-ItemProperty `
+        New-ItemProperty `
             -Path $Path `
             -Name $Name `
+            -PropertyType String `
             -Value $Value `
             -Force | Out-Null
 
-        $Property = Get-ItemProperty `
-            -Path $Path `
-            -Name $Name `
-            -ErrorAction Stop
+        $read = (Get-ItemProperty -Path $Path -Name $Name -ErrorAction Stop).$Name
 
-        $ReadValue = $Property.$Name
+        if ([string]$read -ne [string]$Value) {
+            throw "Verification incorrecte : valeur lue='$read', valeur attendue='$Value'"
+        }
 
-        if ($ReadValue -eq $Value) {
-            Write-Log "$Description applique" "OK"
-        }
-        else {
-            Add-Warning "$Description : verification incorrecte"
-        }
+        Write-Log "$Description applique" "OK"
     }
     catch {
-
-        Add-Error "$Description : $($_.Exception.Message)"
+        Add-CGlobalError "$Description : $($_.Exception.Message)"
     }
-}
-
-function Invoke-RegCommand {
-    # Execute reg.exe en capturant stdout+stderr sans que $ErrorActionPreference = 'Stop'
-    # ne transforme une ligne de stderr (avertissement ou erreur reg.exe) en exception
-    # bloquante avant meme que le code de sortie ait pu etre lu.
-    param(
-        [Parameter(Mandatory = $true)]
-        [string[]]$Arguments
-    )
-
-    $PreviousEAP = $ErrorActionPreference
-    $ErrorActionPreference = 'Continue'
-    try {
-        $Output = & reg.exe @Arguments 2>&1
-        $ExitCode = $LASTEXITCODE
-    }
-    finally {
-        $ErrorActionPreference = $PreviousEAP
-    }
-
-    return [PSCustomObject]@{
-        Output   = $Output
-        ExitCode = $ExitCode
-    }
-}
-
-function Mount-DefaultUserHive {
-
-    if (-not (Test-Path $DefaultHiveFile)) {
-        throw "Fichier de profil par defaut introuvable : $DefaultHiveFile"
-    }
-
-    if (Test-Path $HivePowerShell) {
-
-        Add-Warning "La ruche temporaire $HiveRegPath etait deja chargee"
-
-        $UnloadResult = Invoke-RegCommand -Arguments @('unload', $HiveRegPath)
-        $UnloadOutput = $UnloadResult.Output
-        $UnloadCode = $UnloadResult.ExitCode
-
-        foreach ($Line in $UnloadOutput) {
-            if ($null -ne $Line -and $Line.ToString().Trim() -ne "") {
-                Write-Log $Line.ToString()
-            }
-        }
-
-        if ($UnloadCode -ne 0 -and (Test-Path $HivePowerShell)) {
-            throw "Impossible de decharger l'ancienne ruche $HiveRegPath"
-        }
-    }
-
-    Write-Log "Chargement de la ruche : $DefaultHiveFile"
-
-    $LoadResult = Invoke-RegCommand -Arguments @('load', $HiveRegPath, $DefaultHiveFile)
-    $LoadOutput = $LoadResult.Output
-    $LoadCode = $LoadResult.ExitCode
-
-    foreach ($Line in $LoadOutput) {
-        if ($null -ne $Line -and $Line.ToString().Trim() -ne "") {
-            Write-Log $Line.ToString()
-        }
-    }
-
-    if ($LoadCode -ne 0 -or -not (Test-Path $HivePowerShell)) {
-        throw "Echec du chargement de la ruche Default User, code=$LoadCode"
-    }
-
-    $script:HiveLoadedByScript = $true
-
-    Write-Log "Ruche Default User chargee sous $HiveRegPath" "OK"
-}
-
-function Dismount-DefaultUserHive {
-
-    if (-not $script:HiveLoadedByScript) {
-        return
-    }
-
-    Write-Log "Fermeture des handles de la ruche Default User"
-
-    Get-Variable `
-        -Scope Script `
-        -ErrorAction SilentlyContinue |
-    Where-Object {
-        $_.Value -is [Microsoft.Win32.RegistryKey]
-    } |
-    ForEach-Object {
-        try {
-            $_.Value.Close()
-        }
-        catch {
-        }
-    }
-
-    [System.GC]::Collect()
-    [System.GC]::WaitForPendingFinalizers()
-    [System.GC]::Collect()
-
-    Start-Sleep -Milliseconds 500
-
-    Write-Log "Dechargement de la ruche $HiveRegPath"
-
-    $UnloadResult = Invoke-RegCommand -Arguments @('unload', $HiveRegPath)
-    $UnloadOutput = $UnloadResult.Output
-    $UnloadCode = $UnloadResult.ExitCode
-
-    foreach ($Line in $UnloadOutput) {
-        if ($null -ne $Line -and $Line.ToString().Trim() -ne "") {
-            Write-Log $Line.ToString()
-        }
-    }
-
-    if ($UnloadCode -ne 0 -or (Test-Path $HivePowerShell)) {
-
-        Add-Error "Echec du dechargement de la ruche Default User, code=$UnloadCode"
-
-        return
-    }
-
-    $script:HiveLoadedByScript = $false
-
-    Write-Log "Ruche Default User dechargee" "OK"
 }
 
 try {
-
     Write-Log "Configuration du profil utilisateur par defaut"
     Write-Log "Profil cible : $DefaultProfilePath"
+    Write-Log "NTUSER.DAT : $DefaultUserHiveFile"
+    Write-Log "UsrClass.dat : $DefaultClassesHiveFile"
 
-    Mount-DefaultUserHive
+    # ------------------------------------------------------------
+    # 1. NTUSER.DAT : parametres HKCU classiques
+    # ------------------------------------------------------------
+    Mount-CGlobalHive `
+        -HiveName $DefaultUserHiveName `
+        -HiveFile $DefaultUserHiveFile `
+        -ProviderPath $DefaultUserRoot | Out-Null
+    $DefaultUserLoaded = $true
 
-    #
-    # 01 - Icones systeme du Bureau
-    #
     $DesktopIconsKey = Join-Path `
-        $HivePowerShell `
+        $DefaultUserRoot `
         "Software\Microsoft\Windows\CurrentVersion\Explorer\HideDesktopIcons\NewStartPanel"
 
     $DesktopIcons = @(
-        @{
-            Name = "Ce PC"
-            Guid = "{20D04FE0-3AEA-1069-A2D8-08002B30309D}"
-        },
-        @{
-            Name = "Panneau de configuration"
-            Guid = "{5399E694-6CE5-4D6C-8FCE-1D8870FDCBA0}"
-        },
-        @{
-            Name = "Corbeille"
-            Guid = "{645FF040-5081-101B-9F08-00AA002F954E}"
-        },
-        @{
-            Name = "Reseau"
-            Guid = "{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}"
-        }
+        @{ Name = "Ce PC"; Guid = "{20D04FE0-3AEA-1069-A2D8-08002B30309D}" }
+        @{ Name = "Panneau de configuration"; Guid = "{5399E694-6CE5-4D6C-8FCE-1D8870FDCBA0}" }
+        @{ Name = "Corbeille"; Guid = "{645FF040-5081-101B-9F08-00AA002F954E}" }
+        @{ Name = "Reseau"; Guid = "{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}" }
     )
 
     Write-Log "Application des icones systeme du Bureau"
 
-    foreach ($Icon in $DesktopIcons) {
-
-        Set-DefaultUserDWord `
+    foreach ($icon in $DesktopIcons) {
+        Set-DefaultDWord `
             -Path $DesktopIconsKey `
-            -Name $Icon.Guid `
+            -Name $icon.Guid `
             -Value 0 `
-            -Description "Icone Bureau $($Icon.Name)"
+            -Description "Icone Bureau $($icon.Name)"
     }
 
-    #
-    # 02 - Menu contextuel classique
-    #
-    $ContextMenuKey = Join-Path `
-        $HivePowerShell `
-        "Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32"
+    $ExplorerAdvancedKey = Join-Path `
+        $DefaultUserRoot `
+        "Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
 
-    Set-DefaultUserString `
+    Set-DefaultDWord -Path $ExplorerAdvancedKey -Name "LaunchTo" -Value 1 `
+        -Description "Explorateur ouvert sur Ce PC"
+
+    Set-DefaultDWord -Path $ExplorerAdvancedKey -Name "HideFileExt" -Value 0 `
+        -Description "Extensions de fichiers visibles"
+
+    Set-DefaultDWord -Path $ExplorerAdvancedKey -Name "TaskbarAl" -Value 0 `
+        -Description "Alignement de la barre des taches a gauche"
+
+    $SearchKey = Join-Path `
+        $DefaultUserRoot `
+        "Software\Microsoft\Windows\CurrentVersion\Search"
+
+    Set-DefaultDWord -Path $SearchKey -Name "SearchboxTaskbarMode" -Value 1 `
+        -Description "Recherche en mode icone uniquement"
+
+    Set-DefaultDWord -Path $ExplorerAdvancedKey -Name "ShowTaskViewButton" -Value 0 `
+        -Description "Bouton Vue des taches masque"
+
+    Set-DefaultDWord -Path $ExplorerAdvancedKey -Name "IsEnabled" -Value 0 `
+        -Description "Fonction Reprendre desactivee"
+
+    $LocationConsentKey = Join-Path `
+        $DefaultUserRoot `
+        "Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\location"
+
+    Set-DefaultDWord -Path $LocationConsentKey -Name "ShowGlobalPrompts" -Value 0 `
+        -Description "Notifications de demandes de localisation desactivees"
+
+    $LocationOverrideKey = Join-Path `
+        $DefaultUserRoot `
+        "Software\Microsoft\Windows\CurrentVersion\CPSS\Store\UserLocationOverridePrivacySetting"
+
+    Set-DefaultDWord -Path $LocationOverrideKey -Name "Value" -Value 0 `
+        -Description "Remplacement de la localisation desactive"
+
+    $KeyboardKey = Join-Path $DefaultUserRoot "Control Panel\Keyboard"
+
+    Set-DefaultString -Path $KeyboardKey -Name "InitialKeyboardIndicators" -Value "2" `
+        -Description "Verrouillage numerique configure"
+
+    Write-Log "Parametres NTUSER.DAT appliques" "OK"
+
+    # ------------------------------------------------------------
+    # 2. UsrClass.dat : HKCU\Software\Classes
+    # ------------------------------------------------------------
+    Mount-CGlobalHive `
+        -HiveName $DefaultClassesHiveName `
+        -HiveFile $DefaultClassesHiveFile `
+        -ProviderPath $DefaultClassesRoot | Out-Null
+    $DefaultClassesLoaded = $true
+
+    # IMPORTANT :
+    # UsrClass.dat correspond a HKCU\Software\Classes.
+    # Il ne faut donc PAS ajouter "Software\Classes" au chemin.
+    $ContextMenuKey = Join-Path `
+        $DefaultClassesRoot `
+        "CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32"
+
+    Set-DefaultString `
         -Path $ContextMenuKey `
         -Name "(Default)" `
         -Value "" `
-        -Description "Menu contextuel classique"
+        -Description "Menu contextuel classique (UsrClass.dat)"
 
-    #
-    # Cle commune Explorer Advanced
-    #
-    $ExplorerAdvancedKey = Join-Path `
-        $HivePowerShell `
-        "Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
+    # Verification explicite de la valeur par defaut attendue :
+    # elle doit exister et etre une chaine vide, et non "valeur non definie".
+    try {
+        $contextValue = (Get-ItemProperty `
+            -Path $ContextMenuKey `
+            -Name "(Default)" `
+            -ErrorAction Stop)."(Default)"
 
-    #
-    # 03 - Explorateur
-    #
-    Set-DefaultUserDWord `
-        -Path $ExplorerAdvancedKey `
-        -Name "LaunchTo" `
-        -Value 1 `
-        -Description "Explorateur ouvert sur Ce PC"
+        if ($null -ne $contextValue -and [string]$contextValue -ne "") {
+            throw "Valeur (Default) incorrecte : '$contextValue'"
+        }
 
-    Set-DefaultUserDWord `
-        -Path $ExplorerAdvancedKey `
-        -Name "HideFileExt" `
-        -Value 0 `
-        -Description "Extensions de fichiers visibles"
+        Write-Log "Verification du menu contextuel classique : valeur (Default) vide" "OK"
+    }
+    catch {
+        Add-CGlobalError "Verification du menu contextuel classique : $($_.Exception.Message)"
+    }
 
-    #
-    # 05 - Barre des taches a gauche
-    #
-    Set-DefaultUserDWord `
-        -Path $ExplorerAdvancedKey `
-        -Name "TaskbarAl" `
-        -Value 0 `
-        -Description "Alignement de la barre des taches a gauche"
-
-    #
-    # 06 - Recherche : icone uniquement
-    #
-    $SearchKey = Join-Path `
-        $HivePowerShell `
-        "Software\Microsoft\Windows\CurrentVersion\Search"
-
-    Set-DefaultUserDWord `
-        -Path $SearchKey `
-        -Name "SearchboxTaskbarMode" `
-        -Value 1 `
-        -Description "Recherche en mode icone uniquement"
-
-    #
-    # 07 - Vue des taches masquee
-    #
-    Set-DefaultUserDWord `
-        -Path $ExplorerAdvancedKey `
-        -Name "ShowTaskViewButton" `
-        -Value 0 `
-        -Description "Bouton Vue des taches masque"
-
-    #
-    # 10 - Reprendre desactive
-    #
-    Set-DefaultUserDWord `
-        -Path $ExplorerAdvancedKey `
-        -Name "IsEnabled" `
-        -Value 0 `
-        -Description "Fonction Reprendre desactivee"
-
-    #
-    # 11 - Notifications lors des demandes de localisation
-    #
-    $LocationConsentKey = Join-Path `
-        $HivePowerShell `
-        "Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\location"
-
-    Set-DefaultUserDWord `
-        -Path $LocationConsentKey `
-        -Name "ShowGlobalPrompts" `
-        -Value 0 `
-        -Description "Notifications de demandes de localisation desactivees"
-
-    #
-    # 11 - Remplacement de la localisation
-    #
-    $LocationOverrideKey = Join-Path `
-        $HivePowerShell `
-        "Software\Microsoft\Windows\CurrentVersion\CPSS\Store\UserLocationOverridePrivacySetting"
-
-    Set-DefaultUserDWord `
-        -Path $LocationOverrideKey `
-        -Name "Value" `
-        -Value 0 `
-        -Description "Remplacement de la localisation desactive"
-
-    #
-    # 13 - Verrouillage numerique pour les futurs profils
-    #
-    $KeyboardKey = Join-Path `
-        $HivePowerShell `
-        "Control Panel\Keyboard"
-
-    Set-DefaultUserString `
-        -Path $KeyboardKey `
-        -Name "InitialKeyboardIndicators" `
-        -Value "2" `
-        -Description "Verrouillage numerique configure"
-
-    Write-Log "Reglages du profil par defaut appliques" "OK"
+    Write-Log "Parametres UsrClass.dat appliques" "OK"
 }
 catch {
-
-    Add-Error $_.Exception.Message
+    Add-CGlobalError $_.Exception.Message
 }
 finally {
+    if ($DefaultClassesLoaded) {
+        Dismount-CGlobalHive `
+            -HiveName $DefaultClassesHiveName `
+            -ProviderPath $DefaultClassesRoot
+    }
 
-    Dismount-DefaultUserHive
+    if ($DefaultUserLoaded) {
+        Dismount-CGlobalHive `
+            -HiveName $DefaultUserHiveName `
+            -ProviderPath $DefaultUserRoot
+    }
 }
 
 Write-Log "----------------------------------------"
@@ -526,19 +402,14 @@ Write-Log "Avertissements : $WarningCount"
 Write-Log "Erreurs : $ErrorCount"
 
 if ($ErrorCount -gt 0) {
-
     Write-Log "Configuration du profil par defaut terminee avec erreurs" "ERROR"
-
     exit 1
 }
 
 if ($WarningCount -gt 0) {
-
     Write-Log "Configuration du profil par defaut terminee avec avertissements" "WARN"
-
     exit 0
 }
 
 Write-Log "Configuration du profil par defaut terminee avec succes" "OK"
-
 exit 0
