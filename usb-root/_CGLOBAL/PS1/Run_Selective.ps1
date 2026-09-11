@@ -535,12 +535,12 @@ $Form.Controls.Add($BtnLoad)
 
 # --- Label Internet ---
 $NetLabel = New-Object System.Windows.Forms.Label
-$NetLabel.Text = "[INTERNET] = necessite une connexion Internet"
+$NetLabel.Text = "[INTERNET] =`nnecessite une connexion Internet"
 $NetLabel.ForeColor = [System.Drawing.Color]::DarkOrange
 $NetLabel.Font = New-Object System.Drawing.Font("Segoe UI", 9)
-$NetLabel.Location = New-Object System.Drawing.Point($RightX, 175)
-$NetLabel.Width = 260
-$NetLabel.Height = 20
+$NetLabel.Location = New-Object System.Drawing.Point($RightX, 165)
+$NetLabel.Width = 280
+$NetLabel.Height = 40
 $Form.Controls.Add($NetLabel)
 
 # --- Legende resultats ---
