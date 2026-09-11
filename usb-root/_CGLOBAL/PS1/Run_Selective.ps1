@@ -9,6 +9,28 @@ param(
 $ErrorActionPreference = 'Stop'
 
 # ============================================================
+# Initialisation DPI moderne AVANT le module commun et WinForms
+# ============================================================
+Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+public static class RunSelectiveDpiBootstrap {
+    [DllImport("user32.dll", SetLastError=true)]
+    static extern bool SetProcessDpiAwarenessContext(IntPtr value);
+    [DllImport("shcore.dll", SetLastError=true)]
+    static extern int SetProcessDpiAwareness(int value);
+    [DllImport("user32.dll", SetLastError=true)]
+    static extern bool SetProcessDPIAware();
+    public static void Enable() {
+        try { if (SetProcessDpiAwarenessContext(new IntPtr(-4))) return; } catch {}
+        try { if (SetProcessDpiAwareness(2) == 0) return; } catch {}
+        try { SetProcessDPIAware(); } catch {}
+    }
+}
+"@ -ErrorAction SilentlyContinue
+if ("RunSelectiveDpiBootstrap" -as [type]) { [RunSelectiveDpiBootstrap]::Enable() }
+
+# ============================================================
 # Chargement du module commun
 # ============================================================
 $ModulePath = "C:\_CGLOBAL\PS1\CGLOBAL.Common.psm1"
@@ -373,269 +395,172 @@ function Resolve-InternetRequirement {
 }
 
 # ============================================================
-# Creation du formulaire principal
+# Creation du formulaire principal : layout adaptatif DPI
 # ============================================================
-# La disposition du formulaire est fixe et coordonnee en pixels. Ne pas activer
-# AutoScaleMode = Dpi ici : cela re-evalue les controles et les fontes selon le DPI
-# du moniteur et peut produire des chevauchements sur les ecrans 4K a 200%.
-# On laisse Windows faire l'affichage DPIAware via le manifeste/processus, puis on
-# garde un layout statique et lisible par construction (positions, tailles et fontes).
-Add-Type -TypeDefinition @"
-using System.Runtime.InteropServices;
-public class DpiHelper {
-    [DllImport("user32.dll")]
-    public static extern bool SetProcessDPIAware();
-}
-"@
-[DpiHelper]::SetProcessDPIAware()
-
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
+[System.Windows.Forms.Application]::EnableVisualStyles()
 
-# Adapter la fenetre au WorkingArea du moniteur principal.
-# Base reference : 1366x768 a 100% ; sur ecrans plus grands, on applique
-# un facteur de croissance limite entre 1.0 et 1.4, ce qui evite de
-# tronquer les textes et les boutons de la colonne de droite.
-$Screen = [System.Windows.Forms.Screen]::PrimaryScreen
-$WorkArea = $Screen.WorkingArea
-$WidthScale = [Math]::Min(1.40, [Math]::Max(1.00, $WorkArea.Width / 1366))
-$HeightScale = [Math]::Min(1.40, [Math]::Max(1.00, $WorkArea.Height / 768))
-$ScaleFactor = [Math]::Min($WidthScale, $HeightScale)
+function New-PercentColumn([single]$Value) {
+    New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Percent, $Value)
+}
+function New-PercentRow([single]$Value) {
+    New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Percent, $Value)
+}
+function New-AutoRow {
+    New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::AutoSize)
+}
+function Set-ButtonLayout {
+    param([System.Windows.Forms.Button]$Button, [int]$Height = 36)
+    $Button.Dock = 'Fill'
+    $Button.AutoSize = $true
+    $Button.AutoSizeMode = 'GrowAndShrink'
+    $Button.MinimumSize = New-Object System.Drawing.Size(105, $Height)
+    $Button.Margin = New-Object System.Windows.Forms.Padding(4)
+    $Button.Padding = New-Object System.Windows.Forms.Padding(8, 3, 8, 3)
+}
 
 $Form = New-Object System.Windows.Forms.Form
-$Form.Text = "CGLOBAL - Mode Selectif"
-$Form.Width = [int][Math]::Round(920 * $ScaleFactor)
-$Form.Height = [int][Math]::Round(700 * $ScaleFactor)
-$Form.StartPosition = "CenterScreen"
-$Form.FormBorderStyle = "FixedDialog"
-$Form.MaximizeBox = $false
-$Form.MinimizeBox = $false
-$Form.AutoScaleMode = [System.Windows.Forms.AutoScaleMode]::None
+$Form.Text = 'CGLOBAL - Mode Selectif'
+$Form.StartPosition = 'Manual'
+$Form.FormBorderStyle = 'Sizable'
+$Form.MaximizeBox = $true
+$Form.MinimizeBox = $true
+$Form.AutoScaleMode = [System.Windows.Forms.AutoScaleMode]::Dpi
 $Form.AutoScaleDimensions = New-Object System.Drawing.SizeF(96, 96)
+$Form.Font = New-Object System.Drawing.Font('Segoe UI', 9)
+$Form.ClientSize = New-Object System.Drawing.Size(920, 700)
+$Form.MinimumSize = New-Object System.Drawing.Size(760, 580)
 
-# On ne laisse pas la fenetre sortir du WorkingArea du bureau.
-if ($Form.Width -gt $WorkArea.Width) {
-    $Form.Width = $WorkArea.Width - 16
-}
-if ($Form.Height -gt $WorkArea.Height) {
-    $Form.Height = $WorkArea.Height - 40
-}
+$MainLayout = New-Object System.Windows.Forms.TableLayoutPanel
+$MainLayout.Dock = 'Fill'; $MainLayout.Padding = New-Object System.Windows.Forms.Padding(15)
+$MainLayout.Margin = New-Object System.Windows.Forms.Padding(0)
+$MainLayout.ColumnCount = 1; $MainLayout.RowCount = 4
+$MainLayout.ColumnStyles.Add((New-PercentColumn 100)) | Out-Null
+$MainLayout.RowStyles.Add((New-AutoRow)) | Out-Null
+$MainLayout.RowStyles.Add((New-PercentRow 64)) | Out-Null
+$MainLayout.RowStyles.Add((New-AutoRow)) | Out-Null
+$MainLayout.RowStyles.Add((New-PercentRow 36)) | Out-Null
+$Form.Controls.Add($MainLayout)
 
-# --- Titre ---
+$Header = New-Object System.Windows.Forms.TableLayoutPanel
+$Header.Dock = 'Fill'; $Header.AutoSize = $true; $Header.ColumnCount = 1; $Header.RowCount = 2
+$Header.Margin = New-Object System.Windows.Forms.Padding(0,0,0,10)
+$Header.ColumnStyles.Add((New-PercentColumn 100)) | Out-Null
+$Header.RowStyles.Add((New-AutoRow)) | Out-Null; $Header.RowStyles.Add((New-AutoRow)) | Out-Null
+$MainLayout.Controls.Add($Header,0,0)
+
 $TitleLabel = New-Object System.Windows.Forms.Label
-$TitleLabel.Text = "CGLOBAL - Selection des scripts a executer"
-$TitleLabel.Font = New-Object System.Drawing.Font("Segoe UI", 12, [System.Drawing.FontStyle]::Bold)
-$TitleLabel.Location = New-Object System.Drawing.Point(20, 15)
-$TitleLabel.Width = [int][Math]::Round($Form.Width - 40)
-$TitleLabel.Height = 30
-$Form.Controls.Add($TitleLabel)
-
-# --- Sous-titre ---
+$TitleLabel.Text = 'CGLOBAL - Selection des scripts a executer'
+$TitleLabel.Font = New-Object System.Drawing.Font('Segoe UI',12,[System.Drawing.FontStyle]::Bold)
+$TitleLabel.AutoSize = $true; $TitleLabel.Dock = 'Fill'; $TitleLabel.Margin = New-Object System.Windows.Forms.Padding(0,0,0,4)
+$Header.Controls.Add($TitleLabel,0,0)
 $SubLabel = New-Object System.Windows.Forms.Label
-$SubLabel.Text = "Cochez les scripts a lancer, puis cliquez sur Executer. Survolez un script pour voir sa description."
-$SubLabel.Font = New-Object System.Drawing.Font("Segoe UI", 9)
-$SubLabel.Location = New-Object System.Drawing.Point(20, 50)
-$SubLabel.Width = [int][Math]::Round($Form.Width - 40)
-$SubLabel.Height = 20
-$Form.Controls.Add($SubLabel)
+$SubLabel.Text = 'Cochez les scripts a lancer, puis cliquez sur Executer. Survolez un script pour voir sa description.'
+$SubLabel.AutoSize = $true; $SubLabel.Dock = 'Fill'; $SubLabel.Margin = New-Object System.Windows.Forms.Padding(0)
+$Header.Controls.Add($SubLabel,0,1)
 
-# --- Panel de gauche : liste des scripts (avec ascenseur si necessaire) ---
-$Panel = New-Object System.Windows.Forms.Panel
-$Panel.Location = New-Object System.Drawing.Point(20, 80)
-$Panel.Width = [int][Math]::Round(560 * $ScaleFactor)
-$Panel.Height = [int][Math]::Round(340 * $ScaleFactor)
-$Panel.BorderStyle = "FixedSingle"
-$Panel.AutoScroll = $true
-$Form.Controls.Add($Panel)
+$Content = New-Object System.Windows.Forms.TableLayoutPanel
+$Content.Dock = 'Fill'; $Content.Margin = New-Object System.Windows.Forms.Padding(0)
+$Content.ColumnCount = 2; $Content.RowCount = 1
+$Content.ColumnStyles.Add((New-PercentColumn 66)) | Out-Null
+$Content.ColumnStyles.Add((New-PercentColumn 34)) | Out-Null
+$Content.RowStyles.Add((New-PercentRow 100)) | Out-Null
+$MainLayout.Controls.Add($Content,0,1)
 
-# --- Tooltip global ---
+$Panel = New-Object System.Windows.Forms.FlowLayoutPanel
+$Panel.Dock = 'Fill'; $Panel.FlowDirection = 'TopDown'; $Panel.WrapContents = $false
+$Panel.AutoScroll = $true; $Panel.BorderStyle = 'FixedSingle'
+$Panel.Padding = New-Object System.Windows.Forms.Padding(8); $Panel.Margin = New-Object System.Windows.Forms.Padding(0,0,10,0)
+$Content.Controls.Add($Panel,0,0)
+
 $Tooltip = New-Object System.Windows.Forms.ToolTip
-$Tooltip.AutoPopDelay = 10000
-$Tooltip.InitialDelay = 500
-$Tooltip.ReshowDelay = 200
-$Tooltip.ShowAlways = $true
-
-$Checkboxes = @{}
-$Results = @{}
-$Y = 10
-
+$Tooltip.AutoPopDelay = 10000; $Tooltip.InitialDelay = 500; $Tooltip.ReshowDelay = 200; $Tooltip.ShowAlways = $true
+$Checkboxes = @{}; $Results = @{}
 foreach ($Script in $Scripts) {
     $CB = New-Object System.Windows.Forms.CheckBox
-    $CB.Text = "[$($Script.Num)] $($Script.Desc)"
-    $CB.Location = New-Object System.Drawing.Point(10, $Y)
-    $CB.Width = 500
-    $CB.Height = 22
-    $CB.Tag = $Script
-
-    if ($Script.Net) {
-        $CB.ForeColor = [System.Drawing.Color]::DarkOrange
-    }
-
-    $Tooltip.SetToolTip($CB, $Script.Tooltip)
-
-    $Panel.Controls.Add($CB)
-    $Checkboxes[$Script.Num] = $CB
-    $Results[$Script.Num] = $null
-    $Y += 26
+    $CB.Text = "[$($Script.Num)] $($Script.Desc)"; $CB.AutoSize = $true
+    $CB.Margin = New-Object System.Windows.Forms.Padding(3,3,3,5)
+    $CB.Padding = New-Object System.Windows.Forms.Padding(0,1,0,1); $CB.Tag = $Script
+    if ($Script.Net) { $CB.ForeColor = [System.Drawing.Color]::DarkOrange }
+    $Tooltip.SetToolTip($CB,$Script.Tooltip); $Panel.Controls.Add($CB)
+    $Checkboxes[$Script.Num] = $CB; $Results[$Script.Num] = $null
 }
+$ResizeCheckboxes = {
+    $Width = [Math]::Max(200,$Panel.ClientSize.Width - 28)
+    foreach ($CB in $Checkboxes.Values) { $CB.MaximumSize = New-Object System.Drawing.Size($Width,0) }
+}
+$Panel.Add_ClientSizeChanged($ResizeCheckboxes)
 
-# ============================================================
-# Colonne de droite : boutons de controle
-# ============================================================
-$RightX = $Panel.Location.X + $Panel.Width + 20
+$Commands = New-Object System.Windows.Forms.TableLayoutPanel
+$Commands.Dock = 'Fill'; $Commands.AutoScroll = $true; $Commands.Margin = New-Object System.Windows.Forms.Padding(0)
+$Commands.ColumnCount = 2; $Commands.RowCount = 8
+$Commands.ColumnStyles.Add((New-PercentColumn 50)) | Out-Null; $Commands.ColumnStyles.Add((New-PercentColumn 50)) | Out-Null
+1..7 | ForEach-Object { $Commands.RowStyles.Add((New-AutoRow)) | Out-Null }
+$Commands.RowStyles.Add((New-PercentRow 100)) | Out-Null
+$Content.Controls.Add($Commands,1,0)
 
-# --- Bouton Tous ---
-$BtnTous = New-Object System.Windows.Forms.Button
-$BtnTous.Text = "Tous"
-$BtnTous.Location = New-Object System.Drawing.Point($RightX, 80)
-$BtnTous.Width = 120
-$BtnTous.Height = 32
-$BtnTous.Font = New-Object System.Drawing.Font("Segoe UI", 9)
-$BtnTous.Add_Click({
-    foreach ($CB in $Checkboxes.Values) {
-        $CB.Checked = $true
-    }
-})
-$Form.Controls.Add($BtnTous)
-
-# --- Bouton Aucun ---
-$BtnAucun = New-Object System.Windows.Forms.Button
-$BtnAucun.Text = "Aucun"
-$BtnAucun.Location = New-Object System.Drawing.Point(($RightX + 130), 80)
-$BtnAucun.Width = 120
-$BtnAucun.Height = 32
-$BtnAucun.Font = New-Object System.Drawing.Font("Segoe UI", 9)
-$BtnAucun.Add_Click({
-    foreach ($CB in $Checkboxes.Values) {
-        $CB.Checked = $false
-    }
-})
-$Form.Controls.Add($BtnAucun)
-
-# --- Bouton Sauvegarder ---
-$BtnSave = New-Object System.Windows.Forms.Button
-$BtnSave.Text = "Sauvegarder"
-$BtnSave.Location = New-Object System.Drawing.Point($RightX, 125)
-$BtnSave.Width = 120
-$BtnSave.Height = 32
-$BtnSave.Font = New-Object System.Drawing.Font("Segoe UI", 9)
-$BtnSave.Add_Click({
-    Export-Selection -Checkboxes $Checkboxes
-    [System.Windows.Forms.MessageBox]::Show(
-        "Selection sauvegardee avec succes.",
-        "Sauvegarde",
-        [System.Windows.Forms.MessageBoxButtons]::OK,
-        [System.Windows.Forms.MessageBoxIcon]::Information
-    )
-})
-$Form.Controls.Add($BtnSave)
-
-# --- Bouton Charger ---
-$BtnLoad = New-Object System.Windows.Forms.Button
-$BtnLoad.Text = "Charger"
-$BtnLoad.Location = New-Object System.Drawing.Point(($RightX + 130), 125)
-$BtnLoad.Width = 120
-$BtnLoad.Height = 32
-$BtnLoad.Font = New-Object System.Drawing.Font("Segoe UI", 9)
+$BtnTous = New-Object System.Windows.Forms.Button; $BtnTous.Text='Tous'; Set-ButtonLayout $BtnTous
+$BtnTous.Add_Click({ foreach($CB in $Checkboxes.Values){$CB.Checked=$true} }); $Commands.Controls.Add($BtnTous,0,0)
+$BtnAucun = New-Object System.Windows.Forms.Button; $BtnAucun.Text='Aucun'; Set-ButtonLayout $BtnAucun
+$BtnAucun.Add_Click({ foreach($CB in $Checkboxes.Values){$CB.Checked=$false} }); $Commands.Controls.Add($BtnAucun,1,0)
+$BtnSave = New-Object System.Windows.Forms.Button; $BtnSave.Text='Sauvegarder'; Set-ButtonLayout $BtnSave
+$BtnSave.Add_Click({ Export-Selection $Checkboxes; [void][System.Windows.Forms.MessageBox]::Show('Selection sauvegardee avec succes.','Sauvegarde','OK','Information') }); $Commands.Controls.Add($BtnSave,0,1)
+$BtnLoad = New-Object System.Windows.Forms.Button; $BtnLoad.Text='Charger'; Set-ButtonLayout $BtnLoad
 $BtnLoad.Add_Click({
-    if (Import-Selection -Checkboxes $Checkboxes) {
-        [System.Windows.Forms.MessageBox]::Show(
-            "Selection chargee avec succes.",
-            "Chargement",
-            [System.Windows.Forms.MessageBoxButtons]::OK,
-            [System.Windows.Forms.MessageBoxIcon]::Information
-        )
-    }
-    else {
-        [System.Windows.Forms.MessageBox]::Show(
-            "Aucune selection precedente trouvee.",
-            "Chargement",
-            [System.Windows.Forms.MessageBoxButtons]::OK,
-            [System.Windows.Forms.MessageBoxIcon]::Warning
-        )
-    }
-})
-$Form.Controls.Add($BtnLoad)
+    if(Import-Selection $Checkboxes){ [void][System.Windows.Forms.MessageBox]::Show('Selection chargee avec succes.','Chargement','OK','Information') }
+    else { [void][System.Windows.Forms.MessageBox]::Show('Aucune selection precedente trouvee.','Chargement','OK','Warning') }
+}); $Commands.Controls.Add($BtnLoad,1,1)
 
-# --- Label Internet ---
 $NetLabel = New-Object System.Windows.Forms.Label
-$NetLabel.Text = "[INTERNET] =`nnecessite une connexion Internet"
-$NetLabel.ForeColor = [System.Drawing.Color]::DarkOrange
-$NetLabel.Font = New-Object System.Drawing.Font("Segoe UI", 9)
-$NetLabel.Location = New-Object System.Drawing.Point($RightX, 165)
-$NetLabel.Width = 280
-$NetLabel.Height = 40
-$Form.Controls.Add($NetLabel)
-
-# --- Legende resultats ---
+$NetLabel.Text="[INTERNET] =`r`nnecessite une connexion Internet"; $NetLabel.ForeColor=[System.Drawing.Color]::DarkOrange
+$NetLabel.AutoSize=$true; $NetLabel.Dock='Fill'; $NetLabel.Margin=New-Object System.Windows.Forms.Padding(4,8,4,4)
+$Commands.Controls.Add($NetLabel,0,2); $Commands.SetColumnSpan($NetLabel,2)
 $LegendLabel = New-Object System.Windows.Forms.Label
-$LegendLabel.Text = "Legende :`n  Vert  = succes`n  Jaune = avertissement`n  Rouge = erreur / introuvable"
-$LegendLabel.Font = New-Object System.Drawing.Font("Segoe UI", 9)
-$LegendLabel.Location = New-Object System.Drawing.Point($RightX, 210)
-$LegendLabel.Width = 260
-$LegendLabel.Height = 80
-$Form.Controls.Add($LegendLabel)
-
-# --- Barre de progression ---
+$LegendLabel.Text="Legende :`r`n  Vert  = succes`r`n  Jaune = avertissement`r`n  Rouge = erreur / introuvable"
+$LegendLabel.AutoSize=$true; $LegendLabel.Dock='Fill'; $LegendLabel.Margin=New-Object System.Windows.Forms.Padding(4,4,4,8)
+$Commands.Controls.Add($LegendLabel,0,3); $Commands.SetColumnSpan($LegendLabel,2)
 $ProgressBar = New-Object System.Windows.Forms.ProgressBar
-$ProgressBar.Location = New-Object System.Drawing.Point($RightX, 300)
-$ProgressBar.Width = 260
-$ProgressBar.Height = 22
-$ProgressBar.Minimum = 0
-$ProgressBar.Maximum = 100
-$ProgressBar.Value = 0
-$Form.Controls.Add($ProgressBar)
-
+$ProgressBar.Dock='Fill'; $ProgressBar.MinimumSize=New-Object System.Drawing.Size(0,22); $ProgressBar.Margin=New-Object System.Windows.Forms.Padding(4)
+$ProgressBar.Minimum=0; $ProgressBar.Maximum=100; $ProgressBar.Value=0
+$Commands.Controls.Add($ProgressBar,0,4); $Commands.SetColumnSpan($ProgressBar,2)
 $ProgressLabel = New-Object System.Windows.Forms.Label
-$ProgressLabel.Text = "Pret"
-$ProgressLabel.Font = New-Object System.Drawing.Font("Segoe UI", 9)
-$ProgressLabel.Location = New-Object System.Drawing.Point($RightX, 328)
-$ProgressLabel.Width = 260
-$ProgressLabel.Height = 22
-$Form.Controls.Add($ProgressLabel)
+$ProgressLabel.Text='Pret'; $ProgressLabel.AutoSize=$true; $ProgressLabel.Dock='Fill'; $ProgressLabel.AutoEllipsis=$true
+$ProgressLabel.Margin=New-Object System.Windows.Forms.Padding(4); $Commands.Controls.Add($ProgressLabel,0,5); $Commands.SetColumnSpan($ProgressLabel,2)
+$BtnExecuter = New-Object System.Windows.Forms.Button; $BtnExecuter.Text='Executer'
+$BtnExecuter.Font=New-Object System.Drawing.Font('Segoe UI',10,[System.Drawing.FontStyle]::Bold); $BtnExecuter.BackColor=[System.Drawing.Color]::LightGreen
+Set-ButtonLayout $BtnExecuter 42; $Commands.Controls.Add($BtnExecuter,0,6)
+$BtnQuitter = New-Object System.Windows.Forms.Button; $BtnQuitter.Text='Quitter'
+$BtnQuitter.Font=New-Object System.Drawing.Font('Segoe UI',10); $BtnQuitter.BackColor=[System.Drawing.Color]::LightCoral
+Set-ButtonLayout $BtnQuitter 42
+$BtnQuitter.Add_Click({ Export-Selection $Checkboxes; Write-LogSelective 'Fermeture par l utilisateur (bouton Quitter)' 'INFO'; $Form.Close() })
+$Commands.Controls.Add($BtnQuitter,1,6)
 
-# --- Bouton Executer ---
-$BtnExecuter = New-Object System.Windows.Forms.Button
-$BtnExecuter.Text = "Executer"
-$BtnExecuter.Location = New-Object System.Drawing.Point($RightX, 380)
-$BtnExecuter.Width = 120
-$BtnExecuter.Height = 42
-$BtnExecuter.Font = New-Object System.Drawing.Font("Segoe UI", 10, [System.Drawing.FontStyle]::Bold)
-$BtnExecuter.BackColor = [System.Drawing.Color]::LightGreen
-$Form.Controls.Add($BtnExecuter)
-
-# --- Bouton Quitter ---
-$BtnQuitter = New-Object System.Windows.Forms.Button
-$BtnQuitter.Text = "Quitter"
-$BtnQuitter.Location = New-Object System.Drawing.Point(($RightX + 130), 380)
-$BtnQuitter.Width = 120
-$BtnQuitter.Height = 42
-$BtnQuitter.Font = New-Object System.Drawing.Font("Segoe UI", 10)
-$BtnQuitter.BackColor = [System.Drawing.Color]::LightCoral
-$BtnQuitter.Add_Click({
-    Export-Selection -Checkboxes $Checkboxes
-    Write-LogSelective "Fermeture par l utilisateur (bouton Quitter)" "INFO"
-    $Form.Close()
-})
-$Form.Controls.Add($BtnQuitter)
-
-# --- Journal en direct du script en cours ---
 $LogLabel = New-Object System.Windows.Forms.Label
-$LogLabel.Text = "Journal en direct du script en cours :"
-$LogLabel.Font = New-Object System.Drawing.Font("Segoe UI", 9, [System.Drawing.FontStyle]::Bold)
-$LogLabel.Location = New-Object System.Drawing.Point(20, 440)
-$LogLabel.Width = 860
-$LogLabel.Height = 20
-$Form.Controls.Add($LogLabel)
-
+$LogLabel.Text='Journal en direct du script en cours :'; $LogLabel.Font=New-Object System.Drawing.Font('Segoe UI',9,[System.Drawing.FontStyle]::Bold)
+$LogLabel.AutoSize=$true; $LogLabel.Dock='Fill'; $LogLabel.Margin=New-Object System.Windows.Forms.Padding(0,10,0,4)
+$MainLayout.Controls.Add($LogLabel,0,2)
 $LogBox = New-Object System.Windows.Forms.RichTextBox
-$LogBox.Location = New-Object System.Drawing.Point(20, 463)
-$LogBox.Width = 860
-$LogBox.Height = 140
-$LogBox.ReadOnly = $true
-$LogBox.Font = New-Object System.Drawing.Font("Consolas", 9)
-$LogBox.BackColor = [System.Drawing.Color]::White
-$Form.Controls.Add($LogBox)
+$LogBox.Dock='Fill'; $LogBox.ReadOnly=$true; $LogBox.Font=New-Object System.Drawing.Font('Consolas',9)
+$LogBox.BackColor=[System.Drawing.Color]::White; $LogBox.MinimumSize=New-Object System.Drawing.Size(0,80); $LogBox.Margin=New-Object System.Windows.Forms.Padding(0)
+$MainLayout.Controls.Add($LogBox,0,3)
+
+# Taille calculee apres la mise a l'echelle DPI effective.
+$Form.Add_Shown({
+    $Area = [System.Windows.Forms.Screen]::FromControl($Form).WorkingArea
+    $TargetWidth  = [int][Math]::Round($Area.Width * 0.82)
+    $TargetHeight = [int][Math]::Round($Area.Height * 0.90)
+    $TargetWidth  = [Math]::Max([Math]::Min(760,$Area.Width-20),$TargetWidth)
+    $TargetHeight = [Math]::Max([Math]::Min(580,$Area.Height-20),$TargetHeight)
+    $TargetWidth  = [Math]::Min($TargetWidth,$Area.Width-20)
+    $TargetHeight = [Math]::Min($TargetHeight,$Area.Height-20)
+    $Left = $Area.Left + [int](($Area.Width-$TargetWidth)/2)
+    $Top  = $Area.Top  + [int](($Area.Height-$TargetHeight)/2)
+    $Form.SuspendLayout()
+    try { $Form.Bounds = New-Object System.Drawing.Rectangle($Left,$Top,$TargetWidth,$TargetHeight) }
+    finally { $Form.ResumeLayout($true) }
+    & $ResizeCheckboxes
+})
 
 # Lecture du fichier de log en partage total (lecture ET ecriture), pour ne jamais
 # bloquer Add-Content dans Write-Log pendant que le script en cours ecrit ses lignes.
