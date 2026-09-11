@@ -375,6 +375,11 @@ function Resolve-InternetRequirement {
 # ============================================================
 # Creation du formulaire principal
 # ============================================================
+# La disposition du formulaire est fixe et coordonnee en pixels. Ne pas activer
+# AutoScaleMode = Dpi ici : cela re-evalue les controles et les fontes selon le DPI
+# du moniteur et peut produire des chevauchements sur les ecrans 4K a 200%.
+# On laisse Windows faire l'affichage DPIAware via le manifeste/processus, puis on
+# garde un layout statique et lisible par construction (positions, tailles et fontes).
 Add-Type -TypeDefinition @"
 using System.Runtime.InteropServices;
 public class DpiHelper {
@@ -395,7 +400,8 @@ $Form.StartPosition = "CenterScreen"
 $Form.FormBorderStyle = "FixedDialog"
 $Form.MaximizeBox = $false
 $Form.MinimizeBox = $false
-$Form.AutoScaleMode = [System.Windows.Forms.AutoScaleMode]::Dpi
+$Form.AutoScaleMode = [System.Windows.Forms.AutoScaleMode]::None
+$Form.AutoScaleDimensions = New-Object System.Drawing.SizeF(96, 96)
 
 # --- Titre ---
 $TitleLabel = New-Object System.Windows.Forms.Label
