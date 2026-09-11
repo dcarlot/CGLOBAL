@@ -392,10 +392,20 @@ public class DpiHelper {
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
+# Adapter la fenetre au WorkingArea du moniteur principal.
+# Base reference : 1366x768 a 100% ; sur ecrans plus grands, on applique
+# un facteur de croissance limite entre 1.0 et 1.4, ce qui evite de
+# tronquer les textes et les boutons de la colonne de droite.
+$Screen = [System.Windows.Forms.Screen]::PrimaryScreen
+$WorkArea = $Screen.WorkingArea
+$WidthScale = [Math]::Min(1.40, [Math]::Max(1.00, $WorkArea.Width / 1366))
+$HeightScale = [Math]::Min(1.40, [Math]::Max(1.00, $WorkArea.Height / 768))
+$ScaleFactor = [Math]::Min($WidthScale, $HeightScale)
+
 $Form = New-Object System.Windows.Forms.Form
 $Form.Text = "CGLOBAL - Mode Selectif"
-$Form.Width = 920
-$Form.Height = 700
+$Form.Width = [int][Math]::Round(920 * $ScaleFactor)
+$Form.Height = [int][Math]::Round(700 * $ScaleFactor)
 $Form.StartPosition = "CenterScreen"
 $Form.FormBorderStyle = "FixedDialog"
 $Form.MaximizeBox = $false
@@ -403,12 +413,20 @@ $Form.MinimizeBox = $false
 $Form.AutoScaleMode = [System.Windows.Forms.AutoScaleMode]::None
 $Form.AutoScaleDimensions = New-Object System.Drawing.SizeF(96, 96)
 
+# On ne laisse pas la fenetre sortir du WorkingArea du bureau.
+if ($Form.Width -gt $WorkArea.Width) {
+    $Form.Width = $WorkArea.Width - 16
+}
+if ($Form.Height -gt $WorkArea.Height) {
+    $Form.Height = $WorkArea.Height - 40
+}
+
 # --- Titre ---
 $TitleLabel = New-Object System.Windows.Forms.Label
 $TitleLabel.Text = "CGLOBAL - Selection des scripts a executer"
 $TitleLabel.Font = New-Object System.Drawing.Font("Segoe UI", 12, [System.Drawing.FontStyle]::Bold)
 $TitleLabel.Location = New-Object System.Drawing.Point(20, 15)
-$TitleLabel.Width = 860
+$TitleLabel.Width = [int][Math]::Round($Form.Width - 40)
 $TitleLabel.Height = 30
 $Form.Controls.Add($TitleLabel)
 
@@ -417,15 +435,15 @@ $SubLabel = New-Object System.Windows.Forms.Label
 $SubLabel.Text = "Cochez les scripts a lancer, puis cliquez sur Executer. Survolez un script pour voir sa description."
 $SubLabel.Font = New-Object System.Drawing.Font("Segoe UI", 9)
 $SubLabel.Location = New-Object System.Drawing.Point(20, 50)
-$SubLabel.Width = 860
+$SubLabel.Width = [int][Math]::Round($Form.Width - 40)
 $SubLabel.Height = 20
 $Form.Controls.Add($SubLabel)
 
 # --- Panel de gauche : liste des scripts (avec ascenseur si necessaire) ---
 $Panel = New-Object System.Windows.Forms.Panel
 $Panel.Location = New-Object System.Drawing.Point(20, 80)
-$Panel.Width = 560
-$Panel.Height = 340
+$Panel.Width = [int][Math]::Round(560 * $ScaleFactor)
+$Panel.Height = [int][Math]::Round(340 * $ScaleFactor)
 $Panel.BorderStyle = "FixedSingle"
 $Panel.AutoScroll = $true
 $Form.Controls.Add($Panel)
@@ -464,7 +482,7 @@ foreach ($Script in $Scripts) {
 # ============================================================
 # Colonne de droite : boutons de controle
 # ============================================================
-$RightX = 600
+$RightX = $Panel.Location.X + $Panel.Width + 20
 
 # --- Bouton Tous ---
 $BtnTous = New-Object System.Windows.Forms.Button
