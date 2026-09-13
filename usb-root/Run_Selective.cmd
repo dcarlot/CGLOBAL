@@ -41,7 +41,7 @@ robocopy "%USBPath%\_CGLOBAL\PS1" "C:\_CGLOBAL\PS1" /E /MIR /NFL /NDL
 
 :: --- Etape 4 : Copie du reste SANS /MIR (ne supprime pas) ---
 echo [3/3] Copie des fichiers restants vers C:\_CGLOBAL ...
-robocopy "%USBPath%\_CGLOBAL" "C:\_CGLOBAL" /E /XD Installer PS1 /NFL /NDL
+robocopy "%USBPath%\_CGLOBAL" "C:\_CGLOBAL" /E /XD Installers PS1 /XF wifi.secret /NFL /NDL
 
 echo Copie terminee.
 
