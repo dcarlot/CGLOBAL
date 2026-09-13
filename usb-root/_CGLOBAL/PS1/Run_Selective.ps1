@@ -1,9 +1,9 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 #Requires -RunAsAdministrator
 
 [CmdletBinding()]
 param(
-    [string]$USBPath = $PSScriptRoot
+    [string]$USBPath = [System.IO.Path]::GetPathRoot($PSScriptRoot)
 )
 
 $ErrorActionPreference = 'Stop'
@@ -191,13 +191,16 @@ function Test-InternetConnection {
 
 # ============================================================
 # Wi-Fi invite du bureau : SSID + mot de passe charges depuis wifi.secret
-# Format obligatoire de C:\_CGLOBAL\wifi.secret :
+# Format obligatoire de <LettreDeLaCleUSB>:\_CGLOBAL\wifi.secret :
 #   ligne 1 = SSID
 #   ligne 2 = mot de passe Wi-Fi
 # ============================================================
-$script:WifiSecretFile = "C:\_CGLOBAL\wifi.secret"
+# Le fichier secret reste exclusivement sur la cle USB.
+# Exemple : E:\_CGLOBAL\wifi.secret
+$script:WifiSecretFile = Join-Path -Path $USBPath -ChildPath "_CGLOBAL\wifi.secret"
 $script:GuestWifiSSID = $null
 $script:GuestWifiPassword = $null
+$script:GuestWifiSSIDUsed = $false
 
 function Get-GuestWifiCredentials {
     $SecretFile = $script:WifiSecretFile
@@ -314,6 +317,70 @@ function Connect-CGlobalGuestWifi {
 }
 
 # ============================================================
+# Suppression facultative du profil Wi-Fi utilise
+# La question n'est affichee que si le Wi-Fi invite a effectivement
+# permis de retablir la connexion Internet pendant cette execution.
+# ============================================================
+function Confirm-GuestWifiProfileRemoval {
+    if (-not $script:GuestWifiSSIDUsed) {
+        return
+    }
+
+    if ([string]::IsNullOrWhiteSpace($script:GuestWifiSSID)) {
+        Write-LogSelective "Suppression du profil Wi-Fi ignoree : SSID indisponible" "WARN"
+        return
+    }
+
+    $Choice = [System.Windows.Forms.MessageBox]::Show(
+        "Le Wi-Fi '$($script:GuestWifiSSID)' a ete utilise pendant le deploiement.`n`nVoulez-vous supprimer son profil Wi-Fi de ce poste ?`n`nOUI = supprimer le profil enregistre`nNON = conserver le profil et la connexion automatique",
+        "Profil Wi-Fi invite",
+        [System.Windows.Forms.MessageBoxButtons]::YesNo,
+        [System.Windows.Forms.MessageBoxIcon]::Question
+    )
+
+    if ($Choice -ne [System.Windows.Forms.DialogResult]::Yes) {
+        Write-LogSelective "Profil Wi-Fi '$($script:GuestWifiSSID)' conserve a la demande de l utilisateur" "INFO"
+        return
+    }
+
+    try {
+        $DeleteOutput = (& netsh.exe wlan delete profile name="$($script:GuestWifiSSID)" 2>&1) -join " "
+        $DeleteExitCode = $LASTEXITCODE
+
+        if ($DeleteExitCode -eq 0) {
+            Write-LogSelective "Profil Wi-Fi '$($script:GuestWifiSSID)' supprime : $DeleteOutput" "OK"
+
+            [void][System.Windows.Forms.MessageBox]::Show(
+                "Le profil Wi-Fi '$($script:GuestWifiSSID)' a ete supprime de ce poste.",
+                "Profil Wi-Fi supprime",
+                [System.Windows.Forms.MessageBoxButtons]::OK,
+                [System.Windows.Forms.MessageBoxIcon]::Information
+            )
+        }
+        else {
+            Write-LogSelective "Echec de suppression du profil Wi-Fi '$($script:GuestWifiSSID)' (code $DeleteExitCode) : $DeleteOutput" "ERROR"
+
+            [void][System.Windows.Forms.MessageBox]::Show(
+                "Impossible de supprimer le profil Wi-Fi '$($script:GuestWifiSSID)'.`n`nConsultez le journal pour les details.",
+                "Erreur de suppression",
+                [System.Windows.Forms.MessageBoxButtons]::OK,
+                [System.Windows.Forms.MessageBoxIcon]::Error
+            )
+        }
+    }
+    catch {
+        Write-LogSelective "Erreur lors de la suppression du profil Wi-Fi '$($script:GuestWifiSSID)' : $($_.Exception.Message)" "ERROR"
+
+        [void][System.Windows.Forms.MessageBox]::Show(
+            "Impossible de supprimer le profil Wi-Fi '$($script:GuestWifiSSID)'.`n`nConsultez le journal pour les details.",
+            "Erreur de suppression",
+            [System.Windows.Forms.MessageBoxButtons]::OK,
+            [System.Windows.Forms.MessageBoxIcon]::Error
+        )
+    }
+}
+
+# ============================================================
 # Resolution de l'absence de connexion Internet
 # Retourne : "OK" (connexion retablie), "CANCEL" (annuler tout),
 #            "CONTINUE_WITHOUT" (continuer sans les scripts Internet)
@@ -345,6 +412,7 @@ function Resolve-InternetRequirement {
                 Write-LogSelective "La tentative de connexion au Wi-Fi '$($script:GuestWifiSSID)' a echoue" "WARN"
             }
             elseif (Test-InternetConnection) {
+                $script:GuestWifiSSIDUsed = $true
                 Write-LogSelective "Connexion Internet retablie via le Wi-Fi '$($script:GuestWifiSSID)'" "OK"
                 return "OK"
             }
@@ -858,6 +926,8 @@ $Form.Add_FormClosing({
 # ============================================================
 Write-LogSelective "Affichage de l interface de selection" "INFO"
 [void]$Form.ShowDialog()
+Confirm-GuestWifiProfileRemoval
+$script:GuestWifiPassword = $null
 Write-LogSelective "=== FERMETURE MODE SELECTIF ===" "INFO"
 
 # Fermeture explicite de la fenetre DOS parente (Run_Selective.cmd). On ne compte
