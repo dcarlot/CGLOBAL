@@ -200,7 +200,6 @@ function Test-InternetConnection {
 $script:WifiSecretFile = Join-Path -Path $USBPath -ChildPath "_CGLOBAL\wifi.secret"
 $script:GuestWifiSSID = $null
 $script:GuestWifiPassword = $null
-$script:GuestWifiSSIDUsed = $false
 
 function Get-GuestWifiCredentials {
     $SecretFile = $script:WifiSecretFile
@@ -317,39 +316,114 @@ function Connect-CGlobalGuestWifi {
 }
 
 # ============================================================
-# Suppression facultative du profil Wi-Fi utilise
-# La question n'est affichee que si le Wi-Fi invite a effectivement
-# permis de retablir la connexion Internet pendant cette execution.
+# Detection et activation eventuelle d'une carte WLAN
 # ============================================================
+function Get-CGlobalWlanAdapters {
+    try {
+        $Adapters = @(Get-NetAdapter -IncludeHidden -ErrorAction Stop | Where-Object {
+            $_.NdisPhysicalMedium -eq 9 -or
+            $_.PhysicalMediaType -eq 9 -or
+            $_.InterfaceDescription -match '(?i)wireless|wi-fi|wifi|wlan|802\.11'
+        })
+        return @($Adapters)
+    }
+    catch {
+        Write-LogSelective "Impossible d interroger les cartes reseau : $($_.Exception.Message)" "WARN"
+        return @()
+    }
+}
+
+function Enable-CGlobalWlanAdapter {
+    $WlanAdapters = @(Get-CGlobalWlanAdapters)
+
+    if ($WlanAdapters.Count -eq 0) {
+        Write-LogSelective "Aucune carte WLAN detectee sur ce poste : proposition Wi-Fi ignoree" "INFO"
+        return $false
+    }
+
+    $UsableAdapter = $WlanAdapters | Where-Object { $_.Status -ne 'Disabled' } | Select-Object -First 1
+    if ($null -ne $UsableAdapter) {
+        Write-LogSelective "Carte WLAN detectee : $($UsableAdapter.Name) - Etat : $($UsableAdapter.Status)" "INFO"
+        return $true
+    }
+
+    foreach ($Adapter in ($WlanAdapters | Where-Object { $_.Status -eq 'Disabled' })) {
+        try {
+            Write-LogSelective "Carte WLAN desactivee detectee : $($Adapter.Name). Tentative d activation..." "INFO"
+            Enable-NetAdapter -Name $Adapter.Name -Confirm:$false -ErrorAction Stop
+            Start-Sleep -Seconds 3
+
+            $UpdatedAdapter = Get-NetAdapter -Name $Adapter.Name -ErrorAction Stop
+            if ($UpdatedAdapter.Status -ne 'Disabled') {
+                Write-LogSelective "Carte WLAN '$($Adapter.Name)' activee - Etat : $($UpdatedAdapter.Status)" "OK"
+                return $true
+            }
+
+            Write-LogSelective "La carte WLAN '$($Adapter.Name)' reste desactivee apres la tentative d activation" "WARN"
+        }
+        catch {
+            Write-LogSelective "Impossible d activer la carte WLAN '$($Adapter.Name)' : $($_.Exception.Message)" "WARN"
+        }
+    }
+
+    Write-LogSelective "Aucune carte WLAN utilisable sur ce poste : proposition Wi-Fi ignoree" "WARN"
+    return $false
+}
+
+# ============================================================
+# Detection et suppression facultative du profil Wi-Fi invite
+# ============================================================
+function Test-GuestWifiProfileExists {
+    param([Parameter(Mandatory = $true)][string]$SSID)
+
+    try {
+        $ProfileOutput = @(& netsh.exe wlan show profile name="$SSID" 2>&1)
+        if ($LASTEXITCODE -eq 0) {
+            Write-LogSelective "Profil Wi-Fi '$SSID' detecte sur ce poste" "INFO"
+            return $true
+        }
+        Write-LogSelective "Aucun profil Wi-Fi enregistre pour '$SSID'" "INFO"
+        return $false
+    }
+    catch {
+        Write-LogSelective "Erreur lors de la recherche du profil Wi-Fi '$SSID' : $($_.Exception.Message)" "WARN"
+        return $false
+    }
+}
+
 function Confirm-GuestWifiProfileRemoval {
-    if (-not $script:GuestWifiSSIDUsed) {
+    # Sans carte WLAN, aucun profil Wi-Fi exploitable n'est attendu.
+    if (@(Get-CGlobalWlanAdapters).Count -eq 0) {
+        Write-LogSelective "Verification finale du profil Wi-Fi ignoree : aucune carte WLAN detectee" "INFO"
         return
     }
 
-    if ([string]::IsNullOrWhiteSpace($script:GuestWifiSSID)) {
-        Write-LogSelective "Suppression du profil Wi-Fi ignoree : SSID indisponible" "WARN"
-        return
-    }
-
-    $Choice = [System.Windows.Forms.MessageBox]::Show(
-        "Le Wi-Fi '$($script:GuestWifiSSID)' a ete utilise pendant le deploiement.`n`nVoulez-vous supprimer son profil Wi-Fi de ce poste ?`n`nOUI = supprimer le profil enregistre`nNON = conserver le profil et la connexion automatique",
-        "Profil Wi-Fi invite",
-        [System.Windows.Forms.MessageBoxButtons]::YesNo,
-        [System.Windows.Forms.MessageBoxIcon]::Question
-    )
-
-    if ($Choice -ne [System.Windows.Forms.DialogResult]::Yes) {
-        Write-LogSelective "Profil Wi-Fi '$($script:GuestWifiSSID)' conserve a la demande de l utilisateur" "INFO"
+    if (-not (Get-GuestWifiCredentials)) {
+        Write-LogSelective "Verification finale du profil Wi-Fi invite impossible : wifi.secret indisponible ou invalide" "INFO"
         return
     }
 
     try {
-        $DeleteOutput = (& netsh.exe wlan delete profile name="$($script:GuestWifiSSID)" 2>&1) -join " "
+        if (-not (Test-GuestWifiProfileExists -SSID $script:GuestWifiSSID)) { return }
+
+        $Choice = [System.Windows.Forms.MessageBox]::Show(
+            "Le profil Wi-Fi '$($script:GuestWifiSSID)' est enregistre sur ce poste.`n`nVoulez-vous le supprimer ?`n`nOUI = supprimer le profil enregistre`nNON = conserver le profil et la connexion automatique",
+            "Profil Wi-Fi invite",
+            [System.Windows.Forms.MessageBoxButtons]::YesNo,
+            [System.Windows.Forms.MessageBoxIcon]::Question
+        )
+
+        if ($Choice -ne [System.Windows.Forms.DialogResult]::Yes) {
+            Write-LogSelective "Profil Wi-Fi '$($script:GuestWifiSSID)' conserve a la demande de l utilisateur" "INFO"
+            return
+        }
+
+        $DeleteOutput = @(& netsh.exe wlan delete profile name="$($script:GuestWifiSSID)" 2>&1)
         $DeleteExitCode = $LASTEXITCODE
+        $DeleteMessage = $DeleteOutput -join " "
 
         if ($DeleteExitCode -eq 0) {
-            Write-LogSelective "Profil Wi-Fi '$($script:GuestWifiSSID)' supprime : $DeleteOutput" "OK"
-
+            Write-LogSelective "Profil Wi-Fi '$($script:GuestWifiSSID)' supprime : $DeleteMessage" "OK"
             [void][System.Windows.Forms.MessageBox]::Show(
                 "Le profil Wi-Fi '$($script:GuestWifiSSID)' a ete supprime de ce poste.",
                 "Profil Wi-Fi supprime",
@@ -358,8 +432,7 @@ function Confirm-GuestWifiProfileRemoval {
             )
         }
         else {
-            Write-LogSelective "Echec de suppression du profil Wi-Fi '$($script:GuestWifiSSID)' (code $DeleteExitCode) : $DeleteOutput" "ERROR"
-
+            Write-LogSelective "Echec de suppression du profil Wi-Fi '$($script:GuestWifiSSID)' (code $DeleteExitCode) : $DeleteMessage" "ERROR"
             [void][System.Windows.Forms.MessageBox]::Show(
                 "Impossible de supprimer le profil Wi-Fi '$($script:GuestWifiSSID)'.`n`nConsultez le journal pour les details.",
                 "Erreur de suppression",
@@ -370,13 +443,9 @@ function Confirm-GuestWifiProfileRemoval {
     }
     catch {
         Write-LogSelective "Erreur lors de la suppression du profil Wi-Fi '$($script:GuestWifiSSID)' : $($_.Exception.Message)" "ERROR"
-
-        [void][System.Windows.Forms.MessageBox]::Show(
-            "Impossible de supprimer le profil Wi-Fi '$($script:GuestWifiSSID)'.`n`nConsultez le journal pour les details.",
-            "Erreur de suppression",
-            [System.Windows.Forms.MessageBoxButtons]::OK,
-            [System.Windows.Forms.MessageBoxIcon]::Error
-        )
+    }
+    finally {
+        $script:GuestWifiPassword = $null
     }
 }
 
@@ -392,37 +461,39 @@ function Resolve-InternetRequirement {
 
     $ScriptsInternetText = ($ScriptsNeedingNet | ForEach-Object { "[$($_.Num)] $($_.Desc)" }) -join "`n"
 
-    # --- Proposition directe, sans scan prealable des reseaux Wi-Fi disponibles ---
-    $WifiChoice = [System.Windows.Forms.MessageBox]::Show(
-        "Pas de connexion Internet.`n`nVoulez-vous essayer de vous connecter au Wi-Fi '$($script:GuestWifiSSID)' (si disponible) ?",
-        "Connexion Internet requise",
-        [System.Windows.Forms.MessageBoxButtons]::YesNo,
-        [System.Windows.Forms.MessageBoxIcon]::Question
-    )
-
-    if ($WifiChoice -eq [System.Windows.Forms.DialogResult]::Yes) {
-        # Le SSID et le mot de passe sont exclusivement charges depuis wifi.secret.
+    # --- Proposer le Wi-Fi uniquement si une carte WLAN est presente et utilisable ---
+    # Une carte desactivee est activee automatiquement avant l'affichage du popup.
+    if (Enable-CGlobalWlanAdapter) {
+        # Charger d'abord le SSID afin de l'afficher correctement dans la question.
         if (-not (Get-GuestWifiCredentials)) {
-            Write-LogSelective "Identifiants Wi-Fi indisponibles dans $($script:WifiSecretFile) : tentative de connexion abandonnee" "WARN"
+            Write-LogSelective "Identifiants Wi-Fi indisponibles dans $($script:WifiSecretFile) : proposition de connexion ignoree" "WARN"
         }
         else {
-            $WifiConnectionStarted = Connect-CGlobalGuestWifi
+            $WifiChoice = [System.Windows.Forms.MessageBox]::Show(
+                "Pas de connexion Internet.`n`nVoulez-vous essayer de vous connecter au Wi-Fi '$($script:GuestWifiSSID)' (si disponible) ?",
+                "Connexion Internet requise",
+                [System.Windows.Forms.MessageBoxButtons]::YesNo,
+                [System.Windows.Forms.MessageBoxIcon]::Question
+            )
 
-            if (-not $WifiConnectionStarted) {
-                Write-LogSelective "La tentative de connexion au Wi-Fi '$($script:GuestWifiSSID)' a echoue" "WARN"
-            }
-            elseif (Test-InternetConnection) {
-                $script:GuestWifiSSIDUsed = $true
-                Write-LogSelective "Connexion Internet retablie via le Wi-Fi '$($script:GuestWifiSSID)'" "OK"
-                return "OK"
+            if ($WifiChoice -eq [System.Windows.Forms.DialogResult]::Yes) {
+                $WifiConnectionStarted = Connect-CGlobalGuestWifi
+
+                if (-not $WifiConnectionStarted) {
+                    Write-LogSelective "La tentative de connexion au Wi-Fi '$($script:GuestWifiSSID)' a echoue" "WARN"
+                }
+                elseif (Test-InternetConnection) {
+                    Write-LogSelective "Connexion Internet retablie via le Wi-Fi '$($script:GuestWifiSSID)'" "OK"
+                    return "OK"
+                }
+                else {
+                    Write-LogSelective "Connexion au Wi-Fi '$($script:GuestWifiSSID)' tentee, mais aucun acces Internet n'est disponible" "WARN"
+                }
             }
             else {
-                Write-LogSelective "Connexion au Wi-Fi '$($script:GuestWifiSSID)' tentee, mais aucun acces Internet n'est disponible" "WARN"
+                Write-LogSelective "Tentative de connexion au Wi-Fi '$($script:GuestWifiSSID)' refusee par l'utilisateur" "INFO"
             }
         }
-    }
-    else {
-        Write-LogSelective "Tentative de connexion au Wi-Fi '$($script:GuestWifiSSID)' refusee par l'utilisateur" "INFO"
     }
 
     # --- Boucle de reessai de l'acces Internet ---
@@ -927,7 +998,6 @@ $Form.Add_FormClosing({
 Write-LogSelective "Affichage de l interface de selection" "INFO"
 [void]$Form.ShowDialog()
 Confirm-GuestWifiProfileRemoval
-$script:GuestWifiPassword = $null
 Write-LogSelective "=== FERMETURE MODE SELECTIF ===" "INFO"
 
 # Fermeture explicite de la fenetre DOS parente (Run_Selective.cmd). On ne compte
