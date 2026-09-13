@@ -1,4 +1,4 @@
-﻿#Requires -Version 5.1
+#Requires -Version 5.1
 #Requires -RunAsAdministrator
 
 [CmdletBinding()]
@@ -190,67 +190,66 @@ function Test-InternetConnection {
 }
 
 # ============================================================
-# Wi-Fi invite du bureau : detection + connexion automatique proposee
+# Wi-Fi invite du bureau : SSID + mot de passe charges depuis wifi.secret
+# Format obligatoire de C:\_CGLOBAL\wifi.secret :
+#   ligne 1 = SSID
+#   ligne 2 = mot de passe Wi-Fi
 # ============================================================
-$script:GuestWifiSSID = "CGLOBAL INVITES"
+$script:WifiSecretFile = "C:\_CGLOBAL\wifi.secret"
+$script:GuestWifiSSID = $null
+$script:GuestWifiPassword = $null
 
-# ============================================================
-# Recuperation du mot de passe Wi-Fi invite (JAMAIS en clair dans le depot,
-# celui-ci etant public sur GitHub). Ordre de priorite :
-#   1. Fichier local non versionne C:\_CGLOBAL\wifi.secret
-#   2. Saisie manuelle (boite de dialogue), avec proposition de sauvegarde locale
-# ============================================================
-function Get-GuestWifiPassword {
-    $SecretFile = "C:\_CGLOBAL\wifi.secret"
+function Get-GuestWifiCredentials {
+    $SecretFile = $script:WifiSecretFile
 
-    if (Test-Path $SecretFile) {
-        try {
-            $Content = (Get-Content -Path $SecretFile -Encoding UTF8 -ErrorAction Stop | Select-Object -First 1)
-            if (-not [string]::IsNullOrWhiteSpace($Content)) {
-                Write-LogSelective "Mot de passe Wi-Fi invite recupere depuis $SecretFile" "INFO"
-                return $Content.Trim()
-            }
-        }
-        catch {
-            Write-LogSelective "Impossible de lire $SecretFile : $($_.Exception.Message)" "WARN"
-        }
-    }
-
-    Write-LogSelective "Aucun mot de passe Wi-Fi invite trouve (env/variable ou fichier), saisie manuelle demandee" "WARN"
-
-    Add-Type -AssemblyName Microsoft.VisualBasic
-    $Entered = [Microsoft.VisualBasic.Interaction]::InputBox(
-        "Mot de passe du Wi-Fi invite '$($script:GuestWifiSSID)' introuvable.`n`nSaisissez-le pour cette session :",
-        "Mot de passe Wi-Fi invite requis",
-        ""
-    )
-
-    if ([string]::IsNullOrWhiteSpace($Entered)) {
-        Write-LogSelective "Aucun mot de passe saisi : connexion automatique au Wi-Fi invite desactivee pour cette session" "WARN"
-        return $null
+    if (-not (Test-Path $SecretFile)) {
+        Write-LogSelective "Fichier Wi-Fi introuvable : $SecretFile" "ERROR"
+        return $false
     }
 
     try {
-        $SecretFolder = Split-Path -Path $SecretFile -Parent
-        if (-not (Test-Path $SecretFolder)) {
-            New-Item -Path $SecretFolder -ItemType Directory -Force | Out-Null
+        $Lines = @(Get-Content -Path $SecretFile -Encoding UTF8 -ErrorAction Stop)
+
+        if ($Lines.Count -lt 2) {
+            Write-LogSelective "Fichier Wi-Fi invalide : $SecretFile doit contenir au moins 2 lignes (SSID puis mot de passe)" "ERROR"
+            return $false
         }
-        Set-Content -Path $SecretFile -Value $Entered -Encoding UTF8 -Force
-        Write-LogSelective "Mot de passe Wi-Fi invite sauvegarde localement dans $SecretFile pour les prochains lancements" "OK"
+
+        $SSID = $Lines[0].Trim()
+        $Password = $Lines[1].Trim()
+
+        if ([string]::IsNullOrWhiteSpace($SSID)) {
+            Write-LogSelective "Fichier Wi-Fi invalide : le SSID (ligne 1) est vide" "ERROR"
+            return $false
+        }
+
+        if ([string]::IsNullOrWhiteSpace($Password)) {
+            Write-LogSelective "Fichier Wi-Fi invalide : le mot de passe (ligne 2) est vide" "ERROR"
+            return $false
+        }
+
+        $script:GuestWifiSSID = $SSID
+        $script:GuestWifiPassword = $Password
+
+        Write-LogSelective "SSID Wi-Fi recupere depuis $SecretFile" "INFO"
+        Write-LogSelective "Mot de passe Wi-Fi recupere depuis $SecretFile" "INFO"
+        return $true
     }
     catch {
-        Write-LogSelective "Impossible de sauvegarder le mot de passe localement : $($_.Exception.Message)" "WARN"
+        Write-LogSelective "Impossible de lire $SecretFile : $($_.Exception.Message)" "ERROR"
+        return $false
     }
-
-    return $Entered
 }
 
-# NOTE (correctif) : on ne recupere plus le mot de passe ici de facon systematique.
-# Il est desormais demande "a la volee", uniquement si le SSID invite est reellement
-# detecte a proximite (voir Resolve-InternetRequirement). Cela evite d'afficher une
-# InputBox au tout debut du script, sans contexte, meme quand Internet est deja
-# disponible ou que le Wi-Fi invite n'est pas a portee.
-$script:GuestWifiPassword = $null
+function ConvertTo-XmlSafeText {
+    param([AllowEmptyString()][string]$Value)
+
+    if ($null -eq $Value) {
+        return ""
+    }
+
+    return [System.Security.SecurityElement]::Escape($Value)
+}
 
 # ============================================================
 # Connexion directe au Wi-Fi invite
@@ -259,13 +258,16 @@ $script:GuestWifiPassword = $null
 function Connect-CGlobalGuestWifi {
     Write-LogSelective "Tentative de connexion au Wi-Fi invite '$($script:GuestWifiSSID)'" "INFO"
 
+    $SafeSSID = ConvertTo-XmlSafeText $script:GuestWifiSSID
+    $SafePassword = ConvertTo-XmlSafeText $script:GuestWifiPassword
+
     $ProfileXml = @"
 <?xml version="1.0"?>
 <WLANProfile xmlns="http://www.microsoft.com/networking/WLAN/profile/v1">
-    <name>$($script:GuestWifiSSID)</name>
+    <name>$SafeSSID</name>
     <SSIDConfig>
         <SSID>
-            <name>$($script:GuestWifiSSID)</name>
+            <name>$SafeSSID</name>
         </SSID>
     </SSIDConfig>
     <connectionType>ESS</connectionType>
@@ -280,7 +282,7 @@ function Connect-CGlobalGuestWifi {
             <sharedKey>
                 <keyType>passPhrase</keyType>
                 <protected>false</protected>
-                <keyMaterial>$($script:GuestWifiPassword)</keyMaterial>
+                <keyMaterial>$SafePassword</keyMaterial>
             </sharedKey>
         </security>
     </MSM>
@@ -332,14 +334,9 @@ function Resolve-InternetRequirement {
     )
 
     if ($WifiChoice -eq [System.Windows.Forms.DialogResult]::Yes) {
-        # Le mot de passe n'est recherche ou demande que si l'utilisateur accepte
-        # la tentative de connexion au Wi-Fi invite.
-        if ([string]::IsNullOrWhiteSpace($script:GuestWifiPassword)) {
-            $script:GuestWifiPassword = Get-GuestWifiPassword
-        }
-
-        if ([string]::IsNullOrWhiteSpace($script:GuestWifiPassword)) {
-            Write-LogSelective "Aucun mot de passe fourni : tentative de connexion au Wi-Fi invite abandonnee" "WARN"
+        # Le SSID et le mot de passe sont exclusivement charges depuis wifi.secret.
+        if (-not (Get-GuestWifiCredentials)) {
+            Write-LogSelective "Identifiants Wi-Fi indisponibles dans $($script:WifiSecretFile) : tentative de connexion abandonnee" "WARN"
         }
         else {
             $WifiConnectionStarted = Connect-CGlobalGuestWifi
