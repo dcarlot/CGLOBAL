@@ -23,8 +23,6 @@
     - [5.3 Gestion DPI-Aware](#53-gestion-dpi-aware)
     - [5.4 Fenêtres au premier plan](#54-fenêtres-au-premier-plan)
   - [6. Modes d’exécution ↑](#6-modes-dexécution-)
-    - [6.1 Déploiement complet](#61-déploiement-complet)
-    - [6.2 Déploiement sélectif](#62-déploiement-sélectif)
   - [7. Gestion réseau et Wi-Fi ↑](#7-gestion-réseau-et-wi-fi-)
     - [7.1 Connectivité Internet](#71-connectivité-internet)
     - [7.2 Fichier wifi.secret](#72-fichier-wifisecret)
@@ -46,7 +44,7 @@
       - [Lenovo](#lenovo)
       - [Dell](#dell)
       - [Choix utilisateur](#choix-utilisateur)
-    - [10.4 Run\_Selective.ps1](#104-run_selectiveps1)
+    - [10.4 Run\_Selective.ps1 + Run\_Selective.cmd](#104-run_selectiveps1--run_selectivecmd)
       - [Fonctionnalités principales](#fonctionnalités-principales)
       - [Gestion DPI-Aware et 4K](#gestion-dpi-aware-et-4k)
       - [Gestion de la connectivité](#gestion-de-la-connectivité)
@@ -198,18 +196,6 @@ Le module intègre également les mécanismes nécessaires au forçage de l’af
 ---
 
 ## 6. Modes d’exécution [↑](#table-des-matières)
-
-### 6.1 Déploiement complet
-
-Le lancement principal se fait via :
-
-```text
-Run_Install.cmd
-```
-
-Les scripts sont exécutés automatiquement selon leur ordre numérique.
-
-### 6.2 Déploiement sélectif
 
 Le script :
 
