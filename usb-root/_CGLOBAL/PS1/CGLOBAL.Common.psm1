@@ -1,4 +1,4 @@
-# Charger System.Windows.Forms
+﻿# Charger System.Windows.Forms
 Add-Type -AssemblyName System.Windows.Forms -ErrorAction SilentlyContinue
 
 # ============================================================

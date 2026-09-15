@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 #Requires -RunAsAdministrator
 
 $ErrorActionPreference = 'Stop'
@@ -352,11 +352,11 @@ try {
 
     Write-Log "=== DESINSTALLATION ONEDRIVE TERMINEE ===" "OK"
 
-    Show-CGlobalPopup `
-        -Message "OneDrive a ete desinstalle avec succes.`n`n- Session actuelle: nettoyee`n- Futures sessions: bloquees." `
-        -Title "Succes" `
-        -Buttons "OK" `
-        -Icon "Information"
+    # Show-CGlobalPopup `
+    #     -Message "OneDrive a ete desinstalle avec succes.`n`n- Session actuelle: nettoyee`n- Futures sessions: bloquees." `
+    #     -Title "Succes" `
+    #     -Buttons "OK" `
+    #     -Icon "Information"
 
     exit 0
 }
