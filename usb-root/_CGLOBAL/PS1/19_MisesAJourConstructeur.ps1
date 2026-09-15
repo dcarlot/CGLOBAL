@@ -88,7 +88,7 @@ Choisissez le mode d'installation pour $ManufacturerName :
 Oui = TOUTES les mises à jour (BIOS / Firmware inclus)
       Le poste peut redémarrer avant la fin des scripts CGLOBAL.
 
-Non = Mises à jour sans redémarrage force
+Non = Mises à jour sans redémarrage forcé
       Les mises à jour peuvent demander un redémarrage, mais celui-ci
       ne sera pas déclenché automatiquement pendant la séquence CGLOBAL.
 
@@ -103,7 +103,7 @@ Annuler = Ignorer CE script et continuer les scripts suivants.
         return 'ALL'
     }
     if ($Choice -eq [System.Windows.Forms.DialogResult]::No) {
-        Write-Log 'Mode choisi : mises à jour sans redémarrage force' 'OK'
+        Write-Log 'Mode choisi : mises à jour sans redémarrage forcé' 'OK'
         return 'NO_FORCED_REBOOT'
     }
 

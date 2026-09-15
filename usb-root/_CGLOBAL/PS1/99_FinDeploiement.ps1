@@ -17,7 +17,8 @@ if (-not (Test-Path -LiteralPath $CommonModule)) {
 Import-Module $CommonModule -Force
 
 $LogFile = Get-CGlobalLogFile -ScriptPath $PSCommandPath
-Initialize-CGlobalLog -LogFile $LogFile
+Initialize-CGlobalLog -LogFile $LogFile | Out-Null
+
 Write-Log "Début de la sortie du mode déploiement" "INFO"
 
 # ---------------------------------------------------------------------------
@@ -36,7 +37,7 @@ if ($DisableDeploymentMode -ne "Yes") {
 }
 
 # ---------------------------------------------------------------------------
-# Paramètres
+# Chemins de registre
 # ---------------------------------------------------------------------------
 
 $WUKey     = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate"
@@ -50,32 +51,27 @@ $UXKey     = "HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings"
 try {
     Write-Log "Restauration des paramètres d'alimentation" "INFO"
 
-    # Écran sur secteur : 5 minutes
     & powercfg.exe /change monitor-timeout-ac 5 | Out-Null
-
-    # Veille sur secteur : jamais
     & powercfg.exe /change standby-timeout-ac 0 | Out-Null
-
-    # Écran sur batterie : 5 minutes
     & powercfg.exe /change monitor-timeout-dc 5 | Out-Null
-
-    # Veille sur batterie : 30 minutes
     & powercfg.exe /change standby-timeout-dc 30 | Out-Null
 
     Write-Log "Paramètres d'alimentation restaurés" "OK"
 }
 catch {
-    Write-Log "Erreur lors de la restauration de l'alimentation : $($_.Exception.Message)" "ERROR"
+    Write-Log `
+        "Erreur lors de la restauration de l'alimentation : $($_.Exception.Message)" `
+        "ERROR"
 }
 
 # ---------------------------------------------------------------------------
-# Réactivation de Windows Update automatique
+# Suppression des blocages Windows Update
 # ---------------------------------------------------------------------------
 
 try {
-    Write-Log "Réactivation de Windows Update automatique" "INFO"
+    Write-Log "Suppression des blocages Windows Update" "INFO"
 
-    # Suppression des blocages posés par 00_ModeDeploiement.ps1
+    # Valeurs ajoutees par le mode deploiement dans la sous-cle AU.
     if (Test-Path -LiteralPath $WUAutoKey) {
         Remove-ItemProperty `
             -Path $WUAutoKey `
@@ -88,108 +84,81 @@ try {
             -ErrorAction SilentlyContinue
     }
 
-    # Suppression d'une éventuelle stratégie de blocage résiduelle
+    # Nettoyage de la valeur qui peut griser les options de l'interface.
+    # Cette valeur ne doit pas être recréée par le script 99.
     if (Test-Path -LiteralPath $WUKey) {
         Remove-ItemProperty `
             -Path $WUKey `
+            -Name "AllowOptionalContent" `
+            -ErrorAction SilentlyContinue
+
+        # Nettoyage préventif de valeurs de blocage éventuelles.
+        Remove-ItemProperty `
+            -Path $WUKey `
             -Name "NoAutoUpdate" `
+            -ErrorAction SilentlyContinue
+
+        Remove-ItemProperty `
+            -Path $WUKey `
+            -Name "DisableWindowsUpdateAccess" `
+            -ErrorAction SilentlyContinue
+
+        Remove-ItemProperty `
+            -Path $WUKey `
+            -Name "SetDisableUXWUAccess" `
+            -ErrorAction SilentlyContinue
+
+        Remove-ItemProperty `
+            -Path $WUKey `
+            -Name "DoNotConnectToWindowsUpdateInternetLocations" `
             -ErrorAction SilentlyContinue
     }
 
     Write-Log "Blocages Windows Update supprimés" "OK"
 }
 catch {
-    Write-Log "Erreur lors de la réactivation de Windows Update : $($_.Exception.Message)" "ERROR"
+    Write-Log `
+        "Erreur lors de la suppression des blocages Windows Update : $($_.Exception.Message)" `
+        "ERROR"
 }
 
 # ---------------------------------------------------------------------------
-# Réactivation des mises à jour pour les autres produits Microsoft
+# Activation de Microsoft Update
 # ---------------------------------------------------------------------------
 
 try {
     Write-Log "Activation des mises à jour pour les autres produits Microsoft" "INFO"
 
-    New-Item -Path $UXKey -Force | Out-Null
+    $UpdateServiceManager = New-Object -ComObject "Microsoft.Update.ServiceManager"
 
-    # Réglage utilisé par l'interface Windows Update
-    New-ItemProperty `
-        -Path $UXKey `
-        -Name "AllowMUUpdateService" `
-        -PropertyType DWord `
-        -Value 1 `
-        -Force | Out-Null
+    $MicrosoftUpdateServiceId = "7971f918-a847-4430-9279-4a52d1efe18d"
 
-    # Enregistrement du service Microsoft Update si nécessaire
-    try {
-        $UpdateServiceManager = New-Object -ComObject "Microsoft.Update.ServiceManager"
-
-        $MicrosoftUpdateService = $UpdateServiceManager.Services |
-            Where-Object {
-                $_.ServiceID -eq "7971f918-a847-4430-9279-4a52d1efe18d"
-            }
-
-        if (-not $MicrosoftUpdateService) {
-            $UpdateServiceManager.AddService2(
-                "7971f918-a847-4430-9279-4a52d1efe18d",
-                7,
-                ""
-            ) | Out-Null
-
-            Write-Log "Service Microsoft Update enregistré" "OK"
+    $MicrosoftUpdateService = $UpdateServiceManager.Services |
+        Where-Object {
+            $_.ServiceID -eq $MicrosoftUpdateServiceId
         }
-        else {
-            Write-Log "Service Microsoft Update déjà enregistré" "INFO"
-        }
-    }
-    catch {
-        Write-Log "Le service Microsoft Update n'a pas pu être enregistré : $($_.Exception.Message)" "WARN"
-    }
 
-    Write-Log "Mises à jour des autres produits Microsoft activées" "OK"
+    if (-not $MicrosoftUpdateService) {
+        $UpdateServiceManager.AddService2(
+            $MicrosoftUpdateServiceId,
+            7,
+            ""
+        ) | Out-Null
+
+        Write-Log "Service Microsoft Update enregistré" "OK"
+    }
+    else {
+        Write-Log "Service Microsoft Update déjà enregistré" "INFO"
+    }
 }
 catch {
-    Write-Log "Erreur lors de l'activation de Microsoft Update : $($_.Exception.Message)" "ERROR"
+    Write-Log `
+        "Impossible d'activer Microsoft Update : $($_.Exception.Message)" `
+        "WARN"
 }
 
 # ---------------------------------------------------------------------------
-# Activation des dernières mises à jour disponibles
-# ---------------------------------------------------------------------------
-
-try {
-    Write-Log "Activation de la réception des dernières mises à jour disponibles" "INFO"
-
-    New-Item -Path $WUKey -Force | Out-Null
-
-    # 1 = réception automatique des mises à jour facultatives,
-    # notamment les mises à jour de fonctionnalités diffusées progressivement.
-    #
-    # Attention : cette valeur peut également entraîner l'installation
-    # automatique de certaines mises à jour facultatives.
-    New-ItemProperty `
-        -Path $WUKey `
-        -Name "AllowOptionalContent" `
-        -PropertyType DWord `
-        -Value 1 `
-        -Force | Out-Null
-
-    # Préférence complémentaire utilisée par certaines versions de Windows 11
-    New-Item -Path $UXKey -Force | Out-Null
-
-    New-ItemProperty `
-        -Path $UXKey `
-        -Name "IsContinuousInnovationOptedIn" `
-        -PropertyType DWord `
-        -Value 1 `
-        -Force | Out-Null
-
-    Write-Log "Réception des dernières mises à jour activée" "OK"
-}
-catch {
-    Write-Log "Erreur lors de l'activation des dernières mises à jour : $($_.Exception.Message)" "ERROR"
-}
-
-# ---------------------------------------------------------------------------
-# Notification lorsqu'un redémarrage est requis
+# Activation de la notification de redémarrage
 # ---------------------------------------------------------------------------
 
 try {
@@ -197,7 +166,6 @@ try {
 
     New-Item -Path $UXKey -Force | Out-Null
 
-    # Cette écriture est volontairement effectuée après les autres réglages.
     New-ItemProperty `
         -Path $UXKey `
         -Name "RestartNotificationsAllowed2" `
@@ -214,15 +182,17 @@ try {
         Write-Log "Notification de redémarrage activée" "OK"
     }
     else {
-        Write-Log "La notification de redémarrage n'a pas été correctement activée" "WARN"
+        Write-Log "La notification de redémarrage n'a pas été activée" "WARN"
     }
 }
 catch {
-    Write-Log "Erreur lors de l'activation de la notification de redémarrage : $($_.Exception.Message)" "ERROR"
+    Write-Log `
+        "Erreur lors de l'activation de la notification de redémarrage : $($_.Exception.Message)" `
+        "ERROR"
 }
 
 # ---------------------------------------------------------------------------
-# Actualisation des stratégies
+# Actualisation des strategies ordinateur
 # ---------------------------------------------------------------------------
 
 try {
@@ -233,16 +203,18 @@ try {
     Write-Log "Stratégies ordinateur actualisées" "OK"
 }
 catch {
-    Write-Log "Impossible d'actualiser les stratégies : $($_.Exception.Message)" "WARN"
+    Write-Log `
+        "Impossible d'actualiser les stratégies ordinateur : $($_.Exception.Message)" `
+        "WARN"
 }
 
 # ---------------------------------------------------------------------------
-# Proposition de lancement immédiat de Windows Update
+# Demande de lancement immediat de Windows Update
 # ---------------------------------------------------------------------------
 
 $LaunchUpdates = Show-CGlobalPopup `
     -Title "Windows Update" `
-    -Message "Voulez-vous rechercher et installer immédiatement les mises à jour Windows disponibles ?" `
+    -Message "Voulez-vous rechercher et installer immediatement les mises à jour Windows disponibles ?" `
     -Buttons "YesNo" `
     -Icon "Question"
 
@@ -253,13 +225,24 @@ if ($LaunchUpdates -eq "Yes") {
         $UsoClient = "$env:SystemRoot\System32\UsoClient.exe"
 
         if (Test-Path -LiteralPath $UsoClient) {
-            Start-Process -FilePath $UsoClient -ArgumentList "StartScan" -WindowStyle Hidden
+            Start-Process `
+                -FilePath $UsoClient `
+                -ArgumentList "StartScan" `
+                -WindowStyle Hidden
+
             Start-Sleep -Seconds 5
 
-            Start-Process -FilePath $UsoClient -ArgumentList "StartDownload" -WindowStyle Hidden
+            Start-Process `
+                -FilePath $UsoClient `
+                -ArgumentList "StartDownload" `
+                -WindowStyle Hidden
+
             Start-Sleep -Seconds 5
 
-            Start-Process -FilePath $UsoClient -ArgumentList "StartInstall" -WindowStyle Hidden
+            Start-Process `
+                -FilePath $UsoClient `
+                -ArgumentList "StartInstall" `
+                -WindowStyle Hidden
 
             Write-Log "Commandes Windows Update lancées" "OK"
         }
@@ -268,15 +251,19 @@ if ($LaunchUpdates -eq "Yes") {
         }
     }
     catch {
-        Write-Log "Erreur lors du lancement de Windows Update : $($_.Exception.Message)" "ERROR"
+        Write-Log `
+            "Erreur lors du lancement de Windows Update : $($_.Exception.Message)" `
+            "ERROR"
     }
 }
 else {
-    Write-Log "Lancement immédiat de Windows Update refusé par l'utilisateur" "INFO"
+    Write-Log `
+        "Lancement immediat de Windows Update refusé par l'utilisateur" `
+        "INFO"
 }
 
 # ---------------------------------------------------------------------------
-# Fin
+# Fin du traitement
 # ---------------------------------------------------------------------------
 
 Write-Log "Mode déploiement désactivé" "OK"
