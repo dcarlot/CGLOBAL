@@ -9,7 +9,7 @@ Initialize-CGlobalLog -LogFile $LogFile
 
 try {
 
-    Write-Log "Configuration de l Explorateur"
+    Write-Log "Configuration de l'Explorateur"
 
     $ExplorerKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
 
@@ -23,7 +23,7 @@ try {
         -PropertyType DWord `
         -Force | Out-Null
 
-    Write-Log "Ouverture par defaut sur Ce PC" "OK"
+    Write-Log "Ouverture par défaut sur Ce PC" "OK"
 
     #
     # Afficher les extensions
@@ -35,25 +35,25 @@ try {
         -PropertyType DWord `
         -Force | Out-Null
 
-    Write-Log "Affichage des extensions active" "OK"
+    Write-Log "Affichage des extensions activé" "OK"
 
     #
-    # Verification
+    # Vérification
     #
     $LaunchTo   = (Get-ItemProperty -Path $ExplorerKey -Name LaunchTo).LaunchTo
     $HideFileExt = (Get-ItemProperty -Path $ExplorerKey -Name HideFileExt).HideFileExt
 
     if ($LaunchTo -ne 1) {
-        throw "Verification echouee : LaunchTo"
+        throw "Vérification échouée : LaunchTo"
     }
 
     if ($HideFileExt -ne 0) {
-        throw "Verification echouee : HideFileExt"
+        throw "Vérification échouée : HideFileExt"
     }
 
-    Write-Log "Verification OK" "OK"
+    Write-Log "Vérification OK" "OK"
 
-    Write-Log "Configuration terminee" "OK"
+    Write-Log "Configuration terminée" "OK"
 
 }
 catch {

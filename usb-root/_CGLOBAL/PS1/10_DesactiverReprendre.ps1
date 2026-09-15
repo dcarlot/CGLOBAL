@@ -9,12 +9,12 @@ Initialize-CGlobalLog -LogFile $LogFile
 
 try {
 
-    Write-Log "Desactivation du bouton Reprendre"
+    Write-Log "Désactivation du bouton Reprendre"
 
     $RegKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
 
     if (-not (Test-Path $RegKey)) {
-        throw "Cle registre introuvable"
+        throw "Clé registre introuvable"
     }
 
     New-ItemProperty `
@@ -24,7 +24,7 @@ try {
         -PropertyType DWord `
         -Force | Out-Null
 
-    Write-Log "Parametre applique" "OK"
+    Write-Log "Paramètre appliqué" "OK"
 
     $Value = (
         Get-ItemProperty `
@@ -33,12 +33,12 @@ try {
     ).IsEnabled
 
     if ($Value -ne 0) {
-        throw "Verification echouee"
+        throw "Verification échouée"
     }
 
-    Write-Log "Verification OK" "OK"
+    Write-Log "Vérification OK" "OK"
 
-    Write-Log "Configuration terminee" "OK"
+    Write-Log "Configuration terminée" "OK"
 
 }
 catch {

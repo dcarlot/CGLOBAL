@@ -24,11 +24,11 @@ try {
     $Value = (Get-ItemProperty -Path $RegKey)."(default)"
 
     if ($null -ne $Value -and $Value -ne "") {
-        throw "Verification echouee"
+        throw "Vérification échouée"
     }
 
-    Write-Log "Verification OK" "OK"
-    Write-Log "Configuration terminee" "OK"
+    Write-Log "Vérification OK" "OK"
+    Write-Log "Configuration terminée" "OK"
 
 }
 catch {

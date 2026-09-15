@@ -9,7 +9,7 @@ Initialize-CGlobalLog -LogFile $LogFile
 
 try {
 
-    Write-Log "Configuration de la barre des taches"
+    Write-Log "Configuration de la barre des tâches"
 
     $RegKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
 
@@ -20,7 +20,7 @@ try {
         -PropertyType DWord `
         -Force | Out-Null
 
-    Write-Log "Alignement a gauche applique" "OK"
+    Write-Log "Alignement à gauche appliqué" "OK"
 
     $Value = (
         Get-ItemProperty `
@@ -29,12 +29,12 @@ try {
     ).TaskbarAl
 
     if ($Value -ne 0) {
-        throw "Verification echouee"
+        throw "Vérification échouée"
     }
 
-    Write-Log "Verification OK" "OK"
+    Write-Log "Vérification OK" "OK"
 
-    Write-Log "Configuration terminee" "OK"
+    Write-Log "Configuration terminée" "OK"
 
 }
 catch {

@@ -9,7 +9,7 @@ Initialize-CGlobalLog -LogFile $LogFile
 
 try {
 
-    Write-Log "Configuration de la recherche de la barre des taches"
+    Write-Log "Configuration de la recherche de la barre des tâches"
 
     $RegKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Search"
 
@@ -24,7 +24,7 @@ try {
         -PropertyType DWord `
         -Force | Out-Null
 
-    Write-Log "Mode icone uniquement applique" "OK"
+    Write-Log "Mode icône uniquement appliqué" "OK"
 
     $Value = (
         Get-ItemProperty `
@@ -33,12 +33,12 @@ try {
     ).SearchboxTaskbarMode
 
     if ($Value -ne 1) {
-        throw "Verification echouee"
+        throw "Vérification échouée"
     }
 
-    Write-Log "Verification OK" "OK"
+    Write-Log "Vérification OK" "OK"
 
-    Write-Log "Configuration terminee" "OK"
+    Write-Log "Configuration terminée" "OK"
 
 }
 catch {

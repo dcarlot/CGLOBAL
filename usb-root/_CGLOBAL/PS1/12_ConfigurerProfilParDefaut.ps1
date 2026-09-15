@@ -107,7 +107,7 @@ function Mount-CGlobalHive {
         $Unload = Invoke-RegCommand -Arguments @('unload', "HKLM\$HiveName")
         Write-RegOutput -Output $Unload.Output
         if ($Unload.ExitCode -ne 0 -or (Test-Path -LiteralPath $ProviderPath)) {
-            throw "Impossible de decharger la ruche deja chargee : HKLM\$HiveName"
+            throw "Impossible de décharger la ruche déjà chargée : HKLM\$HiveName"
         }
     }
 
@@ -116,10 +116,10 @@ function Mount-CGlobalHive {
     Write-RegOutput -Output $Load.Output
 
     if ($Load.ExitCode -ne 0 -or -not (Test-Path -LiteralPath $ProviderPath)) {
-        throw "Echec du chargement de la ruche HKLM\$HiveName, code=$($Load.ExitCode)"
+        throw "Échec du chargement de la ruche HKLM\$HiveName, code=$($Load.ExitCode)"
     }
 
-    Write-Log "Ruche chargee : HKLM\$HiveName" 'OK'
+    Write-Log "Ruche chargée : HKLM\$HiveName" 'OK'
 }
 
 function Dismount-CGlobalHive {
@@ -137,44 +137,44 @@ function Dismount-CGlobalHive {
     [System.GC]::Collect()
     Start-Sleep -Milliseconds 500
 
-    Write-Log "Dechargement de la ruche HKLM\$HiveName"
+    Write-Log "Déchargement de la ruche HKLM\$HiveName"
     $Unload = Invoke-RegCommand -Arguments @('unload', "HKLM\$HiveName")
     Write-RegOutput -Output $Unload.Output
 
     if ($Unload.ExitCode -ne 0 -or (Test-Path -LiteralPath $ProviderPath)) {
-        Add-CGlobalError "Echec du dechargement de HKLM\$HiveName, code=$($Unload.ExitCode)"
+        Add-CGlobalError "Échec du déchargement de HKLM\$HiveName, code=$($Unload.ExitCode)"
         return
     }
 
-    Write-Log "Ruche HKLM\$HiveName dechargee" 'OK'
+    Write-Log "Ruche HKLM\$HiveName déchargée" 'OK'
 }
 
 function New-DefaultClassesHive {
     if (Test-Path -LiteralPath $DefaultClassesHiveFile) {
-        Write-Log 'UsrClass.dat existe deja : aucune creation necessaire'
+        Write-Log 'UsrClass.dat existe déjà : aucune création nécessaire'
         return
     }
 
     if ([string]::IsNullOrWhiteSpace($DefaultClassesDirectory)) {
-        throw 'Le repertoire parent de UsrClass.dat est vide ou non initialise'
+        throw 'Le repertoire parent de UsrClass.dat est vide ou non initialisé'
     }
 
     if (-not (Test-Path -LiteralPath $DefaultClassesDirectory)) {
         New-Item -Path $DefaultClassesDirectory -ItemType Directory -Force | Out-Null
-        Write-Log "Repertoire cree : $DefaultClassesDirectory"
+        Write-Log "Repertoire créé : $DefaultClassesDirectory"
     }
 
     $TemporaryKeyName = 'CGLOBAL_CreateDefaultClasses'
     $TemporaryRoot = "Registry::HKEY_LOCAL_MACHINE\$TemporaryKeyName"
 
-    Write-Log "UsrClass.dat absent : creation d'une ruche Registry valide"
+    Write-Log "UsrClass.dat absent : création d'une ruche Registry valide"
 
     try {
         if (Test-Path -LiteralPath $TemporaryRoot) {
             $Delete = Invoke-RegCommand -Arguments @('delete', "HKLM\$TemporaryKeyName", '/f')
             Write-RegOutput -Output $Delete.Output
             if ($Delete.ExitCode -ne 0 -and (Test-Path -LiteralPath $TemporaryRoot)) {
-                throw "Impossible de supprimer l'ancienne cle temporaire HKLM\$TemporaryKeyName"
+                throw "Impossible de supprimer l'ancienne clé temporaire HKLM\$TemporaryKeyName"
             }
         }
 
@@ -185,10 +185,10 @@ function New-DefaultClassesHive {
         Write-RegOutput -Output $Save.Output
 
         if ($Save.ExitCode -ne 0 -or -not (Test-Path -LiteralPath $DefaultClassesHiveFile)) {
-            throw "Impossible de creer la ruche UsrClass.dat, code=$($Save.ExitCode)"
+            throw "Impossible de créer la ruche UsrClass.dat, code=$($Save.ExitCode)"
         }
 
-        Write-Log 'UsrClass.dat cree comme vraie ruche Registry' 'OK'
+        Write-Log 'UsrClass.dat créé comme vraie ruche Registry' 'OK'
     }
     finally {
         if (Test-Path -LiteralPath $TemporaryRoot) {
@@ -216,9 +216,9 @@ function Set-DefaultDWord {
         New-ItemProperty -Path $Path -Name $Name -PropertyType DWord -Value $Value -Force | Out-Null
         $Read = (Get-ItemProperty -LiteralPath $Path -Name $Name -ErrorAction Stop).$Name
         if ([int]$Read -ne $Value) {
-            throw "Verification incorrecte : valeur lue=$Read, valeur attendue=$Value"
+            throw "Vérification incorrecte : valeur lue=$Read, valeur attendue=$Value"
         }
-        Write-Log "$Description : valeur $Value appliquee" 'OK'
+        Write-Log "$Description : valeur $Value appliquée" 'OK'
     }
     catch {
         Add-CGlobalError "$Description : $($_.Exception.Message)"
@@ -240,9 +240,9 @@ function Set-DefaultString {
         New-ItemProperty -Path $Path -Name $Name -PropertyType String -Value $Value -Force | Out-Null
         $Read = (Get-ItemProperty -LiteralPath $Path -Name $Name -ErrorAction Stop).$Name
         if ([string]$Read -cne [string]$Value) {
-            throw "Verification incorrecte : valeur lue='$Read', valeur attendue='$Value'"
+            throw "Vérification incorrecte : valeur lue='$Read', valeur attendue='$Value'"
         }
-        Write-Log "$Description applique" 'OK'
+        Write-Log "$Description appliquée" 'OK'
     }
     catch {
         Add-CGlobalError "$Description : $($_.Exception.Message)"
@@ -287,15 +287,15 @@ function Set-ClassicContextMenu {
         Write-RegOutput -Output $Output
 
         if ($ExitCode -ne 0) {
-            throw "Echec de la creation de la valeur par defaut, code=$ExitCode"
+            throw "Échec de la création de la valeur par défaut, code=$ExitCode"
         }
 
         if (-not (Test-Path -LiteralPath $ProviderKey)) {
-            throw "La cle InprocServer32 est introuvable apres creation"
+            throw "La clé InprocServer32 est introuvable après création"
         }
 
         #
-        # Verification de la valeur par defaut native
+        # Verification de la valeur par défaut native
         #
         $Query = Invoke-RegCommand -Arguments @(
             'query',
@@ -306,10 +306,10 @@ function Set-ClassicContextMenu {
         Write-RegOutput -Output $Query.Output
 
         if ($Query.ExitCode -ne 0) {
-            throw "Verification impossible, code=$($Query.ExitCode)"
+            throw "Vérification impossible, code=$($Query.ExitCode)"
         }
 
-        Write-Log "Menu contextuel classique configure et verifie" "OK"
+        Write-Log "Menu contextuel classique configuré et vérifié" "OK"
     }
     catch {
         Add-CGlobalError "Menu contextuel classique : $($_.Exception.Message)"
@@ -317,7 +317,7 @@ function Set-ClassicContextMenu {
 }
 
 try {
-    Write-Log 'Configuration du profil utilisateur par defaut'
+    Write-Log 'Configuration du profil utilisateur par défaut'
     Write-Log "Profil cible : $DefaultProfilePath"
     Write-Log "NTUSER.DAT : $DefaultUserHiveFile"
     Write-Log "UsrClass.dat : $DefaultClassesHiveFile"
@@ -330,32 +330,32 @@ try {
         @{ Name = 'Ce PC'; Guid = '{20D04FE0-3AEA-1069-A2D8-08002B30309D}' }
         @{ Name = 'Panneau de configuration'; Guid = '{5399E694-6CE5-4D6C-8FCE-1D8870FDCBA0}' }
         @{ Name = 'Corbeille'; Guid = '{645FF040-5081-101B-9F08-00AA002F954E}' }
-        @{ Name = 'Reseau'; Guid = '{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}' }
+        @{ Name = 'Réseau'; Guid = '{F02C1A0D-BE21-4350-88B0-7367FC96EF3C}' }
     )
 
-    Write-Log 'Application des icones systeme du Bureau'
+    Write-Log 'Application des icônes système du Bureau'
     foreach ($Icon in $DesktopIcons) {
-        Set-DefaultDWord -Path $DesktopIconsKey -Name $Icon.Guid -Value 0 -Description "Icone Bureau $($Icon.Name)"
+        Set-DefaultDWord -Path $DesktopIconsKey -Name $Icon.Guid -Value 0 -Description "Icône Bureau $($Icon.Name)"
     }
 
     $ExplorerAdvancedKey = Join-Path $DefaultUserRoot 'Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
     Set-DefaultDWord -Path $ExplorerAdvancedKey -Name 'LaunchTo' -Value 1 -Description 'Explorateur ouvert sur Ce PC'
     Set-DefaultDWord -Path $ExplorerAdvancedKey -Name 'HideFileExt' -Value 0 -Description 'Extensions de fichiers visibles'
-    Set-DefaultDWord -Path $ExplorerAdvancedKey -Name 'TaskbarAl' -Value 0 -Description 'Alignement de la barre des taches a gauche'
-    Set-DefaultDWord -Path $ExplorerAdvancedKey -Name 'ShowTaskViewButton' -Value 0 -Description 'Bouton Vue des taches masque'
-    Set-DefaultDWord -Path $ExplorerAdvancedKey -Name 'IsEnabled' -Value 0 -Description 'Fonction Reprendre desactivee'
+    Set-DefaultDWord -Path $ExplorerAdvancedKey -Name 'TaskbarAl' -Value 0 -Description 'Alignement de la barre des tâches à gauche'
+    Set-DefaultDWord -Path $ExplorerAdvancedKey -Name 'ShowTaskViewButton' -Value 0 -Description 'Bouton Vue des tâches masqué'
+    Set-DefaultDWord -Path $ExplorerAdvancedKey -Name 'IsEnabled' -Value 0 -Description 'Fonction Reprendre désactivée'
 
     $SearchKey = Join-Path $DefaultUserRoot 'Software\Microsoft\Windows\CurrentVersion\Search'
-    Set-DefaultDWord -Path $SearchKey -Name 'SearchboxTaskbarMode' -Value 1 -Description 'Recherche en mode icone uniquement'
+    Set-DefaultDWord -Path $SearchKey -Name 'SearchboxTaskbarMode' -Value 1 -Description 'Recherche en mode icône uniquement'
 
     $LocationConsentKey = Join-Path $DefaultUserRoot 'Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\location'
-    Set-DefaultDWord -Path $LocationConsentKey -Name 'ShowGlobalPrompts' -Value 0 -Description 'Notifications de demandes de localisation desactivees'
+    Set-DefaultDWord -Path $LocationConsentKey -Name 'ShowGlobalPrompts' -Value 0 -Description 'Notifications de demandes de localisation desactivées'
 
     $LocationOverrideKey = Join-Path $DefaultUserRoot 'Software\Microsoft\Windows\CurrentVersion\CPSS\Store\UserLocationOverridePrivacySetting'
-    Set-DefaultDWord -Path $LocationOverrideKey -Name 'Value' -Value 0 -Description 'Remplacement de la localisation desactive'
+    Set-DefaultDWord -Path $LocationOverrideKey -Name 'Value' -Value 0 -Description 'Remplacement de la localisation desactivée'
 
     $KeyboardKey = Join-Path $DefaultUserRoot 'Control Panel\Keyboard'
-    Set-DefaultString -Path $KeyboardKey -Name 'InitialKeyboardIndicators' -Value '2' -Description 'Verrouillage numerique configure'
+    Set-DefaultString -Path $KeyboardKey -Name 'InitialKeyboardIndicators' -Value '2' -Description 'Verrouillage numérique configuré'
     Write-Log 'Parametres NTUSER.DAT appliques' 'OK'
 
     New-DefaultClassesHive
@@ -363,7 +363,7 @@ try {
     $DefaultClassesLoaded = $true
 
     Set-ClassicContextMenu
-    Write-Log 'Parametres UsrClass.dat appliques' 'OK'
+    Write-Log 'Paramètres UsrClass.dat appliqués' 'OK'
 }
 catch {
     Add-CGlobalError $_.Exception.Message
@@ -382,13 +382,13 @@ Write-Log "Avertissements : $WarningCount"
 Write-Log "Erreurs : $ErrorCount"
 
 if ($ErrorCount -gt 0) {
-    Write-Log 'Configuration du profil par defaut terminee avec erreurs' 'ERROR'
+    Write-Log 'Configuration du profil par défaut terminée avec erreurs' 'ERROR'
     exit 1
 }
 if ($WarningCount -gt 0) {
-    Write-Log 'Configuration du profil par defaut terminee avec avertissements' 'WARN'
+    Write-Log 'Configuration du profil par défaut terminée avec avertissements' 'WARN'
     exit 0
 }
 
-Write-Log 'Configuration du profil par defaut terminee avec succes' 'OK'
+Write-Log 'Configuration du profil par défaut terminée avec succès' 'OK'
 exit 0

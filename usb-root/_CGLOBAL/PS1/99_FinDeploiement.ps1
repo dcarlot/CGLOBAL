@@ -1,15 +1,6 @@
 ﻿#Requires -Version 5.1
 #Requires -RunAsAdministrator
 
-# ---------------------------------------------------------------------------
-# Encodage de la console et des sorties PowerShell
-# ---------------------------------------------------------------------------
-
-$Utf8NoBom = New-Object System.Text.UTF8Encoding($false)
-
-[Console]::OutputEncoding = $Utf8NoBom
-$OutputEncoding = $Utf8NoBom
-
 $ErrorActionPreference = "Stop"
 
 # ---------------------------------------------------------------------------

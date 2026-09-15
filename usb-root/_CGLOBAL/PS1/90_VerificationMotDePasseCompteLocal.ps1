@@ -37,12 +37,12 @@ function Test-UserHasPassword {
     )
 
     # ------------------------------------------------------------------
-    # Methode 1 : [ADSI] PasswordAge
-    # PasswordAge = 0  -> jamais de mot de passe defini
-    # PasswordAge > 0  -> un mot de passe a ete defini (peut etre vide maintenant)
+    # Méthode 1 : [ADSI] PasswordAge
+    # PasswordAge = 0  -> jamais de mot de passe défini
+    # PasswordAge > 0  -> un mot de passe a été défini (peut être vide maintenant)
     # ------------------------------------------------------------------
     try {
-        Write-Log "Verification via [ADSI] PasswordAge..." "INFO"
+        Write-Log "Vérification via [ADSI] PasswordAge..." "INFO"
 
         $Computer = $env:COMPUTERNAME
         $User = [ADSI]"WinNT://$Computer/$UserName,user"
@@ -51,21 +51,21 @@ function Test-UserHasPassword {
         Write-Log "[ADSI] PasswordAge = $PasswordAge" "INFO"
 
         if ($PasswordAge -eq 0) {
-            Write-Log "[ADSI] : jamais de mot de passe defini" "INFO"
+            Write-Log "[ADSI] : jamais de mot de passe défini" "INFO"
             return $false
         }
 
-        Write-Log "[ADSI] : un mot de passe a ete defini (age: $PasswordAge s)" "INFO"
+        Write-Log "[ADSI] : un mot de passe à été défini (age: $PasswordAge s)" "INFO"
     }
     catch {
         Write-Log "Echec [ADSI] PasswordAge : $($_.Exception.Message)" "WARN"
     }
 
     # ------------------------------------------------------------------
-    # Methode 2 : LogonUser avec mot de passe vide (API Windows native)
-    # C'est la methode la plus fiable pour detecter un MDP vide.
+    # Méthode 2 : LogonUser avec mot de passe vide (API Windows native)
+    # C'est la méthode la plus fiable pour détecter un MDP vide.
     # Si l'authentification reussit avec MDP vide -> MDP est vide.
-    # Si elle echoue avec ERROR_LOGON_FAILURE (1326) -> MDP est non vide.
+    # Si elle échoue avec ERROR_LOGON_FAILURE (1326) -> MDP est non vide.
     # ------------------------------------------------------------------
     try {
         Write-Log "Test d'authentification Windows avec mot de passe vide (LogonUser)..." "INFO"
@@ -74,14 +74,14 @@ function Test-UserHasPassword {
         $Result = [AuthHelper]::LogonUser($UserName, ".", "", [AuthHelper]::LOGON32_LOGON_INTERACTIVE, [AuthHelper]::LOGON32_PROVIDER_DEFAULT, [ref]$Token)
 
         if ($Result) {
-            # Authentification avec MDP vide REUSSIE -> le MDP est vide
+            # Authentification avec MDP vide RÉUSSIE -> le MDP est vide
             [void][AuthHelper]::CloseHandle($Token)
-            Write-Log "LogonUser : authentification avec MDP vide REUSSIE -> MDP est vide" "INFO"
+            Write-Log "LogonUser : authentification avec MDP vide RÉUSSIE -> MDP est vide" "INFO"
             return $false
         }
         else {
             $ErrorCode = [System.Runtime.InteropServices.Marshal]::GetLastWin32Error()
-            Write-Log "LogonUser : echec (code Win32: $ErrorCode)" "INFO"
+            Write-Log "LogonUser : échec (code Win32: $ErrorCode)" "INFO"
 
             if ($ErrorCode -eq [AuthHelper]::ERROR_LOGON_FAILURE) {
                 # Mauvais mot de passe = le MDP n'est PAS vide
@@ -142,7 +142,7 @@ function Test-UserHasPassword {
         }
     }
     catch {
-        Write-Log "Echec net user : $($_.Exception.Message)" "WARN"
+        Write-Log "Échec net user : $($_.Exception.Message)" "WARN"
     }
     finally {
         if ($null -ne $TempFile -and (Test-Path $TempFile)) {
@@ -177,13 +177,13 @@ function Test-UserHasPassword {
     # ------------------------------------------------------------------
     # Dernier recours : securite par defaut
     # ------------------------------------------------------------------
-    Write-Log "Aucune methode fiable - MDP present par defaut" "WARN"
+    Write-Log "Aucune méthode fiable - MDP présent par défaut" "WARN"
     return $true
 }
 
 try {
 
-    Write-Log "Verification du compte utilisateur courant"
+    Write-Log "Vérification du compte utilisateur courant"
 
     $CurrentIdentity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
     $CurrentUserName = $CurrentIdentity.Name.Split('\\')[-1]
@@ -197,36 +197,36 @@ try {
     $HasPassword = Test-UserHasPassword -UserName $CurrentUserName
 
     if ($HasPassword) {
-        Write-Log "Compte local protege par un mot de passe" "OK"
+        Write-Log "Compte local protégé par un mot de passe" "OK"
         exit 0
     }
 
-    Write-Log "Compte local sans mot de passe detecte" "WARN"
+    Write-Log "Compte local sans mot de passe détecté" "WARN"
 
     # ------------------------------------------------------------------
     # POPUP : Demande de confirmation
     # ------------------------------------------------------------------
 
     $Choice = Show-CGlobalPopup `
-        -Message "Le compte local '$CurrentUserName' n'a pas de mot de passe.`n`nSouhaitez-vous definir un mot de passe ?" `
+        -Message "Le compte local '$CurrentUserName' n'a pas de mot de passe.`n`nSouhaitez-vous définir un mot de passe ?" `
         -Title "Mot de passe requis" `
         -Buttons "YesNo" `
         -Icon "Exclamation"
 
     if ($Choice -ne "Yes") {
-        Write-Log "Creation du mot de passe refusee par l'utilisateur" "WARN"
+        Write-Log "Création du mot de passe refusée par l'utilisateur" "WARN"
         exit 0
     }
 
     # ------------------------------------------------------------------
-    # POPUP : Saisie du mot de passe (boucle jusqu'a validation)
+    # POPUP : Saisie du mot de passe (boucle jusqu'à validation)
     # ------------------------------------------------------------------
 
     $PasswordValid = $false
 
     do {
         $PasswordForm = New-Object System.Windows.Forms.Form
-        $PasswordForm.Text = "Definition du mot de passe"
+        $PasswordForm.Text = "Définition du mot de passe"
         $PasswordForm.Width = 450
         $PasswordForm.Height = 280
         $PasswordForm.StartPosition = "CenterScreen"
@@ -284,7 +284,7 @@ try {
         $Result = $PasswordForm.ShowDialog()
 
         if ($Result -ne [System.Windows.Forms.DialogResult]::OK) {
-            Write-Log "Saisie du mot de passe annulee" "WARN"
+            Write-Log "Saisie du mot de passe annulée" "WARN"
             $PasswordForm.Dispose()
             exit 0
         }
@@ -295,12 +295,12 @@ try {
         $PasswordForm.Dispose()
 
         # ------------------------------------------------------------------
-        # Verification : mot de passe vide refuse (retour en boucle)
+        # Vérification : mot de passe vide refusé (retour en boucle)
         # ------------------------------------------------------------------
         if ([string]::IsNullOrWhiteSpace($Password1)) {
-            Write-Log "Mot de passe vide refuse" "WARN"
+            Write-Log "Mot de passe vide refusé" "WARN"
             Show-CGlobalPopup `
-                -Message "Le mot de passe ne peut pas etre vide.`n`nVeuillez saisir un mot de passe valide." `
+                -Message "Le mot de passe ne peut pas être vide.`n`nVeuillez saisir un mot de passe valide." `
                 -Title "Mot de passe invalide" `
                 -Buttons "OK" `
                 -Icon "Exclamation"
@@ -308,7 +308,7 @@ try {
         }
 
         # ------------------------------------------------------------------
-        # Verification : correspondance des deux saisies
+        # Vérification : correspondance des deux saisies
         # ------------------------------------------------------------------
         if ($Password1 -ne $Password2) {
             $ErrorForm = New-Object System.Windows.Forms.Form
@@ -349,11 +349,11 @@ try {
 
     Set-LocalUser -Name $CurrentUserName -Password $SecurePassword
 
-    Write-Log "Mot de passe defini avec succes" "OK"
+    Write-Log "Mot de passe défini avec succès" "OK"
 
     Show-CGlobalPopup `
-        -Message "Mot de passe applique avec succes." `
-        -Title "Succes" `
+        -Message "Mot de passe appliqué avec succès." `
+        -Title "Succès" `
         -Buttons "OK" `
         -Icon "Information"
 }
@@ -364,6 +364,6 @@ catch {
     exit 1
 }
 
-Write-Log "Verification du mot de passe terminee" "OK"
+Write-Log "Vérification du mot de passe terminée" "OK"
 
 exit 0

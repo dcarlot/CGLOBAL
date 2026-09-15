@@ -8,18 +8,18 @@ $LogFile = Get-CGlobalLogFile -ScriptPath $MyInvocation.MyCommand.Path
 Initialize-CGlobalLog -LogFile $LogFile
 
 try {
-    Write-Log "=== SUPPRESSION MICROSOFT STORE BARRE DES TACHES ===" "INFO"
+    Write-Log "=== SUPPRESSION MICROSOFT STORE BARRE DES TÂCHES ===" "INFO"
 
     $ModificationFaite = $false
 
     # ------------------------------------------------------------------
-    # 1. SUPPRESSION DU RACCOURCI .LNK DANS LE DOSSIER DES EPINGLES
+    # 1. SUPPRESSION DU RACCOURCI .LNK DANS LE DOSSIER DES ÉPINGLÉS
     # ------------------------------------------------------------------
     $PinnedFolder = "$env:APPDATA\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar"
 
     if (Test-Path $PinnedFolder) {
-        # Recherche precise : le fichier doit s'appeler exactement "Microsoft Store.lnk"
-        # ou contenir "Microsoft Store" dans son nom (pas juste "Store" pour eviter les faux positifs)
+        # Recherche précise : le fichier doit s'appeler exactement "Microsoft Store.lnk"
+        # ou contenir "Microsoft Store" dans son nom (pas juste "Store" pour éviter les faux positifs)
         $StoreLinks = Get-ChildItem -Path $PinnedFolder -Filter "*.lnk" -ErrorAction SilentlyContinue |
             Where-Object { $_.BaseName -match "Microsoft Store" }
 
@@ -31,12 +31,12 @@ try {
                     $ModificationFaite = $true
                 }
                 catch {
-                    Write-Log "Echec suppression raccourci $($Link.Name) : $($_.Exception.Message)" "WARN"
+                    Write-Log "Échec de la suppression du raccourci $($Link.Name) : $($_.Exception.Message)" "WARN"
                 }
             }
         }
         else {
-            Write-Log "Aucun raccourci Microsoft Store trouve dans les epingles" "INFO"
+            Write-Log "Aucun raccourci Microsoft Store trouvé dans les épingles" "INFO"
         }
     }
 
@@ -44,7 +44,7 @@ try {
     # 2. DEPINNING VIA COM (FALLBACK SI PAS DE .LNK)
     # ------------------------------------------------------------------
     if (-not $ModificationFaite) {
-        Write-Log "Tentative de depinning via COM..." "INFO"
+        Write-Log "Tentative de dépinning via COM..." "INFO"
 
         try {
             $Shell = New-Object -ComObject Shell.Application
@@ -72,7 +72,7 @@ try {
             }
         }
         catch {
-            Write-Log "Echec depinning COM : $($_.Exception.Message)" "WARN"
+            Write-Log "Échec du dépinning via COM : $($_.Exception.Message)" "WARN"
         }
     }
 
@@ -91,36 +91,36 @@ try {
         Write-Log "Registre HKCU bloque avec succes" "OK"
         $ModificationFaite = $true
 
-        # Machine (futurs profils + politique systeme)
+        # Machine (futurs profils + politique système)
         $RegPathLm = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Explorer"
         if (-not (Test-Path $RegPathLm)) {
             New-Item -Path $RegPathLm -Force | Out-Null
         }
         Set-ItemProperty -Path $RegPathLm -Name "NoPinningStoreToTaskbar" -Value 1 -Type DWord -Force
-        Write-Log "Registre HKLM bloque avec succes" "OK"
+        Write-Log "Registre HKLM bloqué avec succès" "OK"
     }
     catch {
-        Write-Log "Echec registre : $($_.Exception.Message)" "WARN"
+        Write-Log "Échec du registre : $($_.Exception.Message)" "WARN"
     }
 
     # ------------------------------------------------------------------
-    # 4. REDEMARRAGE EXPLORER SI UNE MODIFICATION A ETE FAITE
+    # 4. REDEMARRAGE EXPLORER SI UNE MODIFICATION A ÉTÉ FAITE
     #    (suppression .lnk OU modification registre)
     # ------------------------------------------------------------------
     if ($ModificationFaite) {
-        Write-Log "Redemarrage de l'Explorateur pour appliquer..." "INFO"
+        Write-Log "Redémarrage de l'Explorateur pour appliquer..." "INFO"
         Stop-Process -Name "explorer" -Force -ErrorAction SilentlyContinue
         Start-Sleep -Seconds 2
-        Write-Log "Explorateur redemarre" "OK"
+        Write-Log "Explorateur redémarré" "OK"
     }
     else {
-        Write-Log "Aucune modification effectuee, pas de redemarrage necessaire" "WARN"
+        Write-Log "Aucune modification effectuée, pas de redémarrage nécessaire" "WARN"
     }
 
     # ------------------------------------------------------------------
-    # 5. MESSAGE DE SUCCES
+    # 5. MESSAGE DE SUCCÈS
     # ------------------------------------------------------------------
-    Write-Log "=== SUPPRESSION MICROSOFT STORE TERMINE ===" "OK"
+    Write-Log "=== SUPPRESSION MICROSOFT STORE TERMINÉE ===" "OK"
 
     exit 0
 }

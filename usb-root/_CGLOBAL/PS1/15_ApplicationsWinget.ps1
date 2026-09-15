@@ -29,13 +29,13 @@ function Get-UsbCGlobalPath {
 
         if (Test-Path $Candidate) {
 
-            Write-Log "Cle USB detectee : $Candidate" "OK"
+            Write-Log "Clé USB détectée : $Candidate" "OK"
 
             return $Candidate
         }
     }
 
-    Write-Log "Cle USB _CGLOBAL introuvable" "WARN"
+    Write-Log "Clé USB _CGLOBAL introuvable" "WARN"
 
     return $null
 }
@@ -49,9 +49,9 @@ function Invoke-LoggedCommand {
 
     Write-Log ("Commande : {0} {1}" -f $FilePath, ($Arguments -join " "))
 
-    # $ErrorActionPreference = 'Stop' transformerait la moindre ligne ecrite par la
-    # commande externe sur son flux d'erreur en exception bloquante, avant meme que
-    # le code de sortie ($LASTEXITCODE) ait pu etre lu. On le neutralise le temps
+    # $ErrorActionPreference = 'Stop' transformerait la moindre ligne écrite par la
+    # commande externe sur son flux d'erreur en exception bloquante, avant même que
+    # le code de sortie ($LASTEXITCODE) ait pu être lu. On le neutralise le temps
     # de l'appel, comme pour Invoke-RegCommand (script 12).
     $PreviousEAP = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
@@ -78,15 +78,15 @@ function Invoke-LoggedCommand {
 
 function Test-InternetConnectivity {
 
-    # Test rapide et informatif de connectivite generale.
-    # Best effort uniquement : sert a enrichir les logs et a distinguer
+    # Test rapide et informatif de connectivité générale.
+    # Best effort uniquement : sert à enrichir les logs et à distinguer
     # "pas d'Internet du tout" de "Internet ok mais source Winget injoignable".
 	# Le résultat de "winget source update" détermine si les opérations
 	# Winget en ligne peuvent être tentées. Chaque commande conserve
 	# néanmoins sa propre vérification de code retour.
     #
-    # Adapter la liste d'hotes ou ajouter la gestion d'un proxy explicite
-    # si l'environnement le necessite.
+    # Adapter la liste d'hôtes ou ajouter la gestion d'un proxy explicite
+    # si l'environnement le nécessite.
 
     param(
         [string[]]$ProbeHosts = @("www.microsoft.com", "download.microsoft.com")
@@ -117,9 +117,9 @@ function Test-InternetConnectivity {
 
 function Get-NormalizedVersion {
 
-    # Extrait la partie numerique exploitable d'une chaine de version
+    # Extrait la partie numérique exploitable d'une chaine de version
     # (ex: "23.001.20693-beta" -> "23.001.20693")
-    # Retourne $null si aucune partie numerique n'est trouvee
+    # Retourne $null si aucune partie numérique n'est trouvée
 
     param(
         [string]$Raw
@@ -138,14 +138,14 @@ function Get-NormalizedVersion {
 
 function Compare-WingetVersion {
 
-    # Compare deux versions de facon ordinale (pas seulement une egalite de chaine)
+    # Compare deux versions de façon ordinale (pas seulement une égalité de chaine)
     #
     # Retour :
     #    1  -> VersionA > VersionB
     #   -1  -> VersionA < VersionB
-    #    0  -> versions egales (ou equivalentes)
+    #    0  -> versions égales (ou equivalentes)
     #
-    # Si le parsing numerique echoue pour l'une des deux versions,
+    # Si le parsing numérique échoue pour l'une des deux versions,
     # fallback sur une comparaison lexicographique de chaine.
 
     param(
@@ -188,7 +188,7 @@ function Compare-WingetVersion {
             return $ParsedA.CompareTo($ParsedB)
         }
         catch {
-            # Parsing numerique impossible malgre la normalisation -> fallback texte
+            # Parsing numerique impossible malgré la normalisation -> fallback texte
         }
     }
 
@@ -206,11 +206,11 @@ function Compare-WingetVersion {
 
 function Test-InstallerHash {
 
-    # Verifie que le hash SHA256 du fichier local correspond au hash
-    # attendu (issu du manifest winget telecharge).
+    # Vérifie que le hash SHA256 du fichier local correspond au hash
+    # attendu (issu du manifest winget télécharge).
     #
     # Retourne $true si le hash correspond ou si aucun hash attendu
-    # n'est disponible (auquel cas la verification est ignoree avec un WARN).
+    # n'est disponible (auquel cas la vérification est ignorée avec un WARN).
     # Retourne $false si le fichier est absent ou si le hash ne correspond pas.
 
     param(
@@ -219,21 +219,21 @@ function Test-InstallerHash {
     )
 
     if ([string]::IsNullOrWhiteSpace($ExpectedSha256)) {
-        Write-Log "Aucun hash SHA256 attendu dans le manifest local : verification ignoree" "WARN"
+        Write-Log "Aucun hash SHA256 attendu dans le manifest local : vérification ignorée" "WARN"
         return $true
     }
 
     if (-not (Test-Path $FilePath)) {
-        Write-Log "Impossible de verifier le hash : fichier introuvable ($FilePath)" "ERROR"
+        Write-Log "Impossible de vérifier le hash : fichier introuvable ($FilePath)" "ERROR"
         return $false
     }
 
-    Write-Log "Verification du hash SHA256 de l'installeur local"
+    Write-Log "Vérification du hash SHA256 de l'installeur local"
 
     $ActualHash = (Get-FileHash -Path $FilePath -Algorithm SHA256 -ErrorAction Stop).Hash
 
     if ($ActualHash -ieq $ExpectedSha256) {
-        Write-Log "Hash SHA256 verifie avec succes" "OK"
+        Write-Log "Hash SHA256 vérifié avec succès" "OK"
         return $true
     }
 
@@ -260,7 +260,7 @@ function Get-WingetLatestVersion {
         )
 
     if ($Result.ExitCode -ne 0) {
-        Write-Log "Impossible de recuperer la version en ligne pour $PackageId" "WARN"
+        Write-Log "Impossible de récupérer la version en ligne pour $PackageId" "WARN"
         return $null
     }
 
@@ -270,7 +270,7 @@ function Get-WingetLatestVersion {
         }
     }
 
-    Write-Log "Version en ligne non detectee pour $PackageId" "WARN"
+    Write-Log "Version en ligne non détectée pour $PackageId" "WARN"
     return $null
 }
 
@@ -400,9 +400,9 @@ function Get-LocalWingetCache {
     }
 
     #
-    # Aucun match exact avec la version preferee : on prend la version
-    # la plus elevee disponible localement (comparaison ordinale),
-    # et non plus simplement la plus recente par date de fichier.
+    # Aucun match exact avec la version préferée : on prend la version
+    # la plus élevée disponible localement (comparaison ordinale),
+    # et non plus simplement la plus récente par date de fichier.
     #
     $BestItem = $null
 
@@ -430,10 +430,10 @@ function Get-LocalWingetCache {
 
 function Get-LocalInstallerFile {
 
-    # Recupere le fichier installeur associe a un manifest local.
+    # Recupere le fichier installeur associé à un manifest local.
     #
-    # Hypothese : winget download nomme l'installeur avec le meme nom de
-    # base que le manifest .yaml genere. C'est le comportement observe de
+    # Hypothese : winget download nomme l'installeur avec le même nom de
+    # base que le manifest .yaml généré. C'est le comportement observé de
     # winget, mais si un jour ce n'est plus le cas, le fallback ci-dessous
     # (recherche par extension dans le dossier) prend le relais.
 
@@ -503,7 +503,7 @@ function Invoke-WingetPackageDownload {
             -Force | Out-Null
     }
 
-    Write-Log "Telechargement du package $PackageId"
+    Write-Log "Téléchargement du package $PackageId"
     Write-Log "Dossier cible : $PackageFolder"
 
     $DownloadArgs = @(
@@ -520,9 +520,9 @@ function Invoke-WingetPackageDownload {
     )
 
     #
-    # Fige la version demandee pour eviter une race condition entre
-    # la version detectee par "winget show" et celle effectivement
-    # telechargee si une nouvelle version sort entre-temps.
+    # Fige la version demandée pour éviter une race condition entre
+    # la version détectée par "winget show" et celle effectivement
+    # téléchargee si une nouvelle version sort entre-temps.
     #
     if ($TargetVersion -ne "") {
         $DownloadArgs += @("--version", $TargetVersion)
@@ -535,22 +535,22 @@ function Invoke-WingetPackageDownload {
     if ($Result.ExitCode -ne 0) {
         $HashMismatch = $Result.OutputText -match "hash does not match"
         if ($HashMismatch) {
-            Write-Log "Hash mismatch detecte lors du telechargement : le manifeste Winget n'est pas synchronise avec le fichier distant" "WARN"
+            Write-Log "Hash mismatch détecté lors du téléchargement : le manifeste Winget n'est pas synchronisé avec le fichier distant" "WARN"
             Write-Log "Passage en mode installation en ligne directe pour $PackageId" "WARN"
             return
         }
-        throw "Echec du telechargement de $PackageId"
+        throw "Echec du téléchargement de $PackageId"
     }
 
-    Write-Log "Telechargement OK : $PackageId" "OK"
+    Write-Log "Téléchargement OK : $PackageId" "OK"
 
     #
-    # Conservation uniquement de la version telechargee.
+    # Conservation uniquement de la version téléchargee.
     # Selection basee sur la version (PackageVersion dans le yaml),
-    # et non plus uniquement sur la date de derniere ecriture des fichiers,
-    # afin d'eviter de conserver par erreur un ancien manifest si les
-    # dates ne refletent pas fidelement l'ordre chronologique reel
-    # (copie via cle USB, horodatage preserve par robocopy, etc).
+    # et non plus uniquement sur la date de derniere écriture des fichiers,
+    # afin d'éviter de conserver par erreur un ancien manifest si les
+    # dates ne reflètent pas fidelement l'ordre chronologique réel
+    # (copie via cle USB, horodatage préservé par robocopy, etc).
     #
     $YamlFiles = Get-ChildItem `
         -Path $PackageFolder `
@@ -565,8 +565,8 @@ function Invoke-WingetPackageDownload {
         $KeepYaml = $null
 
         #
-        # 1) Priorite : le manifest correspondant exactement a la version
-        #    qui vient d'etre telechargee.
+        # 1) Priorite : le manifest correspondant exactement à la version
+        #    qui vient d'être téléchargée.
         #
         if ($TargetVersion -ne "") {
 
@@ -594,8 +594,8 @@ function Invoke-WingetPackageDownload {
         }
 
         #
-        # 2) A defaut : la version la plus elevee detectee parmi les
-        #    manifests presents (comparaison ordinale, pas la date fichier).
+        # 2) À défaut : la version la plus élevée détectée parmi les
+        #    manifests présents (comparaison ordinale, pas la date fichier).
         #
         if ($null -eq $KeepYaml) {
 
@@ -639,9 +639,9 @@ function Invoke-WingetPackageDownload {
         }
 
         #
-        # 3) Dernier recours : le plus recent par date de fichier
-        #    (comportement d'origine, utilise seulement si aucune
-        #    version n'a pu etre extraite d'aucun manifest).
+        # 3) Dernier recours : le plus récent par date de fichier
+        #    (comportement d'origine, utilisé seulement si aucune
+        #    version n'a pu être extraite d'aucun manifest).
         #
         if ($null -eq $KeepYaml) {
 
@@ -671,7 +671,7 @@ function Invoke-WingetPackageDownload {
                     -ErrorAction SilentlyContinue
             }
 
-        Write-Log "Nettoyage termine" "OK"
+        Write-Log "Nettoyage terminé" "OK"
     }
 }
 
@@ -688,7 +688,7 @@ function Install-Or-UpgradeFromCache {
 
     if ($InstalledInfo.Installed) {
 
-        Write-Log ("Version installee : {0}" -f $InstalledInfo.Version)
+        Write-Log ("Version installée : {0}" -f $InstalledInfo.Version)
 
         if ($Cache.Version -ne "") {
 
@@ -698,18 +698,18 @@ function Install-Or-UpgradeFromCache {
 
             if ($InstallComparison -le 0) {
 
-                Write-Log "$PackageId deja installe dans une version egale ou superieure au cache local : aucune action" "OK"
+                Write-Log "$PackageId déja installé dans une version égale ou supérieure au cache local : aucune action" "OK"
                 return
             }
 
-            Write-Log ("$PackageId version cache ({0}) plus recente que la version installee ({1}) : mise a niveau depuis le cache local" -f $Cache.Version, $InstalledInfo.Version) "WARN"
+            Write-Log ("$PackageId version cache ({0}) plus récente que la version installée ({1}) : mise à niveau depuis le cache local" -f $Cache.Version, $InstalledInfo.Version) "WARN"
         }
         else {
-            Write-Log "$PackageId deja installe mais version du cache inconnue : mise a niveau depuis le cache local par prudence" "WARN"
+            Write-Log "$PackageId déja installé mais version du cache inconnue : mise à niveau depuis le cache local par prudence" "WARN"
         }
     }
     else {
-        Write-Log "$PackageId non installe : installation depuis le cache local"
+        Write-Log "$PackageId non installé : installation depuis le cache local"
     }
 
     $InstallerPath = Get-LocalInstallerFile -Cache $Cache
@@ -721,9 +721,9 @@ function Install-Or-UpgradeFromCache {
     Write-Log "Installeur local : $InstallerPath"
 
     #
-    # Verification d'integrite avant toute execution de l'installeur local.
-    # Le fichier transite potentiellement par une cle USB reutilisee sur
-    # plusieurs postes : on ne l'execute jamais sans confirmer son hash.
+    # Vérification d'integrité avant toute exécution de l'installeur local.
+    # Le fichier transite potentiellement par une clé USB réutilisee sur
+    # plusieurs postes : on ne l'exécute jamais sans confirmer son hash.
     #
     $HashValid = Test-InstallerHash `
         -FilePath $InstallerPath `
@@ -746,13 +746,13 @@ function Install-Or-UpgradeFromCache {
 
             if ($App.ContainsKey("MsiArgs") -and $App.MsiArgs -ne "") {
 
-                Write-Log "Installation MSI silencieuse (arguments specifiques a l'appli)"
+                Write-Log "Installation MSI silencieuse (arguments spécifiques à l'appli)"
                 Write-Log ("Arguments additionnels : {0}" -f $App.MsiArgs)
 
                 $MsiArgs += $App.MsiArgs.Split(" ") | Where-Object { $_ -ne "" }
             }
             else {
-                Write-Log "Installation MSI silencieuse (aucun argument specifique defini, /qn /norestart uniquement)" "WARN"
+                Write-Log "Installation MSI silencieuse (aucun argument spécifique défini, /qn /norestart uniquement)" "WARN"
             }
 
             $Process = Start-Process `
@@ -764,7 +764,7 @@ function Install-Or-UpgradeFromCache {
         elseif ($Extension -eq ".exe") {
 
             if (-not $App.ContainsKey("ExeArgs") -or $App.ExeArgs -eq "") {
-                throw "Aucun argument d'installation silencieuse EXE defini pour $PackageId"
+                throw "Aucun argument d'installation silencieuse EXE défini pour $PackageId"
             }
 
             Write-Log "Installation EXE silencieuse"
@@ -777,7 +777,7 @@ function Install-Or-UpgradeFromCache {
                 -PassThru
         }
         else {
-            throw "Type d'installeur non gere : $Extension"
+            throw "Type d'installeur non géré : $Extension"
         }
 
         $ExitCode = $Process.ExitCode
@@ -788,23 +788,23 @@ function Install-Or-UpgradeFromCache {
 
             if ($ExitCode -eq 3010) {
                 $script:RebootRequired = $true
-                Write-Log "$PackageId installe depuis le cache local, redemarrage requis" "WARN"
+                Write-Log "$PackageId installé depuis le cache local, redémarrage requis" "WARN"
             }
 
             $LocalInstallSucceeded = $true
         }
         else {
-            Write-Log "Echec installation locale (code $ExitCode) pour $PackageId, tentative en ligne" "WARN"
+            Write-Log "Échec installation locale (code $ExitCode) pour $PackageId, tentative en ligne" "WARN"
         }
     }
     else {
 
-        Write-Log "$PackageId : fichier local rejete suite a l'echec de verification du hash, tentative en ligne" "ERROR"
+        Write-Log "$PackageId : fichier local rejeté suite à l'echec de vérification du hash, tentative en ligne" "ERROR"
 
         #
         # Le fichier est corrompu ou suspect : on le supprime avec son
-        # manifest pour forcer un retelechargement propre au prochain
-        # passage plutot que de le laisser trainer dans le cache.
+        # manifest pour forcer un retéléchargement propre au prochain
+        # passage plutot que de le laisser traîner dans le cache.
         #
         Remove-Item -Path $InstallerPath -Force -ErrorAction SilentlyContinue
 
@@ -814,12 +814,12 @@ function Install-Or-UpgradeFromCache {
     }
 
     if ($LocalInstallSucceeded) {
-        Write-Log "$PackageId installe depuis le cache local" "OK"
+        Write-Log "$PackageId installé depuis le cache local" "OK"
         return
     }
 
     if (-not $script:OnlineSourceAvailable) {
-        throw "Echec de l'installation locale de $PackageId et aucun acces aux sources en ligne pour tenter un fallback"
+        throw "Échec de l'installation locale de $PackageId et aucun accès aux sources en ligne pour tenter un fallback"
     }
 
     if ($InstalledInfo.Installed) {
@@ -843,10 +843,10 @@ function Install-Or-UpgradeFromCache {
         )
 
     if ($Fallback.ExitCode -ne 0) {
-        throw "Echec installation ou mise a niveau de $PackageId"
+        throw "Échec installation ou mise à niveau de $PackageId"
     }
 
-    Write-Log "$PackageId traite en ligne" "OK"
+    Write-Log "$PackageId traité en ligne" "OK"
 }
 
 try {
@@ -859,24 +859,24 @@ try {
         throw "winget.exe introuvable"
     }
 
-    Write-Log "Winget detecte" "OK"
+    Write-Log "Winget détecté" "OK"
 
     #
-    # Test de connectivite generique (informatif uniquement, non bloquant).
+    # Test de connectivité générique (informatif uniquement, non bloquant).
     #
     $InternetOk = Test-InternetConnectivity
 
     if ($InternetOk) {
-        Write-Log "Connectivite Internet detectee" "OK"
+        Write-Log "Connectivité Internet détectée" "OK"
     }
     else {
-        Write-Log "Aucune connectivite Internet detectee : les sources Winget seront probablement injoignables" "WARN"
+        Write-Log "Aucune connectivité Internet détectée : les sources Winget seront probablement injoignables" "WARN"
     }
 
     #
-    # Test reel de l'acces aux sources Winget. Cette etape ne doit JAMAIS
+    # Test réel de l'accès aux sources Winget. Cette étape ne doit JAMAIS
     # interrompre le script (pas de throw) : en cas d'echec, on bascule en
-    # mode "cache local uniquement" pour toute l'execution.
+    # mode "cache local uniquement" pour toute l'exécution.
     #
     $SourceUpdate = Invoke-LoggedCommand `
         -FilePath "winget.exe" `
@@ -887,7 +887,7 @@ try {
         )
 
     if ($SourceUpdate.ExitCode -ne 0) {
-        Write-Log "Acces aux sources Winget indisponible (pas d'Internet ou site de telechargement injoignable) : bascule en mode cache local uniquement pour cette execution" "WARN"
+        Write-Log "Accès aux sources Winget indisponible (pas d'Internet ou site de téléchargement injoignable) : bascule en mode cache local uniquement pour cette execution" "WARN"
         $script:OnlineSourceAvailable = $false
     }
     else {
@@ -896,16 +896,16 @@ try {
     }
 
     #
-    # ExeArgs  : arguments utilises si le fichier telecharge est un .exe
-    # MsiArgs  : arguments ADDITIONNELS (proprietes/switches) ajoutes a
-    #            "/i <fichier> /qn /norestart" si le fichier telecharge
+    # ExeArgs  : arguments utilisés si le fichier télécharge est un .exe
+    # MsiArgs  : arguments ADDITIONNELS (propriétés/switches) ajoutés a
+    #            "/i <fichier> /qn /norestart" si le fichier téléchargé
     #            est un .msi. Laisser vide si /qn /norestart suffit.
     #
-    # Important : le type reel d'installeur telecharge par winget peut
-    # changer d'une version a l'autre pour un meme paquet (ex: Firefox
-    # est passe de .msi a .exe selon les versions, Chrome telecharge
-    # actuellement un .msi). Les deux jeux d'arguments sont donc definis
-    # pour chaque appli afin qu'aucun ne soit silencieusement ignore.
+    # Important : le type réel d'installeur télécharge par winget peut
+    # changer d'une version à l'autre pour un même paquet (ex: Firefox
+    # est passé de .msi a .exe selon les versions, Chrome télécharge
+    # actuellement un .msi). Les deux jeux d'arguments sont donc définis
+    # pour chaque appli afin qu'aucun ne soit silencieusement ignoré.
     #
     $Apps = @(
         @{
@@ -955,7 +955,7 @@ try {
 
             if ($null -eq $LocalCache) {
 
-                Write-Log "Aucun cache local trouve pour $($App.Name)" "WARN"
+                Write-Log "Aucun cache local trouvé pour $($App.Name)" "WARN"
 
                 if ($null -eq $OnlineVersion -or $OnlineVersion -eq "") {
                     throw "Impossible de continuer sans cache ni version en ligne pour $($App.Name)"
@@ -982,7 +982,7 @@ try {
 
                     if ($VersionComparison -gt 0) {
 
-                        Write-Log ("Version en ligne plus recente pour $($App.Name) ({0} > {1})" -f $OnlineVersion, $LocalCache.Version) "WARN"
+                        Write-Log ("Version en ligne plus récente pour $($App.Name) ({0} > {1})" -f $OnlineVersion, $LocalCache.Version) "WARN"
 
                         Invoke-WingetPackageDownload -PackageId $App.Id -TargetVersion $OnlineVersion
                         $DownloadedUpdates = $true
@@ -993,7 +993,7 @@ try {
                     }
                     elseif ($VersionComparison -lt 0) {
 
-                        Write-Log ("Version locale ({0}) plus recente ou non comparable a la version en ligne ({1}) : cache conserve" -f $LocalCache.Version, $OnlineVersion) "WARN"
+                        Write-Log ("Version locale ({0}) plus récente ou non comparable à la version en ligne ({1}) : cache conservé" -f $LocalCache.Version, $OnlineVersion) "WARN"
                     }
                     else {
                         Write-Log "Cache local a jour" "OK"
@@ -1006,7 +1006,7 @@ try {
 
             if ($null -eq $LocalCache) {
                 if ($script:OnlineSourceAvailable) {
-                    Write-Log "Cache local indisponible apres echec de download : tentative installation en ligne directe" "WARN"
+                    Write-Log "Cache local indisponible après echec de download : tentative installation en ligne directe" "WARN"
                     $Fallback = Invoke-LoggedCommand `
                         -FilePath "winget.exe" `
                         -Arguments @(
@@ -1020,9 +1020,9 @@ try {
                             "--disable-interactivity"
                         )
                     if ($Fallback.ExitCode -ne 0) {
-                        throw "Echec installation en ligne de $($App.Name)"
+                        throw "Échec installation en ligne de $($App.Name)"
                     }
-                    Write-Log "$($App.Name) installe en ligne (fallback apres hash mismatch)" "OK"
+                    Write-Log "$($App.Name) installé en ligne (fallback apres hash mismatch)" "OK"
                     continue
                 }
                 throw "Cache local introuvable pour $($App.Name)"
@@ -1032,7 +1032,7 @@ try {
                 throw "Manifest local introuvable pour $($App.Name)"
             }
 
-            Write-Log ("Manifest detecte : {0}" -f $LocalCache.ManifestPath)
+            Write-Log ("Manifest détecté : {0}" -f $LocalCache.ManifestPath)
             Write-Log ("Dossier cache     : {0}" -f $LocalCache.RootPath)
 
             Install-Or-UpgradeFromCache `
@@ -1048,7 +1048,7 @@ try {
 
     if ($DownloadedUpdates) {
 
-        Write-Log "Des mises a jour ont ete telechargees localement"
+        Write-Log "Des mises à jour ont été téléchargées localement"
 
         if ($UsbCGlobalPath -ne "" -and (Test-Path $UsbCGlobalPath)) {
 
@@ -1058,7 +1058,7 @@ try {
                 New-Item -Path $UsbInstallersPath -ItemType Directory -Force | Out-Null
             }
 
-            Write-Log "Synchronisation retour vers la cle USB"
+            Write-Log "Synchronisation retour vers la clé USB"
 
             $RoboCopyResult = Invoke-LoggedCommand `
                 -FilePath "robocopy.exe" `
@@ -1075,24 +1075,24 @@ try {
                 )
 
             if ($RoboCopyResult.ExitCode -ge 8) {
-                throw "Erreur Robocopy retour vers cle USB"
+                throw "Erreur Robocopy retour vers clé USB"
             }
 
-            Write-Log "Synchronisation retour terminee" "OK"
+            Write-Log "Synchronisation retour terminée" "OK"
         }
         else {
             Write-Log "Chemin USB non fourni ou introuvable : pas de synchronisation retour" "WARN"
         }
     }
     else {
-        Write-Log "Aucune mise a jour telechargee : pas de synchronisation retour"
+        Write-Log "Aucune mise à jour téléchargée : pas de synchronisation retour"
     }
 
     if ($script:RebootRequired) {
-        Write-Log "Un redemarrage est recommande par au moins un installateur" "WARN"
+        Write-Log "Un redémarrage est recommandé par au moins un installateur" "WARN"
     }
 
-    Write-Log "Installation des applications terminee" "OK"
+    Write-Log "Installation des applications terminée" "OK"
 }
 catch {
 

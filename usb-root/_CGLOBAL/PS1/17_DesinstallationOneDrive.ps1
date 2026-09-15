@@ -8,10 +8,10 @@ $LogFile = Get-CGlobalLogFile -ScriptPath $MyInvocation.MyCommand.Path
 Initialize-CGlobalLog -LogFile $LogFile
 
 try {
-    Write-Log "=== DESINSTALLATION ONEDRIVE ===" "INFO"
+    Write-Log "=== DÉSINSTALLATION ONEDRIVE ===" "INFO"
 
     # --------------------------------------------
-    # 1. DETECTION DE ONEDRIVE
+    # 1. DÉTECTION DE ONEDRIVE
     # --------------------------------------------
 
     Write-Log "Recherche de OneDrive..." "INFO"
@@ -24,7 +24,7 @@ try {
     # 1.1 Detection AppX (utilisateur courant)
     $OneDriveAppX = Get-AppxPackage -Name "*OneDrive*" -ErrorAction SilentlyContinue
     if ($null -ne $OneDriveAppX) {
-        Write-Log "OneDrive AppX detecte: $($OneDriveAppX.Name)" "WARN"
+        Write-Log "OneDrive AppX détecté: $($OneDriveAppX.Name)" "WARN"
         $OneDriveFound = $true
         $OneDriveDetails += "AppX: $($OneDriveAppX.Name)"
     }
@@ -33,7 +33,7 @@ try {
     $OneDriveAppXProvisioned = Get-AppxProvisionedPackage -Online -ErrorAction SilentlyContinue |
         Where-Object { $_.DisplayName -like "*OneDrive*" }
     if ($null -ne $OneDriveAppXProvisioned) {
-        Write-Log "OneDrive AppX provisionne detecte: $($OneDriveAppXProvisioned.DisplayName)" "WARN"
+        Write-Log "OneDrive AppX provisionné détecté: $($OneDriveAppXProvisioned.DisplayName)" "WARN"
         $OneDriveFound = $true
         $OneDriveDetails += "AppXProvisioned: $($OneDriveAppXProvisioned.DisplayName)"
     }
@@ -41,7 +41,7 @@ try {
     # 1.3 Detection OneDrive.exe (version desktop)
     $OneDriveExe = Test-Path "$env:LOCALAPPDATA\Microsoft\OneDrive\OneDrive.exe"
     if ($OneDriveExe) {
-        Write-Log "OneDrive.exe detecte: $env:LOCALAPPDATA\Microsoft\OneDrive\OneDrive.exe" "WARN"
+        Write-Log "OneDrive.exe détecté: $env:LOCALAPPDATA\Microsoft\OneDrive\OneDrive.exe" "WARN"
         $OneDriveFound = $true
         $OneDriveDetails += "Exe: OneDrive.exe"
     }
@@ -49,10 +49,10 @@ try {
     # 1.4 Detection dossier OneDrive (seulement si OneDrive.exe present)
     $OneDriveFolder = Test-Path "$env:LOCALAPPDATA\Microsoft\OneDrive"
     if ($OneDriveFolder -and -not $OneDriveExe) {
-        Write-Log "Dossier OneDrive present mais OneDrive.exe absent (residu)" "INFO"
+        Write-Log "Dossier OneDrive présent mais OneDrive.exe absent (résidu)" "INFO"
     }
     elseif ($OneDriveFolder -and $OneDriveExe) {
-        Write-Log "Dossier OneDrive detecte: $env:LOCALAPPDATA\Microsoft\OneDrive" "WARN"
+        Write-Log "Dossier OneDrive détecté: $env:LOCALAPPDATA\Microsoft\OneDrive" "WARN"
         $OneDriveDetails += "Dossier: $env:LOCALAPPDATA\Microsoft\OneDrive"
     }
 
@@ -70,7 +70,7 @@ try {
                 try {
                     $DisplayName = (Get-ItemProperty -Path $Key.PSPath -Name "DisplayName" -ErrorAction SilentlyContinue).DisplayName
                     if ($DisplayName -like "*OneDrive*") {
-                        Write-Log "OneDrive detecte dans le registre: $DisplayName" "WARN"
+                        Write-Log "OneDrive détecté dans le registre: $DisplayName" "WARN"
                         $OneDriveFound = $true
                         $OneDriveDetails += "Registre: $DisplayName"
                         $UninstallKeyPath = $Key.PSPath
@@ -92,7 +92,7 @@ try {
         )
         foreach ($Path in $InstallPaths) {
             if (Test-Path $Path) {
-                Write-Log "Dossier OneDrive detecte: $Path" "WARN"
+                Write-Log "Dossier OneDrive détecté: $Path" "WARN"
                 $OneDriveDetails += "Dossier: $Path"
             }
         }
@@ -100,51 +100,51 @@ try {
 
     # 1.7 Resultat
     if (-not $OneDriveFound) {
-        Write-Log "OneDrive non installe sur ce poste" "OK"
-        Write-Log "Aucune action necessaire" "INFO"
+        Write-Log "OneDrive non installé sur ce poste" "OK"
+        Write-Log "Aucune action nécessaire" "INFO"
         exit 0
     }
 
-    Write-Log "OneDrive detecte via: $($OneDriveDetails -join ', ')" "WARN"
+    Write-Log "OneDrive détecté via: $($OneDriveDetails -join ', ')" "WARN"
 
     # --------------------------------------------
     # 2. DEMANDE DE CONFIRMATION
     # --------------------------------------------
 
-    Write-Log "Demande de confirmation a l'utilisateur" "INFO"
+    Write-Log "Demande de confirmation à l'utilisateur" "INFO"
 
     $Choice = Show-CGlobalPopup `
-        -Message "OneDrive est installe sur ce poste.`n`nVoulez-vous le desinstaller ?`n`n- Suppression de la session actuelle`n- Blocage pour les futures sessions`n`nATTENTION: Cette action est irreversible.`nATTENTION: Si OneDrive a ete installe volontairement, cliquez sur NON." `
-        -Title "Desinstallation OneDrive" `
+        -Message "OneDrive est installé sur ce poste.`n`nVoulez-vous le désinstaller ?`n`n- Suppression de la session actuelle`n- Blocage pour les futures sessions`n`nATTENTION: Cette action est irreversible.`nATTENTION: Si OneDrive à été installé volontairement, cliquez sur NON." `
+        -Title "Désinstallation OneDrive" `
         -Buttons "YesNo" `
         -Icon "Exclamation"
 
     if ($Choice -ne "Yes") {
-        Write-Log "Desinstallation OneDrive refusee par l'utilisateur" "WARN"
+        Write-Log "Désinstallation OneDrive refusée par l'utilisateur" "WARN"
         exit 0
     }
 
-    Write-Log "Desinstallation OneDrive validee par l'utilisateur" "OK"
+    Write-Log "Désinstallation OneDrive validée par l'utilisateur" "OK"
 
     # --------------------------------------------
     # 3. ARRET DU PROCESSUS ONEDRIVE
     # --------------------------------------------
 
-    Write-Log "Arret des processus OneDrive..." "INFO"
+    Write-Log "Arrêt des processus OneDrive..." "INFO"
 
     Stop-Process -Name "OneDrive" -Force -ErrorAction SilentlyContinue
     Start-Sleep -Seconds 2
 
-    Write-Log "Processus OneDrive arretes" "OK"
+    Write-Log "Processus OneDrive arrêtés" "OK"
 
     # --------------------------------------------
-    # 4. DESINSTALLATION VIA REGISTRE (methode propre)
+    # 4. DÉSINSTALLATION VIA REGISTRE (methode propre)
     # --------------------------------------------
 
     $RegUninstallDone = $false
 
     if ($null -ne $UninstallString -and $UninstallString -ne "") {
-        Write-Log "Commande de desinstallation trouvee: $UninstallString" "INFO"
+        Write-Log "Commande de désinstallation trouvée: $UninstallString" "INFO"
 
         # Parsing robuste du UninstallString
         $UninstallString = $UninstallString.Trim()
@@ -166,31 +166,31 @@ try {
         }
 
         if ($null -ne $ExePath -and (Test-Path $ExePath)) {
-            Write-Log "Execution de la desinstallation via registre: $ExePath $Arguments" "INFO"
+            Write-Log "Execution de la désinstallation via registre: $ExePath $Arguments" "INFO"
 
             try {
                 $Process = Start-Process -FilePath $ExePath -ArgumentList $Arguments -Wait -PassThru -NoNewWindow
-                Write-Log "Desinstallation via registre terminee (code: $($Process.ExitCode))" "OK"
+                Write-Log "Désinstallation via registre terminee (code: $($Process.ExitCode))" "OK"
                 $RegUninstallDone = $true
             }
             catch {
-                Write-Log "Echec desinstallation via registre: $($_.Exception.Message)" "WARN"
+                Write-Log "Échec désinstallation via registre: $($_.Exception.Message)" "WARN"
             }
         }
         else {
-            Write-Log "Fichier de desinstallation introuvable: $ExePath" "WARN"
+            Write-Log "Fichier de désinstallation introuvable: $ExePath" "WARN"
         }
     }
     else {
-        Write-Log "Aucune commande de desinstallation trouvee dans le registre" "WARN"
+        Write-Log "Aucune commande de désinstallation trouvée dans le registre" "WARN"
     }
 
     # --------------------------------------------
-    # 5. DESINSTALLATION EXE (fallback si registre echoue)
+    # 5. DÉSINSTALLATION EXE (fallback si registre échoue)
     # --------------------------------------------
 
     if (-not $RegUninstallDone -and $OneDriveExe) {
-        Write-Log "Desinstallation via OneDrive.exe /uninstall (fallback)..." "INFO"
+        Write-Log "Désinstallation via OneDrive.exe /uninstall (fallback)..." "INFO"
 
         try {
             $UninstallPath = "$env:LOCALAPPDATA\Microsoft\OneDrive\OneDrive.exe"
@@ -198,81 +198,81 @@ try {
             Write-Log "OneDrive.exe /uninstall termine (code: $($Process.ExitCode))" "OK"
         }
         catch {
-            Write-Log "Echec desinstallation OneDrive.exe: $($_.Exception.Message)" "ERROR"
+            Write-Log "Échec désinstallation OneDrive.exe: $($_.Exception.Message)" "ERROR"
         }
     }
 
     # --------------------------------------------
-    # 6. SUPPRESSION DE LA CLE DE REGISTRE UNINSTALL
+    # 6. SUPPRESSION DE LA CLÉ DE REGISTRE UNINSTALL
     # --------------------------------------------
-    # OneDriveSetup.exe supprime souvent la cle lui-meme.
-    # Si elle est deja absente, c'est le resultat souhaite.
+    # OneDriveSetup.exe supprime souvent la clé lui-meme.
+    # Si elle est déjà absente, c'est le résultat souhaite.
 
     if ($null -ne $UninstallKeyPath) {
-        Write-Log "Suppression de la cle de registre Uninstall..." "INFO"
+        Write-Log "Suppression de la clé de registre Uninstall..." "INFO"
         if (Test-Path $UninstallKeyPath) {
             try {
                 Remove-Item -Path $UninstallKeyPath -Recurse -Force -ErrorAction Stop
-                Write-Log "Cle de registre Uninstall supprimee" "OK"
+                Write-Log "Clé de registre Uninstall supprimée" "OK"
             }
             catch {
-                Write-Log "Echec suppression cle de registre: $($_.Exception.Message)" "WARN"
+                Write-Log "Échec suppression clé de registre: $($_.Exception.Message)" "WARN"
             }
         }
         else {
-            Write-Log "Cle de registre Uninstall deja supprimee (par le desinstalleur)" "OK"
+            Write-Log "Clé de registre Uninstall déjà supprimée (par le désinstalleur)" "OK"
         }
     }
 
     # --------------------------------------------
-    # 7. DESINSTALLATION APPX (si present)
+    # 7. DÉSINSTALLATION APPX (si présent)
     # --------------------------------------------
 
     # 7.1 Package AppX utilisateur courant
     if ($null -ne $OneDriveAppX) {
-        Write-Log "Desinstallation du package AppX utilisateur..." "INFO"
+        Write-Log "Désinstallation du package AppX utilisateur..." "INFO"
 
         try {
             Remove-AppxPackage -Package $OneDriveAppX.PackageFullName -ErrorAction Stop
-            Write-Log "Package AppX desinstalle avec succes" "OK"
+            Write-Log "Package AppX désinstallé avec succès" "OK"
         }
         catch {
             $ErrorMsg = $_.Exception.Message
             if ($ErrorMsg -match '0x80073CF1|package introuvable|package is not installed') {
-                Write-Log "Package AppX deja supprime ou non installe pour cet utilisateur" "INFO"
+                Write-Log "Package AppX déjà supprimé ou non installé pour cet utilisateur" "INFO"
             }
             else {
-                Write-Log "Echec desinstallation AppX: $ErrorMsg" "WARN"
+                Write-Log "Échec désinstallation AppX: $ErrorMsg" "WARN"
             }
         }
     }
 
     # 7.2 Package AppX provisionne (tous les utilisateurs)
     if ($null -ne $OneDriveAppXProvisioned) {
-        Write-Log "Desinstallation du package AppX provisionne..." "INFO"
+        Write-Log "Désinstallation du package AppX provisionné..." "INFO"
 
         try {
             Remove-AppxProvisionedPackage -Online -PackageName $OneDriveAppXProvisioned.PackageName -ErrorAction Stop
-            Write-Log "Package AppX provisionne desinstalle avec succes" "OK"
+            Write-Log "Package AppX provisionné désinstallé avec succès" "OK"
         }
         catch {
             $ErrorMsg = $_.Exception.Message
             if ($ErrorMsg -match '0x80073CF1|package introuvable|package is not installed') {
-                Write-Log "Package AppX provisionne deja supprime" "INFO"
+                Write-Log "Package AppX provisionné déjà supprimé" "INFO"
             }
             else {
-                Write-Log "Echec desinstallation AppX provisionne: $ErrorMsg" "WARN"
+                Write-Log "Échec désinstallation AppX provisionné: $ErrorMsg" "WARN"
             }
         }
     }
 
     # --------------------------------------------
-    # 8. NETTOYAGE DOSSIER RESIDUEL
+    # 8. NETTOYAGE DOSSIER RÉSIDUEL
     # --------------------------------------------
 
     $OneDriveFolder = "$env:LOCALAPPDATA\Microsoft\OneDrive"
     if (Test-Path $OneDriveFolder) {
-        Write-Log "Suppression du dossier residuel: $OneDriveFolder" "INFO"
+        Write-Log "Suppression du dossier résiduel: $OneDriveFolder" "INFO"
         Remove-Item -Path $OneDriveFolder -Recurse -Force -ErrorAction SilentlyContinue
     }
 
@@ -288,12 +288,12 @@ try {
         New-Item -Path $RegPath -Force | Out-Null
     }
     Set-ItemProperty -Path $RegPath -Name "DisableFileSyncNGSC" -Value 1 -Type DWord -Force
-    Write-Log "Cle de registre HKLM\SOFTWARE\Policies\Microsoft\Windows\OneDrive\DisableFileSyncNGSC = 1" "OK"
+    Write-Log "Clé de registre HKLM\SOFTWARE\Policies\Microsoft\Windows\OneDrive\DisableFileSyncNGSC = 1" "OK"
 
-    # Desactiver OneDrive dans le profil par defaut
+    # désactiver OneDrive dans le profil par défaut
     $DefaultNTUSER = "C:\Users\Default\NTUSER.DAT"
     if (Test-Path $DefaultNTUSER) {
-        Write-Log "Chargement du profil par defaut (NTUSER.DAT)..." "INFO"
+        Write-Log "Chargement du profil par défaut (NTUSER.DAT)..." "INFO"
 
         $LoadResult = Start-Process -FilePath "reg.exe" -ArgumentList "LOAD", "HKU\DefaultProfile", $DefaultNTUSER -Wait -PassThru -NoNewWindow
 
@@ -303,10 +303,10 @@ try {
             $SetResult = Start-Process -FilePath "reg.exe" -ArgumentList "ADD", "HKU\DefaultProfile\SOFTWARE\Policies\Microsoft\Windows\OneDrive", "/v", "DisableFileSyncNGSC", "/t", "REG_DWORD", "/d", "1", "/f" -Wait -PassThru -NoNewWindow
 
             if ($SetResult.ExitCode -eq 0) {
-                Write-Log "Blocage OneDrive applique au profil par defaut (HKU\DefaultProfile)" "OK"
+                Write-Log "Blocage OneDrive appliqué au profil par défaut (HKU\DefaultProfile)" "OK"
             }
             else {
-                Write-Log "Echec application blocage profil par defaut" "ERROR"
+                Write-Log "Échec application blocage profil par défaut" "ERROR"
             }
 
             [gc]::Collect()
@@ -314,18 +314,18 @@ try {
             $UnloadResult = Start-Process -FilePath "reg.exe" -ArgumentList "UNLOAD", "HKU\DefaultProfile" -Wait -PassThru -NoNewWindow
 
             if ($UnloadResult.ExitCode -eq 0) {
-                Write-Log "Profil par defaut demonte avec succes" "OK"
+                Write-Log "Profil par défaut démonté avec succès" "OK"
             }
             else {
-                Write-Log "Echec demontage profil par defaut" "WARN"
+                Write-Log "Échec démontage profil par défaut" "WARN"
             }
         }
         else {
-            Write-Log "Echec chargement profil par defaut (code: $($LoadResult.ExitCode))" "ERROR"
+            Write-Log "Échec chargement profil par défaut (code: $($LoadResult.ExitCode))" "ERROR"
         }
     }
     else {
-        Write-Log "Profil par defaut introuvable (C:\Users\Default\NTUSER.DAT)" "WARN"
+        Write-Log "Profil par défaut introuvable (C:\Users\Default\NTUSER.DAT)" "WARN"
     }
 
     # --------------------------------------------
@@ -342,7 +342,7 @@ try {
     foreach ($Shortcut in $Shortcuts) {
         if (Test-Path $Shortcut) {
             Remove-Item -Path $Shortcut -Force -ErrorAction SilentlyContinue
-            Write-Log "Raccourci supprime: $Shortcut" "OK"
+            Write-Log "Raccourci supprimé: $Shortcut" "OK"
         }
     }
 
@@ -350,7 +350,7 @@ try {
     # 11. MESSAGE DE SUCCES
     # --------------------------------------------
 
-    Write-Log "=== DESINSTALLATION ONEDRIVE TERMINEE ===" "OK"
+    Write-Log "=== DÉSINSTALLATION ONEDRIVE TERMINÉE ===" "OK"
 
     # Show-CGlobalPopup `
     #     -Message "OneDrive a ete desinstalle avec succes.`n`n- Session actuelle: nettoyee`n- Futures sessions: bloquees." `
@@ -365,7 +365,7 @@ catch {
     Write-Log $_.ScriptStackTrace "ERROR"
 
     Show-CGlobalPopup `
-        -Message "Une erreur est survenue lors de la desinstallation de OneDrive.`n`nErreur: $($_.Exception.Message)`n`nConsultez le fichier de log pour plus de details." `
+        -Message "Une erreur est survenue lors de la désinstallation de OneDrive.`n`nErreur: $($_.Exception.Message)`n`nConsultez le fichier de log pour plus de details." `
         -Title "Erreur" `
         -Buttons "OK" `
         -Icon "Stop"

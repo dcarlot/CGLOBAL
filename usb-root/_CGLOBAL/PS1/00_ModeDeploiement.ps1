@@ -73,7 +73,7 @@ function Set-DWordValue {
 
 try {
 
-    Write-Log "Activation du mode deploiement"
+    Write-Log "Activation du mode déploiement"
 
     # --------------------------------------------------------------
     # Veille
@@ -81,11 +81,11 @@ try {
 
     Invoke-PowerCfg `
         -Arguments @("/change", "standby-timeout-ac", "0") `
-        -Description "Veille secteur desactivee"
+        -Description "Veille secteur désactivée"
 
     Invoke-PowerCfg `
         -Arguments @("/change", "standby-timeout-dc", "0") `
-        -Description "Veille batterie desactivee"
+        -Description "Veille batterie désactivée"
 
     # --------------------------------------------------------------
     # Extinction ecran
@@ -93,38 +93,38 @@ try {
 
     Invoke-PowerCfg `
         -Arguments @("/change", "monitor-timeout-ac", "0") `
-        -Description "Extinction ecran secteur desactivee"
+        -Description "Extinction écran secteur désactivée"
 
     Invoke-PowerCfg `
         -Arguments @("/change", "monitor-timeout-dc", "0") `
-        -Description "Extinction ecran batterie desactivee"
+        -Description "Extinction écran batterie désactivée"
 
     # --------------------------------------------------------------
-    # Windows Update - blocage pendant le deploiement
+    # Windows Update - blocage pendant le déploiement
     # --------------------------------------------------------------
 
     $WUKey = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU"
 
     if (-not (Test-Path $WUKey)) {
         New-Item -Path $WUKey -Force | Out-Null
-        Write-Log "Cle Windows Update creee" "OK"
+        Write-Log "Cle Windows Update créée" "OK"
     }
 
     # Bloque les mises a jour automatiques :
-    # recherche, telechargement et installation automatiques.
+    # recherche, téléchargement et installation automatiques.
     Set-DWordValue `
         -Path $WUKey `
         -Name "NoAutoUpdate" `
         -Value 1 `
-        -Description "Mises a jour automatiques Windows Update desactivees"
+        -Description "Mises a jour automatiques Windows Update désactivées"
 
-    # Bloque le redemarrage automatique lorsqu'un utilisateur
-    # est connecte.
+    # Bloque le redémarrage automatique lorsqu'un utilisateur
+    # est connecté.
     Set-DWordValue `
         -Path $WUKey `
         -Name "NoAutoRebootWithLoggedOnUsers" `
         -Value 1 `
-        -Description "Redemarrage automatique Windows Update bloque"
+        -Description "Redémarrage automatique Windows Update bloqué"
 
     # --------------------------------------------------------------
     # Verification
@@ -136,13 +136,13 @@ try {
         $Settings.NoAutoUpdate -eq 1 -and
         $Settings.NoAutoRebootWithLoggedOnUsers -eq 1
     ) {
-        Write-Log "Verification Windows Update OK" "OK"
+        Write-Log "Vérification Windows Update OK" "OK"
     }
     else {
-        Write-Log "Verification Windows Update KO" "WARN"
+        Write-Log "Vérification Windows Update KO" "WARN"
     }
 
-    Write-Log "Mode deploiement actif" "OK"
+    Write-Log "Mode déploiement actif" "OK"
 
     exit 0
 }

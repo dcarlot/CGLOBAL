@@ -21,10 +21,10 @@ try {
         -Name "InitialKeyboardIndicators" `
         -Value "2"
 
-    Write-Log "Utilisateur courant configure" "OK"
+    Write-Log "Utilisateur courant configuré" "OK"
 
     #
-    # Ecran de connexion / contexte système
+    # Écran de connexion / contexte système
     #
     $DefaultKey = "Registry::HKEY_USERS\.DEFAULT\Control Panel\Keyboard"
 
@@ -33,10 +33,10 @@ try {
         -Name "InitialKeyboardIndicators" `
         -Value "2"
 
-    Write-Log "Profil par defaut configure" "OK"
+    Write-Log "Profil par défaut configuré" "OK"
 
     #
-    # Verifications
+    # Vérifications
     #
     $CurrentUserValue = (
         Get-ItemProperty `
@@ -51,16 +51,16 @@ try {
     ).InitialKeyboardIndicators
 
     if ($CurrentUserValue -ne "2") {
-        throw "Verification HKCU echouee"
+        throw "Vérification HKCU échouée"
     }
 
     if ($DefaultValue -ne "2") {
-        throw "Verification HKU.DEFAULT echouee"
+        throw "Vérification HKU.DEFAULT échouée"
     }
 
-    Write-Log "Verification OK" "OK"
+    Write-Log "Vérification OK" "OK"
 
-    Write-Log "Configuration terminee" "OK"
+    Write-Log "Configuration terminée" "OK"
 }
 catch {
 

@@ -37,12 +37,12 @@ function Get-UsbCGlobalPath {
         $Candidate = Join-Path $Drive.DeviceID "_CGLOBAL"
 
         if (Test-Path $Candidate) {
-            Write-Log "Cle USB detectee : $Candidate" "OK"
+            Write-Log "Clé USB détectée : $Candidate" "OK"
             return $Candidate
         }
     }
 
-    Write-Log "Cle USB _CGLOBAL introuvable" "WARN"
+    Write-Log "Clé USB _CGLOBAL introuvable" "WARN"
     return $null
 }
 
@@ -55,16 +55,16 @@ function Test-TeamViewerSignature {
         [string]$FilePath
     )
 
-    Write-Log "Verification de la signature numerique"
+    Write-Log "Vérification de la signature numérique"
 
     $Signature = Get-AuthenticodeSignature $FilePath
 
     if ($Signature.Status -ne 'Valid') {
-        throw "Signature numerique invalide"
+        throw "Signature numérique invalide"
     }
 
     if ($null -eq $Signature.SignerCertificate) {
-        throw "Certificat numerique absent"
+        throw "Certificat numérique absent"
     }
 
     if ($Signature.SignerCertificate.Subject -notmatch 'TeamViewer') {
@@ -79,7 +79,7 @@ function Test-TeamViewerSignature {
 # ------------------------------------------------------------------
 
 function Get-TeamViewerDownloadUrl {
-    Write-Log "Recherche du lien reel de telechargement TeamViewer"
+    Write-Log "Recherche du lien réel de téléchargement TeamViewer"
 
     $RequestBody = @{
         ConfigId       = $TeamViewerConfigId
@@ -97,16 +97,16 @@ function Get-TeamViewerDownloadUrl {
         -UseBasicParsing
 
     if ($null -eq $Response) {
-        throw "Reponse vide depuis l'API TeamViewer"
+        throw "Réponse vide depuis l'API TeamViewer"
     }
 
     $DownloadUrl = $Response.ToString().Trim()
 
     if ($DownloadUrl -eq "") {
-        throw "URL de telechargement TeamViewer vide"
+        throw "URL de téléchargement TeamViewer vide"
     }
 
-    Write-Log "Lien reel detecte"
+    Write-Log "Lien réel détecté"
     Write-Log $DownloadUrl
 
     return $DownloadUrl
@@ -140,7 +140,7 @@ function New-TeamViewerShortcut {
 
     $Shortcut.Save()
 
-    Write-Log "Raccourci public cree ou mis a jour" "OK"
+    Write-Log "Raccourci public créé ou mis à jour" "OK"
 }
 
 # ------------------------------------------------------------------
@@ -152,16 +152,16 @@ function Copy-ToUsb {
         [string]$UsbCGlobalPath
     )
 
-    Write-Log "Copie du fichier vers la cle USB..."
+    Write-Log "Copie du fichier vers la clé USB..."
 
     $UsbFile = Join-Path $UsbCGlobalPath "TeamViewerQS.exe"
 
     try {
         Copy-Item -Path $LocalFile -Destination $UsbFile -Force
-        Write-Log "Fichier copie vers $UsbFile" "OK"
+        Write-Log "Fichier copié vers $UsbFile" "OK"
     }
     catch {
-        Write-Log "Echec copie vers USB: $($_.Exception.Message)" "WARN"
+        Write-Log "Échec de la copie vers USB: $($_.Exception.Message)" "WARN"
     }
 }
 
@@ -170,7 +170,7 @@ function Copy-ToUsb {
 # ------------------------------------------------------------------
 
 try {
-    Write-Log "Debut mise a jour TeamViewerQS"
+    Write-Log "Début de la mise à jour TeamViewerQS"
 
     # ------------------------------------------------------------------
     # Étape 0 : Détecter la clé USB
@@ -188,8 +188,8 @@ try {
         $File = Get-Item $LocalFile
         $FileAge = (Get-Date) - $File.LastWriteTime
 
-        Write-Log "Fichier local detecte"
-        Write-Log "Date derniere modification: $($File.LastWriteTime)"
+        Write-Log "Fichier local détecté"
+        Write-Log "Date dernière modification: $($File.LastWriteTime)"
         Write-Log "Age: $($FileAge.Days) jours"
 
         if ($FileAge.TotalDays -le $CacheMaxAgeDays) {
@@ -197,7 +197,7 @@ try {
 
             # Vérifier la taille
             if ($File.Length -lt $MinValidSizeBytes) {
-                Write-Log "Fichier trop petit, telechargement requis" "WARN"
+                Write-Log "Fichier trop petit, téléchargement requis" "WARN"
             }
             else {
                 # Vérifier la signature
@@ -207,7 +207,7 @@ try {
                     Write-Log "Utilisation du fichier en cache" "OK"
                 }
                 catch {
-                    Write-Log "Signature invalide, telechargement requis" "WARN"
+                    Write-Log "Signature invalide, téléchargement requis" "WARN"
                 }
             }
         }
@@ -216,7 +216,7 @@ try {
         }
     }
     else {
-        Write-Log "Fichier non present, telechargement requis" "WARN"
+        Write-Log "Fichier non présent, téléchargement requis" "WARN"
     }
 
     # ------------------------------------------------------------------
@@ -224,7 +224,7 @@ try {
     # ------------------------------------------------------------------
 
     if ($DownloadNeeded) {
-        Write-Log "Telechargement de TeamViewerQS..." "INFO"
+        Write-Log "Téléchargement de TeamViewerQS..." "INFO"
 
         # Récupérer l'URL de téléchargement
         $DownloadUrl = Get-TeamViewerDownloadUrl
@@ -235,7 +235,7 @@ try {
         }
 
         # Télécharger
-        Write-Log "Telechargement depuis $DownloadUrl"
+        Write-Log "Téléchargement depuis $DownloadUrl"
         Invoke-WebRequest `
             -Uri $DownloadUrl `
             -OutFile $LocalFile `
@@ -243,18 +243,18 @@ try {
 
         # Vérifier le fichier téléchargé
         if (-not (Test-Path $LocalFile)) {
-            throw "Le fichier n'a pas ete telecharge"
+            throw "Le fichier n'a pas été téléchargé"
         }
 
         $File = Get-Item $LocalFile
-        Write-Log "Taille fichier telecharge : $($File.Length) octets"
+        Write-Log "Taille fichier téléchargé : $($File.Length) octets"
 
         if ($File.Length -lt $MinValidSizeBytes) {
-            throw "Fichier telecharge invalide : taille anormalement faible"
+            throw "Fichier téléchargé invalide : taille anormalement faible"
         }
 
         $SizeMB = [Math]::Round($File.Length / 1MB, 2)
-        Write-Log "Fichier telecharge : $SizeMB Mo" "OK"
+        Write-Log "Fichier téléchargé : $SizeMB Mo" "OK"
 
         # Vérifier la signature
         Test-TeamViewerSignature -FilePath $LocalFile
@@ -264,7 +264,7 @@ try {
             Copy-ToUsb -UsbCGlobalPath $UsbCGlobalPath
         }
         else {
-            Write-Log "Impossible de copier vers USB (non detectee)" "WARN"
+            Write-Log "Impossible de copier vers USB (non détectée)" "WARN"
         }
     }
 
@@ -274,7 +274,7 @@ try {
 
     New-TeamViewerShortcut
 
-    Write-Log "TeamViewerQS mis a jour avec succes" "OK"
+    Write-Log "TeamViewerQS mis à jour avec succès" "OK"
 
     exit 0
 }

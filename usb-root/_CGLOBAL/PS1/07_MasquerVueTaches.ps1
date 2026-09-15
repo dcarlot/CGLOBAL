@@ -9,7 +9,7 @@ Initialize-CGlobalLog -LogFile $LogFile
 
 try {
 
-    Write-Log "Masquage du bouton Vue des taches"
+    Write-Log "Masquage du bouton Vue des tâches"
 
     $RegKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
 
@@ -20,7 +20,7 @@ try {
         -PropertyType DWord `
         -Force | Out-Null
 
-    Write-Log "Parametre applique" "OK"
+    Write-Log "Paramètre appliqué" "OK"
 
     $Value = (
         Get-ItemProperty `
@@ -29,12 +29,12 @@ try {
     ).ShowTaskViewButton
 
     if ($Value -ne 0) {
-        throw "Verification echouee"
+        throw "Vérification échouée"
     }
 
-    Write-Log "Verification OK" "OK"
+    Write-Log "Vérification OK" "OK"
 
-    Write-Log "Configuration terminee" "OK"
+    Write-Log "Configuration terminée" "OK"
 
 }
 catch {

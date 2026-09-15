@@ -71,7 +71,7 @@ function Write-LogSelective {
 Write-LogSelective "=== LANCEMENT MODE SELECTIF ===" "INFO"
 
 # ============================================================
-# Fichier de memorisation (.sel = simple, pas de JSON)
+# Fichier de mémorisation (.sel = simple, pas de JSON)
 # ============================================================
 $SelFile = "C:\_CGLOBAL\Run_Selective.sel"
 
@@ -83,13 +83,13 @@ function Export-Selection {
         $Lines += "$Num=$Checked"
     }
     $Lines | Set-Content -Path $SelFile -Encoding UTF8
-    Write-LogSelective "Selection sauvegardee dans $SelFile" "OK"
+    Write-LogSelective "Sélection sauvegardée dans $SelFile" "OK"
 }
 
 function Import-Selection {
     param($Checkboxes)
     if (-not (Test-Path $SelFile)) {
-        Write-LogSelective "Aucune selection precedente trouvee" "INFO"
+        Write-LogSelective "Aucune sélection précédente trouvée" "INFO"
         return $false
     }
     try {
@@ -103,11 +103,11 @@ function Import-Selection {
                 }
             }
         }
-        Write-LogSelective "Selection chargee depuis $SelFile" "OK"
+        Write-LogSelective "Sélection chargée depuis $SelFile" "OK"
         return $true
     }
     catch {
-        Write-LogSelective "Erreur chargement selection : $($_.Exception.Message)" "WARN"
+        Write-LogSelective "Erreur chargement sélection : $($_.Exception.Message)" "WARN"
         return $false
     }
 }
@@ -116,28 +116,28 @@ function Import-Selection {
 # Definition des scripts (a jour avec le depot GitHub)
 # ============================================================
 $Scripts = @(
-    @{ Num="00"; File="00_ModeDeploiement.ps1"; Desc="Mode deploiement (veille, ecran, WU)"; Tooltip="Desactive la veille, l extinction d ecran et les redemarrages auto de Windows Update"; Net=$false },
-    @{ Num="01"; File="01_Bureau.ps1"; Desc="Icones systeme sur le bureau"; Tooltip="Affiche Ce PC, Panneau de configuration, Corbeille et Reseau sur le Bureau"; Net=$false },
+    @{ Num="00"; File="00_ModeDeploiement.ps1"; Desc="Mode déploiement (veille, ecran, WU)"; Tooltip="Désactive la veille, l'extinction d'écran et les redémarrages auto de Windows Update"; Net=$false },
+    @{ Num="01"; File="01_Bureau.ps1"; Desc="Icônes système sur le bureau"; Tooltip="Affiche Ce PC, Panneau de configuration, Corbeille et Réseau sur le Bureau"; Net=$false },
     @{ Num="02"; File="02_MenuContextuelClassique.ps1"; Desc="Menu contextuel classique"; Tooltip="Restaure le menu contextuel de Windows 10/11 classique (clic droit)"; Net=$false },
-    @{ Num="03"; File="03_Explorateur.ps1"; Desc="Explorateur (Ce PC, extensions)"; Tooltip="Ouvre l Explorateur sur Ce PC et affiche les extensions de fichiers"; Net=$false },
-    @{ Num="04"; File="04_ZoneNotification.ps1"; Desc="Zone de notification"; Tooltip="Affiche toutes les icones connues dans la zone de notification"; Net=$false },
-    @{ Num="05"; File="05_BarreTachesGauche.ps1"; Desc="Barre des taches a gauche"; Tooltip="Aligne les icones de la barre des taches a gauche"; Net=$false },
-    @{ Num="06"; File="06_RechercheBarreTaches.ps1"; Desc="Recherche en mode icone"; Tooltip="Affiche uniquement l icone de recherche (pas la barre complete)"; Net=$false },
-    @{ Num="07"; File="07_MasquerVueTaches.ps1"; Desc="Masquer le bouton Vue des taches"; Tooltip="Masque le bouton Vue des taches de la barre des taches"; Net=$false },
-    @{ Num="08"; File="08_MasquerWidgets.ps1"; Desc="Desinstaller les Widgets"; Tooltip="Desinstalle completement le package Windows Web Experience Pack (Widgets)"; Net=$false },
-    @{ Num="09"; File="09_MSStoreBarreTache.ps1"; Desc="Supprimer MS Store barre des taches"; Tooltip="Supprime l epingle Microsoft Store de la barre des taches et bloque son retour"; Net=$false },
-    @{ Num="10"; File="10_DesactiverReprendre.ps1"; Desc="Desactiver Reprendre"; Tooltip="Desactive la fonction Reprendre (Resume) au demarrage"; Net=$false },
-    @{ Num="11"; File="11_ConfidentialiteLocalisation.ps1"; Desc="Confidentialite / localisation"; Tooltip="Desactive les notifications de localisation et le remplacement de localisation"; Net=$false },
-    @{ Num="12"; File="12_ConfigurerProfilParDefaut.ps1"; Desc="Configurer profil par defaut"; Tooltip="Configure les reglages pour les futurs profils utilisateurs (NTUSER.DAT)"; Net=$false },
-    @{ Num="13"; File="13_NumLockDemarrage.ps1"; Desc="NumLock au demarrage"; Tooltip="Force l activation du verrouillage numerique au demarrage"; Net=$false },
-    @{ Num="14"; File="14_DesinstallationOffice.ps1"; Desc="Desinstallation Office / OneNote"; Tooltip="Detecte et desinstalle toutes les versions d Office et OneNote (C2R, MSI)"; Net=$false },
+    @{ Num="03"; File="03_Explorateur.ps1"; Desc="Explorateur (Ce PC, extensions)"; Tooltip="Ouvre l'Explorateur sur Ce PC et affiche les extensions de fichiers"; Net=$false },
+    @{ Num="04"; File="04_ZoneNotification.ps1"; Desc="Zone de notification"; Tooltip="Affiche toutes les icônes connues dans la zone de notification"; Net=$false },
+    @{ Num="05"; File="05_BarreTachesGauche.ps1"; Desc="Barre des tâches à gauche"; Tooltip="Aligne les icônes de la barre des tâches à gauche"; Net=$false },
+    @{ Num="06"; File="06_RechercheBarreTaches.ps1"; Desc="Recherche en mode icône"; Tooltip="Affiche uniquement l'icône de recherche (pas la barre complète)"; Net=$false },
+    @{ Num="07"; File="07_MasquerVueTaches.ps1"; Desc="Masquer le bouton Vue des tâches"; Tooltip="Masque le bouton Vue des tâches de la barre des tâches"; Net=$false },
+    @{ Num="08"; File="08_MasquerWidgets.ps1"; Desc="Désinstaller les Widgets"; Tooltip="Désinstalle completement le package Windows Web Experience Pack (Widgets)"; Net=$false },
+    @{ Num="09"; File="09_MSStoreBarreTache.ps1"; Desc="Supprimer MS Store barre des tâches"; Tooltip="Supprime l'epingle Microsoft Store de la barre des tâches et bloque son retour"; Net=$false },
+    @{ Num="10"; File="10_DesactiverReprendre.ps1"; Desc="Désactiver Reprendre"; Tooltip="Désactive la fonction Reprendre (Resume) au démarrage"; Net=$false },
+    @{ Num="11"; File="11_ConfidentialiteLocalisation.ps1"; Desc="Confidentialité / localisation"; Tooltip="Désactive les notifications de localisation et le remplacement de localisation"; Net=$false },
+    @{ Num="12"; File="12_ConfigurerProfilParDefaut.ps1"; Desc="Configurer profil par défaut"; Tooltip="Configure les réglages pour les futurs profils utilisateurs (NTUSER.DAT)"; Net=$false },
+    @{ Num="13"; File="13_NumLockDemarrage.ps1"; Desc="NumLock au démarrage"; Tooltip="Force l'activation du verrouillage numerique au démarrage"; Net=$false },
+    @{ Num="14"; File="14_DesinstallationOffice.ps1"; Desc="Désinstallation Office / OneNote"; Tooltip="Détecte et désinstalle toutes les versions d'Office et OneNote (C2R, MSI)"; Net=$false },
     @{ Num="15"; File="15_ApplicationsWinget.ps1"; Desc="Applications Winget [INTERNET]"; Tooltip="Installe 7-Zip, Acrobat Reader, Chrome et Firefox via WinGet (connexion Internet requise)"; Net=$true },
-    @{ Num="16"; File="16_TeamViewerQS.ps1"; Desc="TeamViewer QuickSupport [INTERNET]"; Tooltip="Telecharge et installe TeamViewer QuickSupport (connexion Internet requise)"; Net=$true },
-    @{ Num="17"; File="17_DesinstallationOneDrive.ps1"; Desc="Desinstallation OneDrive"; Tooltip="Desinstalle OneDrive, bloque son retour pour les futurs profils et supprime les raccourcis"; Net=$false },
-    @{ Num="19"; File="19_MisesAJourConstructeur.ps1"; Desc="Mises a jour constructeur [INTERNET]"; Tooltip="Detecte le constructeur et installe les mises a jour pilotes, BIOS et firmware sans redemarrer le poste pendant la sequence"; Net=$true },
-    @{ Num="85"; File="85_RenommagePoste.ps1"; Desc="Renommage du poste"; Tooltip="Affiche le nom actuel du poste et permet de le modifier apres verification de compatibilite (lettres, chiffres, trait d union)"; Net=$false },
-    @{ Num="90"; File="90_VerificationMotDePasseCompteLocal.ps1"; Desc="Verification mot de passe local"; Tooltip="Verifie si le compte local possede un mot de passe et propose d en definir un"; Net=$false },
-    @{ Num="99"; File="99_FinDeploiement.ps1"; Desc="Fin deploiement (restauration)"; Tooltip="Restaure les parametres energetiques et Windows Update (fin du mode deploiement)"; Net=$false }
+    @{ Num="16"; File="16_TeamViewerQS.ps1"; Desc="TeamViewer QuickSupport [INTERNET]"; Tooltip="Télécharge et installe TeamViewer QuickSupport (connexion Internet requise)"; Net=$true },
+    @{ Num="17"; File="17_DesinstallationOneDrive.ps1"; Desc="Désinstallation OneDrive"; Tooltip="Désinstalle OneDrive, bloque son retour pour les futurs profils et supprime les raccourcis"; Net=$false },
+    @{ Num="19"; File="19_MisesAJourConstructeur.ps1"; Desc="Mises à jour constructeur [INTERNET]"; Tooltip="Détecte le constructeur et installe les mises à jour pilotes, BIOS et firmware sans redémarrer le poste pendant la séquence"; Net=$true },
+    @{ Num="85"; File="85_RenommagePoste.ps1"; Desc="Renommage du poste"; Tooltip="Affiche le nom actuel du poste et permet de le modifier après vérification de compatibilité (lettres, chiffres, trait d'union)"; Net=$false },
+    @{ Num="90"; File="90_VerificationMotDePasseCompteLocal.ps1"; Desc="Vérification mot de passe local"; Tooltip="Vérifie si le compte local possède un mot de passe et propose d'en définir un"; Net=$false },
+    @{ Num="99"; File="99_FinDeploiement.ps1"; Desc="Fin déploiement (restauration)"; Tooltip="Restaure les paramètres énergétiques et Windows Update (fin du mode déploiement)"; Net=$false }
 )
 
 # ============================================================
@@ -184,7 +184,7 @@ function Test-InternetConnection {
     }
 
     if (-not $Silent) {
-        Write-LogSelective "Aucune connexion Internet detectee" "WARN"
+        Write-LogSelective "Aucune connexion Internet détectée" "WARN"
     }
     return $false
 }
@@ -195,7 +195,7 @@ function Test-InternetConnection {
 #   ligne 1 = SSID
 #   ligne 2 = mot de passe Wi-Fi
 # ============================================================
-# Le fichier secret reste exclusivement sur la cle USB.
+# Le fichier secret reste exclusivement sur la clé USB.
 # Exemple : E:\_CGLOBAL\wifi.secret
 $script:WifiSecretFile = Join-Path -Path $USBPath -ChildPath "_CGLOBAL\wifi.secret"
 $script:GuestWifiSSID = $null
@@ -233,8 +233,8 @@ function Get-GuestWifiCredentials {
         $script:GuestWifiSSID = $SSID
         $script:GuestWifiPassword = $Password
 
-        Write-LogSelective "SSID Wi-Fi recupere depuis $SecretFile" "INFO"
-        Write-LogSelective "Mot de passe Wi-Fi recupere depuis $SecretFile" "INFO"
+        Write-LogSelective "SSID Wi-Fi récupéré depuis $SecretFile" "INFO"
+        Write-LogSelective "Mot de passe Wi-Fi récupéré depuis $SecretFile" "INFO"
         return $true
     }
     catch {
@@ -255,10 +255,10 @@ function ConvertTo-XmlSafeText {
 
 # ============================================================
 # Connexion directe au Wi-Fi invite
-# Aucun scan des reseaux disponibles n'est effectue.
+# Aucun scan des réseaux disponibles n'est éffectué.
 # ============================================================
 function Connect-CGlobalGuestWifi {
-    Write-LogSelective "Tentative de connexion au Wi-Fi invite '$($script:GuestWifiSSID)'" "INFO"
+    Write-LogSelective "Tentative de connexion au Wi-Fi invité '$($script:GuestWifiSSID)'" "INFO"
 
     $SafeSSID = ConvertTo-XmlSafeText $script:GuestWifiSSID
     $SafePassword = ConvertTo-XmlSafeText $script:GuestWifiPassword
@@ -297,17 +297,17 @@ function Connect-CGlobalGuestWifi {
         Set-Content -Path $ProfilePath -Value $ProfileXml -Encoding UTF8
 
         $AddResult = (netsh wlan add profile filename="$ProfilePath" user=all) -join " "
-        Write-LogSelective "Ajout du profil Wi-Fi invite : $AddResult" "INFO"
+        Write-LogSelective "Ajout du profil Wi-Fi invité : $AddResult" "INFO"
 
         $ConnectResult = (netsh wlan connect name="$($script:GuestWifiSSID)" ssid="$($script:GuestWifiSSID)") -join " "
-        Write-LogSelective "Connexion au Wi-Fi invite : $ConnectResult" "INFO"
+        Write-LogSelective "Connexion au Wi-Fi invité : $ConnectResult" "INFO"
 
-        # Laisser le temps a Windows d'etablir la connexion et d'obtenir une adresse IP
+        # Laisser le temps a Windows d'établir la connexion et d'obtenir une adresse IP
         Start-Sleep -Seconds 5
         return $true
     }
     catch {
-        Write-LogSelective "Erreur lors de la connexion au Wi-Fi invite : $($_.Exception.Message)" "ERROR"
+        Write-LogSelective "Erreur lors de la connexion au Wi-Fi invité : $($_.Exception.Message)" "ERROR"
         return $false
     }
     finally {
@@ -316,7 +316,7 @@ function Connect-CGlobalGuestWifi {
 }
 
 # ============================================================
-# Detection et activation eventuelle d'une carte WLAN
+# Détection et activation éventuelle d'une carte WLAN
 # ============================================================
 function Get-CGlobalWlanAdapters {
     try {
@@ -328,7 +328,7 @@ function Get-CGlobalWlanAdapters {
         return @($Adapters)
     }
     catch {
-        Write-LogSelective "Impossible d interroger les cartes reseau : $($_.Exception.Message)" "WARN"
+        Write-LogSelective "Impossible d'interroger les cartes réseau : $($_.Exception.Message)" "WARN"
         return @()
     }
 }
@@ -337,41 +337,41 @@ function Enable-CGlobalWlanAdapter {
     $WlanAdapters = @(Get-CGlobalWlanAdapters)
 
     if ($WlanAdapters.Count -eq 0) {
-        Write-LogSelective "Aucune carte WLAN detectee sur ce poste : proposition Wi-Fi ignoree" "INFO"
+        Write-LogSelective "Aucune carte WLAN détectée sur ce poste : proposition Wi-Fi ignorée" "INFO"
         return $false
     }
 
     $UsableAdapter = $WlanAdapters | Where-Object { $_.Status -ne 'Disabled' } | Select-Object -First 1
     if ($null -ne $UsableAdapter) {
-        Write-LogSelective "Carte WLAN detectee : $($UsableAdapter.Name) - Etat : $($UsableAdapter.Status)" "INFO"
+        Write-LogSelective "Carte WLAN détectée : $($UsableAdapter.Name) - État : $($UsableAdapter.Status)" "INFO"
         return $true
     }
 
     foreach ($Adapter in ($WlanAdapters | Where-Object { $_.Status -eq 'Disabled' })) {
         try {
-            Write-LogSelective "Carte WLAN desactivee detectee : $($Adapter.Name). Tentative d activation..." "INFO"
+            Write-LogSelective "Carte WLAN désactivée détectée : $($Adapter.Name). Tentative d'activation..." "INFO"
             Enable-NetAdapter -Name $Adapter.Name -Confirm:$false -ErrorAction Stop
             Start-Sleep -Seconds 3
 
             $UpdatedAdapter = Get-NetAdapter -Name $Adapter.Name -ErrorAction Stop
             if ($UpdatedAdapter.Status -ne 'Disabled') {
-                Write-LogSelective "Carte WLAN '$($Adapter.Name)' activee - Etat : $($UpdatedAdapter.Status)" "OK"
+                Write-LogSelective "Carte WLAN '$($Adapter.Name)' activée - État : $($UpdatedAdapter.Status)" "OK"
                 return $true
             }
 
-            Write-LogSelective "La carte WLAN '$($Adapter.Name)' reste desactivee apres la tentative d activation" "WARN"
+            Write-LogSelective "La carte WLAN '$($Adapter.Name)' reste désactivée après la tentative d'activation" "WARN"
         }
         catch {
-            Write-LogSelective "Impossible d activer la carte WLAN '$($Adapter.Name)' : $($_.Exception.Message)" "WARN"
+            Write-LogSelective "Impossible d'activer la carte WLAN '$($Adapter.Name)' : $($_.Exception.Message)" "WARN"
         }
     }
 
-    Write-LogSelective "Aucune carte WLAN utilisable sur ce poste : proposition Wi-Fi ignoree" "WARN"
+    Write-LogSelective "Aucune carte WLAN utilisable sur ce poste : proposition Wi-Fi ignorée" "WARN"
     return $false
 }
 
 # ============================================================
-# Detection et suppression facultative du profil Wi-Fi invite
+# Detection et suppression facultative du profil Wi-Fi invité
 # ============================================================
 function Test-GuestWifiProfileExists {
     param([Parameter(Mandatory = $true)][string]$SSID)
@@ -379,10 +379,10 @@ function Test-GuestWifiProfileExists {
     try {
         $ProfileOutput = @(& netsh.exe wlan show profile name="$SSID" 2>&1)
         if ($LASTEXITCODE -eq 0) {
-            Write-LogSelective "Profil Wi-Fi '$SSID' detecte sur ce poste" "INFO"
+            Write-LogSelective "Profil Wi-Fi '$SSID' détecté sur ce poste" "INFO"
             return $true
         }
-        Write-LogSelective "Aucun profil Wi-Fi enregistre pour '$SSID'" "INFO"
+        Write-LogSelective "Aucun profil Wi-Fi enregistré pour '$SSID'" "INFO"
         return $false
     }
     catch {
@@ -394,12 +394,12 @@ function Test-GuestWifiProfileExists {
 function Confirm-GuestWifiProfileRemoval {
     # Sans carte WLAN, aucun profil Wi-Fi exploitable n'est attendu.
     if (@(Get-CGlobalWlanAdapters).Count -eq 0) {
-        Write-LogSelective "Verification finale du profil Wi-Fi ignoree : aucune carte WLAN detectee" "INFO"
+        Write-LogSelective "Vérification finale du profil Wi-Fi ignorée : aucune carte WLAN détectée" "INFO"
         return
     }
 
     if (-not (Get-GuestWifiCredentials)) {
-        Write-LogSelective "Verification finale du profil Wi-Fi invite impossible : wifi.secret indisponible ou invalide" "INFO"
+        Write-LogSelective "Vérification finale du profil Wi-Fi invité impossible : wifi.secret indisponible ou invalide" "INFO"
         return
     }
 
@@ -407,14 +407,14 @@ function Confirm-GuestWifiProfileRemoval {
         if (-not (Test-GuestWifiProfileExists -SSID $script:GuestWifiSSID)) { return }
 
         $Choice = [System.Windows.Forms.MessageBox]::Show(
-            "Le profil Wi-Fi '$($script:GuestWifiSSID)' est enregistre sur ce poste.`n`nVoulez-vous le supprimer ?`n`nOUI = supprimer le profil enregistre`nNON = conserver le profil et la connexion automatique",
-            "Profil Wi-Fi invite",
+            "Le profil Wi-Fi '$($script:GuestWifiSSID)' est enregistré sur ce poste.`n`nVoulez-vous le supprimer ?`n`nOUI = supprimer le profil enregistré`nNON = conserver le profil et la connexion automatique",
+            "Profil Wi-Fi invité",
             [System.Windows.Forms.MessageBoxButtons]::YesNo,
             [System.Windows.Forms.MessageBoxIcon]::Question
         )
 
         if ($Choice -ne [System.Windows.Forms.DialogResult]::Yes) {
-            Write-LogSelective "Profil Wi-Fi '$($script:GuestWifiSSID)' conserve a la demande de l utilisateur" "INFO"
+            Write-LogSelective "Profil Wi-Fi '$($script:GuestWifiSSID)' conservé à la demande de l'utilisateur" "INFO"
             return
         }
 
@@ -423,18 +423,18 @@ function Confirm-GuestWifiProfileRemoval {
         $DeleteMessage = $DeleteOutput -join " "
 
         if ($DeleteExitCode -eq 0) {
-            Write-LogSelective "Profil Wi-Fi '$($script:GuestWifiSSID)' supprime : $DeleteMessage" "OK"
+            Write-LogSelective "Profil Wi-Fi '$($script:GuestWifiSSID)' supprimé : $DeleteMessage" "OK"
             [void][System.Windows.Forms.MessageBox]::Show(
-                "Le profil Wi-Fi '$($script:GuestWifiSSID)' a ete supprime de ce poste.",
-                "Profil Wi-Fi supprime",
+                "Le profil Wi-Fi '$($script:GuestWifiSSID)' a été supprimé de ce poste.",
+                "Profil Wi-Fi supprimé",
                 [System.Windows.Forms.MessageBoxButtons]::OK,
                 [System.Windows.Forms.MessageBoxIcon]::Information
             )
         }
         else {
-            Write-LogSelective "Echec de suppression du profil Wi-Fi '$($script:GuestWifiSSID)' (code $DeleteExitCode) : $DeleteMessage" "ERROR"
+            Write-LogSelective "Échec de suppression du profil Wi-Fi '$($script:GuestWifiSSID)' (code $DeleteExitCode) : $DeleteMessage" "ERROR"
             [void][System.Windows.Forms.MessageBox]::Show(
-                "Impossible de supprimer le profil Wi-Fi '$($script:GuestWifiSSID)'.`n`nConsultez le journal pour les details.",
+                "Impossible de supprimer le profil Wi-Fi '$($script:GuestWifiSSID)'.`n`nConsultez le journal pour les détails.",
                 "Erreur de suppression",
                 [System.Windows.Forms.MessageBoxButtons]::OK,
                 [System.Windows.Forms.MessageBoxIcon]::Error
@@ -450,8 +450,8 @@ function Confirm-GuestWifiProfileRemoval {
 }
 
 # ============================================================
-# Resolution de l'absence de connexion Internet
-# Retourne : "OK" (connexion retablie), "CANCEL" (annuler tout),
+# Résolution de l'absence de connexion Internet
+# Retourne : "OK" (connexion rétablie), "CANCEL" (annuler tout),
 #            "CONTINUE_WITHOUT" (continuer sans les scripts Internet)
 # ============================================================
 function Resolve-InternetRequirement {
@@ -461,12 +461,12 @@ function Resolve-InternetRequirement {
 
     $ScriptsInternetText = ($ScriptsNeedingNet | ForEach-Object { "[$($_.Num)] $($_.Desc)" }) -join "`n"
 
-    # --- Proposer le Wi-Fi uniquement si une carte WLAN est presente et utilisable ---
-    # Une carte desactivee est activee automatiquement avant l'affichage du popup.
+    # --- Proposer le Wi-Fi uniquement si une carte WLAN est présente et utilisable ---
+    # Une carte désactivee est activée automatiquement avant l'affichage du popup.
     if (Enable-CGlobalWlanAdapter) {
         # Charger d'abord le SSID afin de l'afficher correctement dans la question.
         if (-not (Get-GuestWifiCredentials)) {
-            Write-LogSelective "Identifiants Wi-Fi indisponibles dans $($script:WifiSecretFile) : proposition de connexion ignoree" "WARN"
+            Write-LogSelective "Identifiants Wi-Fi indisponibles dans $($script:WifiSecretFile) : proposition de connexion ignorée" "WARN"
         }
         else {
             $WifiChoice = [System.Windows.Forms.MessageBox]::Show(
@@ -480,26 +480,26 @@ function Resolve-InternetRequirement {
                 $WifiConnectionStarted = Connect-CGlobalGuestWifi
 
                 if (-not $WifiConnectionStarted) {
-                    Write-LogSelective "La tentative de connexion au Wi-Fi '$($script:GuestWifiSSID)' a echoue" "WARN"
+                    Write-LogSelective "La tentative de connexion au Wi-Fi '$($script:GuestWifiSSID)' a échoué" "WARN"
                 }
                 elseif (Test-InternetConnection) {
-                    Write-LogSelective "Connexion Internet retablie via le Wi-Fi '$($script:GuestWifiSSID)'" "OK"
+                    Write-LogSelective "Connexion Internet rétablie via le Wi-Fi '$($script:GuestWifiSSID)'" "OK"
                     return "OK"
                 }
                 else {
-                    Write-LogSelective "Connexion au Wi-Fi '$($script:GuestWifiSSID)' tentee, mais aucun acces Internet n'est disponible" "WARN"
+                    Write-LogSelective "Connexion au Wi-Fi '$($script:GuestWifiSSID)' tentée, mais aucun accès Internet n'est disponible" "WARN"
                 }
             }
             else {
-                Write-LogSelective "Tentative de connexion au Wi-Fi '$($script:GuestWifiSSID)' refusee par l'utilisateur" "INFO"
+                Write-LogSelective "Tentative de connexion au Wi-Fi '$($script:GuestWifiSSID)' refusée par l'utilisateur" "INFO"
             }
         }
     }
 
-    # --- Boucle de reessai de l'acces Internet ---
+    # --- Boucle de réessai de l'acces Internet ---
     do {
         $RetryResult = [System.Windows.Forms.MessageBox]::Show(
-            "Aucun acces Internet detecte.`n`nLes scripts suivants necessitent Internet :`n$ScriptsInternetText`n`nVerifiez la connexion reseau, puis cliquez sur OUI pour tester de nouveau.`n`nVoulez-vous reessayer ?",
+            "Aucun accès Internet détecté.`n`nLes scripts suivants nécessitent Internet :`n$ScriptsInternetText`n`nVérifiez la connexion réseau, puis cliquez sur OUI pour tester de nouveau.`n`nVoulez-vous reessayer ?",
             "Internet requis",
             [System.Windows.Forms.MessageBoxButtons]::YesNo,
             [System.Windows.Forms.MessageBoxIcon]::Question
@@ -510,14 +510,14 @@ function Resolve-InternetRequirement {
         }
 
         if (Test-InternetConnection) {
-            Write-LogSelective "Connexion Internet detectee apres une nouvelle verification" "OK"
+            Write-LogSelective "Connexion Internet détectée apres une nouvelle vérification" "OK"
             return "OK"
         }
     } while ($true)
 
     # --- Toujours pas de connexion : choix final ---
     $CancelResult = [System.Windows.Forms.MessageBox]::Show(
-        "Toujours aucun acces Internet.`n`nLes scripts suivants necessitent Internet :`n$ScriptsInternetText`n`n- OUI = Annuler tout le lancement (retour a la selection)`n- NON = Continuer SANS ces scripts (avertissement)",
+        "Toujours aucun accès Internet.`n`nLes scripts suivants nécessitent Internet :`n$ScriptsInternetText`n`n- OUI = Annuler tout le lancement (retour à la sélection)`n- NON = Continuer SANS ces scripts (avertissement)",
         "Internet requis",
         [System.Windows.Forms.MessageBoxButtons]::YesNo,
         [System.Windows.Forms.MessageBoxIcon]::Question
@@ -531,7 +531,7 @@ function Resolve-InternetRequirement {
 }
 
 # ============================================================
-# Creation du formulaire principal : layout adaptatif DPI
+# Création du formulaire principal : layout adaptatif DPI
 # ============================================================
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
@@ -587,12 +587,12 @@ $Header.RowStyles.Add((New-AutoRow)) | Out-Null; $Header.RowStyles.Add((New-Auto
 $MainLayout.Controls.Add($Header,0,0)
 
 $TitleLabel = New-Object System.Windows.Forms.Label
-$TitleLabel.Text = 'CGLOBAL - Selection des scripts a executer'
+$TitleLabel.Text = 'CGLOBAL - Sélection des scripts à exécuter'
 $TitleLabel.Font = New-Object System.Drawing.Font('Segoe UI',12,[System.Drawing.FontStyle]::Bold)
 $TitleLabel.AutoSize = $true; $TitleLabel.Dock = 'Fill'; $TitleLabel.Margin = New-Object System.Windows.Forms.Padding(0,0,0,4)
 $Header.Controls.Add($TitleLabel,0,0)
 $SubLabel = New-Object System.Windows.Forms.Label
-$SubLabel.Text = 'Cochez les scripts a lancer, puis cliquez sur Executer. Survolez un script pour voir sa description.'
+$SubLabel.Text = 'Cochez les scripts à lancer, puis cliquez sur Executer. Survolez un script pour voir sa description.'
 $SubLabel.AutoSize = $true; $SubLabel.Dock = 'Fill'; $SubLabel.Margin = New-Object System.Windows.Forms.Padding(0)
 $Header.Controls.Add($SubLabel,0,1)
 
@@ -641,19 +641,19 @@ $BtnTous.Add_Click({ foreach($CB in $Checkboxes.Values){$CB.Checked=$true} }); $
 $BtnAucun = New-Object System.Windows.Forms.Button; $BtnAucun.Text='Aucun'; Set-ButtonLayout $BtnAucun
 $BtnAucun.Add_Click({ foreach($CB in $Checkboxes.Values){$CB.Checked=$false} }); $Commands.Controls.Add($BtnAucun,1,0)
 $BtnSave = New-Object System.Windows.Forms.Button; $BtnSave.Text='Sauvegarder'; Set-ButtonLayout $BtnSave
-$BtnSave.Add_Click({ Export-Selection $Checkboxes; [void][System.Windows.Forms.MessageBox]::Show('Selection sauvegardee avec succes.','Sauvegarde','OK','Information') }); $Commands.Controls.Add($BtnSave,0,1)
+$BtnSave.Add_Click({ Export-Selection $Checkboxes; [void][System.Windows.Forms.MessageBox]::Show('Sélection sauvegardée avec succès.','Sauvegarde','OK','Information') }); $Commands.Controls.Add($BtnSave,0,1)
 $BtnLoad = New-Object System.Windows.Forms.Button; $BtnLoad.Text='Charger'; Set-ButtonLayout $BtnLoad
 $BtnLoad.Add_Click({
-    if(Import-Selection $Checkboxes){ [void][System.Windows.Forms.MessageBox]::Show('Selection chargee avec succes.','Chargement','OK','Information') }
-    else { [void][System.Windows.Forms.MessageBox]::Show('Aucune selection precedente trouvee.','Chargement','OK','Warning') }
+    if(Import-Selection $Checkboxes){ [void][System.Windows.Forms.MessageBox]::Show('Sélection chargée avec succès.','Chargement','OK','Information') }
+    else { [void][System.Windows.Forms.MessageBox]::Show('Aucune sélection précédente trouvée.','Chargement','OK','Warning') }
 }); $Commands.Controls.Add($BtnLoad,1,1)
 
 $NetLabel = New-Object System.Windows.Forms.Label
-$NetLabel.Text="[INTERNET] =`r`nnecessite une connexion Internet"; $NetLabel.ForeColor=[System.Drawing.Color]::DarkOrange
+$NetLabel.Text="[INTERNET] =`r`nnécessite une connexion Internet"; $NetLabel.ForeColor=[System.Drawing.Color]::DarkOrange
 $NetLabel.AutoSize=$true; $NetLabel.Dock='Fill'; $NetLabel.Margin=New-Object System.Windows.Forms.Padding(4,8,4,4)
 $Commands.Controls.Add($NetLabel,0,2); $Commands.SetColumnSpan($NetLabel,2)
 $LegendLabel = New-Object System.Windows.Forms.Label
-$LegendLabel.Text="Legende :`r`n  Vert  = succes`r`n  Jaune = avertissement`r`n  Rouge = erreur / introuvable"
+$LegendLabel.Text="Légende :`r`n  Vert  = succès`r`n  Jaune = avertissement`r`n  Rouge = erreur / introuvable"
 $LegendLabel.AutoSize=$true; $LegendLabel.Dock='Fill'; $LegendLabel.Margin=New-Object System.Windows.Forms.Padding(4,4,4,8)
 $Commands.Controls.Add($LegendLabel,0,3); $Commands.SetColumnSpan($LegendLabel,2)
 $ProgressBar = New-Object System.Windows.Forms.ProgressBar
@@ -669,7 +669,7 @@ Set-ButtonLayout $BtnExecuter 42; $Commands.Controls.Add($BtnExecuter,0,6)
 $BtnQuitter = New-Object System.Windows.Forms.Button; $BtnQuitter.Text='Quitter'
 $BtnQuitter.Font=New-Object System.Drawing.Font('Segoe UI',10); $BtnQuitter.BackColor=[System.Drawing.Color]::LightCoral
 Set-ButtonLayout $BtnQuitter 42
-$BtnQuitter.Add_Click({ Export-Selection $Checkboxes; Write-LogSelective 'Fermeture par l utilisateur (bouton Quitter)' 'INFO'; $Form.Close() })
+$BtnQuitter.Add_Click({ Export-Selection $Checkboxes; Write-LogSelective 'Fermeture par l''utilisateur (bouton Quitter)' 'INFO'; $Form.Close() })
 $Commands.Controls.Add($BtnQuitter,1,6)
 
 $LogLabel = New-Object System.Windows.Forms.Label
@@ -743,14 +743,14 @@ function Add-LogBoxLine {
 }
 
 # ============================================================
-# Chargement automatique de la derniere selection
+# Chargement automatique de la dernière selection
 # ============================================================
 $Form.Add_Shown({
     Import-Selection -Checkboxes $Checkboxes | Out-Null
 })
 
 # ============================================================
-# Logique d'execution
+# Logique d'exécution
 # ============================================================
 $BtnExecuter.Add_Click({
 
@@ -758,7 +758,7 @@ $BtnExecuter.Add_Click({
     $script:CancelRequested = $false
     $script:CurrentChildProcess = $null
 
-    # --- Recuperer les scripts coches ---
+    # --- Récupérer les scripts coches ---
     $Selected = @()
     foreach ($Script in $Scripts) {
         if ($Checkboxes[$Script.Num].Checked) {
@@ -769,21 +769,21 @@ $BtnExecuter.Add_Click({
     # --- Aucun script coche ---
     if ($Selected.Count -eq 0) {
         $Result = [System.Windows.Forms.MessageBox]::Show(
-            "Attention, aucun script n est coche.`n`nVoulez-vous quitter ou revenir a la selection ?",
-            "Aucun script selectionne",
+            "Attention, aucun script n'est coche.`n`nVoulez-vous quitter ou revenir à la sélection ?",
+            "Aucun script sélectionné",
             [System.Windows.Forms.MessageBoxButtons]::RetryCancel,
             [System.Windows.Forms.MessageBoxIcon]::Warning
         )
 
         if ($Result -eq [System.Windows.Forms.DialogResult]::Cancel) {
-            Write-LogSelective "Fermeture par l utilisateur (aucun script coche)" "WARN"
+            Write-LogSelective "Fermeture par l'utilisateur (aucun script coché)" "WARN"
             Export-Selection -Checkboxes $Checkboxes
             $Form.Close()
         }
         return
     }
 
-    # --- Verifier si Internet necessaire ---
+    # --- Vérifier si Internet nécessaire ---
     $NeedInternet = $false
     foreach ($Script in $Selected) {
         if ($Script.Net) {
@@ -804,21 +804,21 @@ $BtnExecuter.Add_Click({
 
             switch ($Decision) {
                 "CANCEL" {
-                    Write-LogSelective "Execution annulee par l utilisateur (pas de connexion Internet)" "WARN"
-                    $ProgressLabel.Text = "Execution annulee (pas de connexion Internet)"
+                    Write-LogSelective "Execution annulée par l'utilisateur (pas de connexion Internet)" "WARN"
+                    $ProgressLabel.Text = "Execution annulée (pas de connexion Internet)"
                     return
                 }
                 "CONTINUE_WITHOUT" {
                     $Selected = $Selected | Where-Object { -not $_.Net }
-                    Write-LogSelective "Continuation sans les scripts Internet ($($ScriptsInternet.Count) script(s) ignores)" "WARN"
-                    $ProgressLabel.Text = "Continuation sans les scripts necessitant Internet..."
+                    Write-LogSelective "Continuation sans les scripts Internet ($($ScriptsInternet.Count) script(s) ignorés)" "WARN"
+                    $ProgressLabel.Text = "Continuation sans les scripts nécessitant Internet..."
                     $Form.Refresh()
                     [System.Windows.Forms.Application]::DoEvents()
                     Start-Sleep -Milliseconds 500
                 }
                 "OK" {
-                    Write-LogSelective "Connexion Internet retablie, poursuite normale" "OK"
-                    $ProgressLabel.Text = "Connexion Internet retablie"
+                    Write-LogSelective "Connexion Internet rétablie, poursuite normale" "OK"
+                    $ProgressLabel.Text = "Connexion Internet rétablie"
                     $Form.Refresh()
                     [System.Windows.Forms.Application]::DoEvents()
                 }
@@ -826,7 +826,7 @@ $BtnExecuter.Add_Click({
         }
     }
 
-    # --- Desactiver les controles pendant l execution ---
+    # --- Désactiver les controles pendant l'exécution ---
     $BtnExecuter.Enabled = $false
     $BtnTous.Enabled = $false
     $BtnAucun.Enabled = $false
@@ -836,7 +836,7 @@ $BtnExecuter.Add_Click({
         $CB.Enabled = $false
     }
 
-    # --- Reinitialiser les couleurs de resultat ---
+    # --- Réinitialiser les couleurs de résultat ---
     foreach ($Num in $Checkboxes.Keys) {
         $Checkboxes[$Num].BackColor = [System.Drawing.Color]::Transparent
     }
@@ -845,11 +845,11 @@ $BtnExecuter.Add_Click({
     $Total = $Selected.Count
     $Current = 0
 
-    Write-LogSelective "Execution de $Total script(s) selectionne(s)" "INFO"
+    Write-LogSelective "Execution de $Total script(s) selectionné(s)" "INFO"
 
     foreach ($Script in $Selected) {
         if ($script:CancelRequested) {
-            Write-LogSelective "Execution interrompue par la fermeture de la fenetre" "WARN"
+            Write-LogSelective "Execution interrompue par la fermeture de la fenêtre" "WARN"
             break
         }
 
@@ -886,13 +886,13 @@ $BtnExecuter.Add_Click({
                 -ArgumentList "-ExecutionPolicy Bypass -File `"$ScriptPath`"" `
                 -PassThru -NoNewWindow
 
-            # IMPORTANT : forcer .NET a conserver le handle du processus des le depart.
-            # Sans cela, $Process.ExitCode peut rester vide (null) meme apres la sortie
+            # IMPORTANT : forcer .NET à conserver le handle du processus des le départ.
+            # Sans cela, $Process.ExitCode peut rester vide (null) même après la sortie
             # du processus (bug connu de Start-Process -PassThru sous PowerShell 5.1).
             $null = $Process.Handle
             $script:CurrentChildProcess = $Process
 
-            # Boucle d attente reactive, avec suivi en direct du log du script en cours
+            # Boucle d'attente réactive, avec suivi en direct du log du script en cours
             while (-not $Process.HasExited) {
                 [System.Windows.Forms.Application]::DoEvents()
 
@@ -914,8 +914,8 @@ $BtnExecuter.Add_Click({
                 Start-Sleep -Milliseconds 200
             }
 
-            # Derniere lecture apres la sortie du process, au cas ou des lignes
-            # auraient ete ecrites juste avant la fin et pas encore captees
+            # Derniere lecture après la sortie du process, au cas ou des lignes
+            # auraient été écrites juste avant la fin et pas encore captées
             if (Test-Path $ScriptLogPath) {
                 $AllLines = Read-CGlobalLogLines -Path $ScriptLogPath
                 if ($AllLines.Count -gt $LastLineCount) {
@@ -926,40 +926,40 @@ $BtnExecuter.Add_Click({
             }
 
             if ($script:CancelRequested) {
-                Write-LogSelective "$($Script.File) interrompu (fermeture de la fenetre)" "WARN"
+                Write-LogSelective "$($Script.File) interrompu (fermeture de la fenêtre)" "WARN"
                 $Checkboxes[$Script.Num].BackColor = [System.Drawing.Color]::LightCoral
                 $Results[$Script.Num] = "CANCELLED"
                 break
             }
 
-            # Synchronise proprement la sortie avant de lire le code (evite un ExitCode
-            # non encore disponible juste apres le passage de HasExited a $true)
+            # Synchronise proprement la sortie avant de lire le code (évite un ExitCode
+            # non encore disponible juste après le passage de HasExited à $true)
             $Process.WaitForExit()
             $ExitCode = $Process.ExitCode
 
             if ($ExitCode -eq 0) {
-                Write-LogSelective "$($Script.File) termine avec succes" "OK"
+                Write-LogSelective "$($Script.File) terminé avec succes" "OK"
                 $Checkboxes[$Script.Num].BackColor = [System.Drawing.Color]::LightGreen
                 $Results[$Script.Num] = "OK"
             }
             else {
-                Write-LogSelective "$($Script.File) termine avec le code $ExitCode" "WARN"
+                Write-LogSelective "$($Script.File) terminé avec le code $ExitCode" "WARN"
                 $Checkboxes[$Script.Num].BackColor = [System.Drawing.Color]::LightYellow
                 $Results[$Script.Num] = "WARN:$ExitCode"
             }
         }
         catch {
-            Write-LogSelective "Erreur lors de l execution de $($Script.File) : $($_.Exception.Message)" "ERROR"
+            Write-LogSelective "Erreur lors de l'exécution de $($Script.File) : $($_.Exception.Message)" "ERROR"
             $Checkboxes[$Script.Num].BackColor = [System.Drawing.Color]::LightCoral
             $Results[$Script.Num] = "ERROR"
         }
     }
 
     $ProgressBar.Value = 100
-    $ProgressLabel.Text = "Execution terminee ($Total script(s))"
+    $ProgressLabel.Text = "Execution terminée ($Total script(s))"
     $Form.Refresh()
     [System.Windows.Forms.Application]::DoEvents()
-    Write-LogSelective "=== EXECUTION TERMINEE ===" "OK"
+    Write-LogSelective "=== EXECUTION TERMINÉE ===" "OK"
 
     Export-Selection -Checkboxes $Checkboxes
 
@@ -968,7 +968,7 @@ $BtnExecuter.Add_Click({
     $ErrCount = ($Results.Values | Where-Object { $_ -eq "ERROR" -or $_ -eq "MISSING" }).Count
 
     [System.Windows.Forms.MessageBox]::Show(
-        "Execution terminee.`n`n$Total script(s) executes :`n  - $OkCount succes`n  - $WarnCount avertissement(s)`n  - $ErrCount erreur(s)`n`nConsultez le log pour les details.",
+        "Execution terminee.`n`n$Total script(s) executés :`n  - $OkCount succès`n  - $WarnCount avertissement(s)`n  - $ErrCount erreur(s)`n`nConsultez le log pour les détails.",
         "Termine",
         [System.Windows.Forms.MessageBoxButtons]::OK,
         [System.Windows.Forms.MessageBoxIcon]::Information
@@ -986,7 +986,7 @@ $BtnExecuter.Add_Click({
 })
 
 # ============================================================
-# Sauvegarde automatique a la fermeture
+# Sauvegarde automatique à la fermeture
 # ============================================================
 $Form.Add_FormClosing({
     Export-Selection -Checkboxes $Checkboxes
@@ -995,15 +995,15 @@ $Form.Add_FormClosing({
 # ============================================================
 # Affichage du formulaire
 # ============================================================
-Write-LogSelective "Affichage de l interface de selection" "INFO"
+Write-LogSelective "Affichage de l'interface de sélection" "INFO"
 [void]$Form.ShowDialog()
 Confirm-GuestWifiProfileRemoval
-Write-LogSelective "=== FERMETURE MODE SELECTIF ===" "INFO"
+Write-LogSelective "=== FERMETURE MODE SÉLECTIF ===" "INFO"
 
-# Fermeture explicite de la fenetre DOS parente (Run_Selective.cmd). On ne compte
-# plus sur le simple retour du .cmd apres cet appel PowerShell : ca laissait parfois
-# une fenetre residuelle. On ne ferme que si le parent direct est bien un cmd.exe,
-# par securite (evite de tuer un autre processus si le script est lance autrement).
+# Fermeture explicite de la fenêtre DOS parente (Run_Selective.cmd). On ne compte
+# plus sur le simple retour du .cmd après cet appel PowerShell : ça laissait parfois
+# une fenêtre residuelle. On ne ferme que si le parent direct est bien un cmd.exe,
+# par sécurité (évite de tuer un autre processus si le script est lancé autrement).
 try {
     $ParentProcessId = (Get-CimInstance Win32_Process -Filter "ProcessId=$PID" -ErrorAction Stop).ParentProcessId
     $ParentProcess = Get-Process -Id $ParentProcessId -ErrorAction SilentlyContinue
@@ -1012,7 +1012,7 @@ try {
     }
 }
 catch {
-    # Non bloquant : si la fermeture forcee echoue, le script se termine normalement quand meme
+    # Non bloquant : si la fermeture forcée échoue, le script se termine normalement quand même
 }
 
 exit 0

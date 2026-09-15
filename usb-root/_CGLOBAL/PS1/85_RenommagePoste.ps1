@@ -7,7 +7,7 @@ Import-Module "C:\_CGLOBAL\PS1\CGLOBAL.Common.psm1" -Force
 $LogFile = Get-CGlobalLogFile -ScriptPath $MyInvocation.MyCommand.Path
 Initialize-CGlobalLog -LogFile $LogFile
 
-# Limite historique du nom NetBIOS, toujours appliquee par Windows pour le nom du poste
+# Limite historique du nom NetBIOS, toujours appliquée par Windows pour le nom du poste
 $script:MaxComputerNameLength = 15
 
 function Test-ComputerNameCompatibility {
@@ -16,8 +16,8 @@ function Test-ComputerNameCompatibility {
         [Parameter(Mandatory = $true)][string]$CurrentName
     )
 
-    # Saisie vide (y compris un champ efface puis valide avec OK) : traitee ici,
-    # distincte du clic sur Annuler qui renvoie $null a un niveau au-dessus.
+    # Saisie vide (y compris un champ effacé puis validé avec OK) : traitée ici,
+    # distincte du clic sur Annuler qui renvoie $null à un niveau au-dessus.
     if ([string]::IsNullOrWhiteSpace($Name)) {
         return [PSCustomObject]@{ IsValid = $false; Reason = 'Le nom ne peut pas etre vide.' }
     }
@@ -34,14 +34,14 @@ function Test-ComputerNameCompatibility {
     if ($Trimmed.Length -gt $script:MaxComputerNameLength) {
         return [PSCustomObject]@{
             IsValid = $false
-            Reason  = "Le nom depasse $script:MaxComputerNameLength caracteres (limite Windows/NetBIOS)."
+            Reason  = "Le nom dépasse $script:MaxComputerNameLength caractères (limite Windows/NetBIOS)."
         }
     }
 
     if ($Trimmed -notmatch '^[A-Za-z0-9-]+$') {
         return [PSCustomObject]@{
             IsValid = $false
-            Reason  = 'Seuls les lettres, les chiffres et le trait d''union sont autorises (sans espace ni accent).'
+            Reason  = 'Seuls les lettres, les chiffres et le trait d''union sont autorisés (sans espace ni accent).'
         }
     }
 
@@ -55,7 +55,7 @@ function Test-ComputerNameCompatibility {
     if ($Trimmed -match '^[0-9]+$') {
         return [PSCustomObject]@{
             IsValid = $false
-            Reason  = 'Le nom ne peut pas etre compose uniquement de chiffres.'
+            Reason  = 'Le nom ne peut pas être composé uniquement de chiffres.'
         }
     }
 
@@ -68,7 +68,7 @@ function Read-NewComputerName {
     $NewName = Show-CGlobalInputBox -Title 'Renommage du poste' -DefaultText $CurrentName -Message @"
 Nom actuel du poste : $CurrentName
 
-Saisissez le nouveau nom du poste (lettres, chiffres et trait d'union uniquement, 15 caracteres maximum) :
+Saisissez le nouveau nom du poste (lettres, chiffres et trait d'union uniquement, 15 caractères maximum) :
 "@
 
     return $NewName
@@ -87,7 +87,7 @@ Voulez-vous modifier le nom du poste ?
 "@
 
     if ($Choice -ne [System.Windows.Forms.DialogResult]::Yes) {
-        Write-Log 'Renommage du poste ignore par l utilisateur' 'OK'
+        Write-Log 'Renommage du poste ignoré par l utilisateur' 'OK'
         exit 0
     }
 
@@ -97,7 +97,7 @@ Voulez-vous modifier le nom du poste ?
         $NewName = Read-NewComputerName -CurrentName $CurrentName
 
         if ($null -eq $NewName) {
-            Write-Log 'Saisie du nouveau nom annulee par l utilisateur' 'WARN'
+            Write-Log 'Saisie du nouveau nom annulée par l''utilisateur' 'WARN'
             exit 0
         }
 
@@ -108,14 +108,14 @@ Voulez-vous modifier le nom du poste ?
         if (-not $Check.IsValid) {
             Write-Log "Nom refuse ($NewName) : $($Check.Reason)" 'WARN'
             $Retry = Show-CGlobalPopup -Title 'Nom de poste invalide' -Buttons 'OKCancel' -Icon 'Exclamation' -Message @"
-Le nom saisi n'est pas compatible avec les regles Windows :
+Le nom saisi n'est pas compatible avec les règles Windows :
 
 $($Check.Reason)
 
 Cliquez sur OK pour ressaisir un nom, ou sur Annuler pour abandonner le renommage.
 "@
             if ($Retry -ne [System.Windows.Forms.DialogResult]::OK) {
-                Write-Log 'Renommage du poste abandonne apres nom invalide' 'WARN'
+                Write-Log 'Renommage du poste abandonné après nom invalide' 'WARN'
                 exit 0
             }
             continue
@@ -128,31 +128,31 @@ Cliquez sur OK pour ressaisir un nom, ou sur Annuler pour abandonner le renommag
             $RenameDone = $true
         }
         catch {
-            Write-Log "Echec du renommage vers '$NewName' : $($_.Exception.Message)" 'ERROR'
-            $Retry = Show-CGlobalPopup -Title 'Echec du renommage' -Buttons 'OKCancel' -Icon 'Exclamation' -Message @"
-Le renommage du poste vers '$NewName' a echoue :
+            Write-Log "Échec du renommage vers '$NewName' : $($_.Exception.Message)" 'ERROR'
+            $Retry = Show-CGlobalPopup -Title 'Échec du renommage' -Buttons 'OKCancel' -Icon 'Exclamation' -Message @"
+Le renommage du poste vers '$NewName' a échoué :
 
 $($_.Exception.Message)
 
 Cliquez sur OK pour ressaisir un nom, ou sur Annuler pour abandonner le renommage.
 "@
             if ($Retry -ne [System.Windows.Forms.DialogResult]::OK) {
-                Write-Log 'Renommage du poste abandonne apres echec' 'WARN'
+                Write-Log 'Renommage du poste abandonné après échec' 'WARN'
                 exit 0
             }
         }
     }
 
-    Write-Log "Poste renomme avec succes : $CurrentName -> $NewName" 'OK'
+    Write-Log "Poste renommé avec succès : $CurrentName -> $NewName" 'OK'
 
-    Show-CGlobalPopup -Title 'Redemarrage requis' -Buttons 'OK' -Icon 'Exclamation' -Message @"
-Le poste a ete renomme en '$NewName'.
+    Show-CGlobalPopup -Title 'Redémarrage requis' -Buttons 'OK' -Icon 'Exclamation' -Message @"
+Le poste a été renommé en '$NewName'.
 
-Ce changement ne sera effectif qu'apres un redemarrage complet du poste.
+Ce changement ne sera effectif qu'après un redémarrage complet du poste.
 "@ | Out-Null
 
-    Write-Log 'Popup de redemarrage requis affichee a l operateur' 'WARN'
-    Write-Log 'Renommage du poste termine' 'OK'
+    Write-Log 'Popup de redémarrage requis affichée à l opérateur' 'WARN'
+    Write-Log 'Renommage du poste terminé' 'OK'
     exit 0
 }
 catch {

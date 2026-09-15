@@ -2,8 +2,8 @@
 Add-Type -AssemblyName System.Windows.Forms -ErrorAction SilentlyContinue
 
 # ============================================================
-# DPI Awareness : evite le flou des popups a 125% (et autres)
-# Doit etre appele AVANT la creation de tout controle Windows Forms
+# DPI Awareness : évite le flou des popups à 125% (et autres)
+# Doit être appelé AVANT la création de tout contrôle Windows Forms
 # ============================================================
 Add-Type -TypeDefinition @"
 using System.Runtime.InteropServices;
@@ -18,9 +18,9 @@ if ("CGlobalDpiHelper" -as [type]) {
 }
 
 # ============================================================
-# Forcage au premier plan : Windows empeche par defaut un processus
+# Forçage au premier plan : Windows empêche par défaut un processus
 # sans focus de voler l'avant-plan (anti-vol-de-focus). TopMost seul
-# ne suffit pas toujours ; SetForegroundWindow force reellement l'activation.
+# ne suffit pas toujours ; SetForegroundWindow force réellement l'activation.
 # ============================================================
 Add-Type -TypeDefinition @"
 using System;
@@ -107,8 +107,8 @@ function Write-Log {
         $Level, `
         $Message
 
-    # Reessai en cas de verrou transitoire sur le fichier (ex. lecture concurrente,
-    # antivirus). Une erreur d'ecriture de log ne doit jamais interrompre le script appelant.
+    # Réessai en cas de verrou transitoire sur le fichier (ex. lecture concurrente,
+    # antivirus). Une erreur d'écriture de log ne doit jamais interrompre le script appelant.
     $MaxAttempts = 10
     for ($Attempt = 1; $Attempt -le $MaxAttempts; $Attempt++) {
         try {
@@ -117,7 +117,7 @@ function Write-Log {
         }
         catch {
             if ($Attempt -ge $MaxAttempts) {
-                Write-Host "[ECHEC ECRITURE LOG] $Line" -ForegroundColor Red
+                Write-Host "[ÉCHEC ECRITURE LOG] $Line" -ForegroundColor Red
             }
             else {
                 Start-Sleep -Milliseconds 150
@@ -225,7 +225,7 @@ function Show-CGlobalInputBox {
         return $TextBox.Text
     }
 
-    # $null distingue explicitement l'annulation d'une saisie vide validee par OK
+    # $null distingue explicitement l'annulation d'une saisie vide validée par OK
     return $null
 }
 

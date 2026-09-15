@@ -14,12 +14,12 @@ try {
     # 1. ARRÊT DU PROCESSUS WIDGETS
     # ------------------------------------------------------------------
     
-    Write-Log "Arret des processus Widgets..." "INFO"
+    Write-Log "Arrêt des processus Widgets..." "INFO"
     
     Get-Process *Widget* -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
     Start-Sleep -Seconds 2
     
-    Write-Log "Processus Widgets arretes" "OK"
+    Write-Log "Processus Widgets arrêtés" "OK"
 
     # ------------------------------------------------------------------
     # 2. DÉTECTION DU PACKAGE WIDGETS
@@ -31,15 +31,15 @@ try {
     $WidgetsProvisioned = Get-AppxProvisionedPackage -Online | Where-Object { $_.PackageName -like "*WebExperience*" }
     
     if ($null -eq $WidgetsPackage -and $null -eq $WidgetsProvisioned) {
-        Write-Log "Package Widgets non installe ou deja supprime" "OK"
+        Write-Log "Package Widgets non installé ou déjà supprimé" "OK"
         exit 0
     }
     
     if ($null -ne $WidgetsPackage) {
-        Write-Log "Package detecte: $($WidgetsPackage.Name)" "WARN"
+        Write-Log "Package détecté: $($WidgetsPackage.Name)" "WARN"
     }
     if ($null -ne $WidgetsProvisioned) {
-        Write-Log "Package provisionne detecte: $($WidgetsProvisioned.PackageName)" "WARN"
+        Write-Log "Package provisionné détecté: $($WidgetsProvisioned.PackageName)" "WARN"
     }
 
     # ------------------------------------------------------------------
@@ -47,14 +47,14 @@ try {
     # ------------------------------------------------------------------
     
     if ($null -ne $WidgetsPackage) {
-        Write-Log "Desinstallation pour tous les utilisateurs existants..." "INFO"
+        Write-Log "Désinstallation pour tous les utilisateurs existants..." "INFO"
         
         try {
             Get-AppxPackage -AllUsers *WebExperience* | Remove-AppxPackage -AllUsers -ErrorAction Stop
-            Write-Log "Package desinstalle pour tous les utilisateurs" "OK"
+            Write-Log "Package désinstallé pour tous les utilisateurs" "OK"
         }
         catch {
-            Write-Log "Echec desinstallation: $($_.Exception.Message)" "ERROR"
+            Write-Log "Échec de la désinstallation: $($_.Exception.Message)" "ERROR"
             exit 1
         }
     }
@@ -68,10 +68,10 @@ try {
         
         try {
             Remove-AppxProvisionedPackage -Online -PackageName $WidgetsProvisioned.PackageName -ErrorAction Stop
-            Write-Log "Provisioning supprime avec succes" "OK"
+            Write-Log "Provisioning supprimé avec succès" "OK"
         }
         catch {
-            Write-Log "Echec suppression provisioning: $($_.Exception.Message)" "WARN"
+            Write-Log "Échec de la suppression du provisioning: $($_.Exception.Message)" "WARN"
         }
     }
 
@@ -79,21 +79,21 @@ try {
     # 5. RESTART EXPLORER
     # ------------------------------------------------------------------
     
-    Write-Log "Redemarrage de l'Explorateur..." "INFO"
+    Write-Log "Redémarrage de l'Explorateur..." "INFO"
     
     try {
         Stop-Process -Name "explorer" -Force -ErrorAction Stop
-        Write-Log "Explorateur redemarre" "OK"
+        Write-Log "Explorateur redémarré" "OK"
     }
     catch {
-        Write-Log "Echec restart Explorer: $($_.Exception.Message)" "WARN"
+        Write-Log "Échec du redémarrage de l'Explorateur: $($_.Exception.Message)" "WARN"
     }
 
     # ------------------------------------------------------------------
     # 6. MESSAGE DE SUCCÈS
     # ------------------------------------------------------------------
     
-    Write-Log "=== MASQUAGE DES WIDGETS TERMINE ===" "OK"
+    Write-Log "=== MASQUAGE DES WIDGETS TERMINÉ ===" "OK"
     
     exit 0
 }

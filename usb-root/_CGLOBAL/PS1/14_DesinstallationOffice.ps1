@@ -81,7 +81,7 @@ function Get-OfficeInstalls {
         }
     }
 
-    # Deduplique au cas ou la meme entree apparaisse dans les deux cles (32/64 bits)
+    # Dédupliqué au cas où la même entrée apparaisse dans les deux clés (32/64 bits)
     $installs = $installs | Sort-Object Nom, UninstallString -Unique
 
     return $installs
@@ -100,22 +100,22 @@ function Show-DiagnosticSiVide {
             -ErrorAction SilentlyContinue
 
         Write-Log (
-            "Configuration ClickToRun detectee : ProductReleaseIds={0}" -f `
+            "Configuration ClickToRun détectée : ProductReleaseIds={0}" -f `
             $cfg.ProductReleaseIds
         ) "WARN"
 
         Write-Log (
-            "Office semble present mais aucune entree Uninstall n'a ete detectee"
+            "Office semble présent mais aucune entrée Uninstall n'a été détectée"
         ) "WARN"
 
         Write-Log (
-            "Probable preinstallation OEM de type Stub / Trial"
+            "Probable préinstallation OEM de type Stub / Trial"
         ) "WARN"
     }
     else {
 
         Write-Log (
-            "Aucune configuration ClickToRun detectee"
+            "Aucune configuration ClickToRun détectée"
         ) "WARN"
     }
 }
@@ -127,7 +127,7 @@ function Invoke-OfficeUninstall {
     $uninstall = $item.UninstallString
 
     # ------------------------------------------------------------------
-    # Detection du type a partir de l'UninstallString (fallback si Inconnu)
+    # Détection du type a partir de l'UninstallString (fallback si Inconnu)
     # ------------------------------------------------------------------
     $isC2R = ($item.Type -eq 'Click-to-Run') -or ($uninstall -match 'OfficeClickToRun|OfficeC2RClient')
     $isMSI = ($item.Type -eq 'MSI') -or ($uninstall -match 'msiexec')
@@ -150,7 +150,7 @@ function Invoke-OfficeUninstall {
                 -ArgumentList $Arguments `
                 -Wait
 
-            Write-Log "$($item.Nom) desinstalle" "OK"
+            Write-Log "$($item.Nom) désinstallé" "OK"
         }
         else {
 
@@ -172,12 +172,12 @@ function Invoke-OfficeUninstall {
                 -ArgumentList "/x $guid /quiet /norestart" `
                 -Wait
 
-            Write-Log "$($item.Nom) desinstalle" "OK"
+            Write-Log "$($item.Nom) désinstallé" "OK"
         }
         else {
 
             Write-Log (
-                "Impossible d extraire le GUID pour : {0}" -f `
+                "Impossible d'extraire le GUID pour : {0}" -f `
                 $item.Nom
             ) "WARN"
         }
@@ -186,7 +186,7 @@ function Invoke-OfficeUninstall {
     else {
 
         Write-Log (
-            "Type de desinstallation non reconnu pour : {0} -> {1}" -f `
+            "Type de désinstallation non reconnu pour : {0} -> {1}" -f `
             $item.Nom,
             $item.UninstallString
         ) "WARN"
@@ -194,19 +194,19 @@ function Invoke-OfficeUninstall {
 }
 
 # ------------------------------------------------------------------
-# Etape 1 : Detection
+# Etape 1 : Détection
 # ------------------------------------------------------------------
 
 Write-Log "Recherche des installations Microsoft Office et OneNote sur ce poste"
 
 $officeInstalls = Get-OfficeInstalls
 
-# Force le resultat dans un tableau meme si un seul element est retourne
+# Force le résultat dans un tableau même si un seul élement est retourné
 $officeInstalls = @($officeInstalls)
 
 if (-not $officeInstalls -or $officeInstalls.Count -eq 0) {
 
-    Write-Log "Aucune installation Office / OneNote detectee sur ce poste" "OK"
+    Write-Log "Aucune installation Office / OneNote détectée sur ce poste" "OK"
 
     Show-DiagnosticSiVide
 
@@ -217,16 +217,16 @@ if (-not $officeInstalls -or $officeInstalls.Count -eq 0) {
 # Etape 2 : Affichage de la liste
 # ------------------------------------------------------------------
 
-Write-Host "`nVersions d'Office / OneNote detectees :" -ForegroundColor Yellow
+Write-Host "`nVersions d'Office / OneNote détectées :" -ForegroundColor Yellow
 
 $i = 1
 
-Write-Log "$($officeInstalls.Count) version(s) Office / OneNote detectee(s)" "WARN"
+Write-Log "$($officeInstalls.Count) version(s) Office / OneNote détectée(s)" "WARN"
 
 foreach ($item in $officeInstalls) {
 
     Write-Log (
-        "Detecte [{0}] {1} - Version={2}" -f `
+        "Détecté [{0}] {1} - Version={2}" -f `
         $item.Type, `
         $item.Nom, `
         $item.Version
@@ -257,30 +257,30 @@ $listeProduits = ($officeInstalls | ForEach-Object {
 }) -join "`n"
 
 $messagePopup = (
-    "Les produits Office / OneNote suivants ont ete detectes :`n`n{0}`n`n" +
-    "Voulez-vous TOUS les desinstaller ?`n`nCette action est irreversible."
+    "Les produits Office / OneNote suivants ont ete détectés :`n`n{0}`n`n" +
+    "Voulez-vous TOUS les désinstaller ?`n`nCette action est irreversible."
 ) -f $listeProduits
 
 $reponse = Show-CGlobalPopup `
     -Message $messagePopup `
-    -Title "Desinstallation Office / OneNote" `
+    -Title "Désinstallation Office / OneNote" `
     -Buttons "YesNo" `
     -Icon "Exclamation"
 
 if ($reponse -ne 'Yes') {
-    Write-Log "Desinstallation Office / OneNote annulee par l utilisateur" "WARN"
+    Write-Log "Désinstallation Office / OneNote annulée par l'utilisateur" "WARN"
     exit 0
 }
 
 # ------------------------------------------------------------------
-# Etape 4 : Desinstallation
+# Etape 4 : Désinstallation
 # ------------------------------------------------------------------
-Write-Log "Desinstallation Office / OneNote en cours" "WARN"
+Write-Log "Désinstallation Office / OneNote en cours" "WARN"
 
 foreach ($item in $officeInstalls) {
 
     Write-Log (
-        "Desinstallation [{0}] {1}" -f `
+        "Désinstallation [{0}] {1}" -f `
         $item.Type,
         $item.Nom
     ) "WARN"
@@ -290,12 +290,12 @@ foreach ($item in $officeInstalls) {
     }
     catch {
         Write-Log (
-            "Echec de la desinstallation de {0} : {1}" -f `
+            "Échec de la désinstallation de {0} : {1}" -f `
             $item.Nom,
             $_.Exception.Message
         ) "ERROR"
     }
 }
 
-Write-Log "Desinstallation Office / OneNote terminee" "OK"
-Write-Log "Un redemarrage du poste est recommande" "WARN"
+Write-Log "Désinstallation Office / OneNote terminée" "OK"
+Write-Log "Un redémarrage du poste est recommandé" "WARN"

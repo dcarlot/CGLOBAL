@@ -16,7 +16,7 @@ try {
     if (-not (Test-Path $NotifyRoot)) {
 
         Write-Log "Cle NotifyIconSettings absente" "WARN"
-        Write-Log "Aucune icone connue a traiter" "WARN"
+        Write-Log "Aucune icône connue à traiter" "WARN"
         exit 0
     }
 
@@ -24,11 +24,11 @@ try {
 
     if ($Keys.Count -eq 0) {
 
-        Write-Log "Aucune icone detectee" "WARN"
+        Write-Log "Aucune icône détectée" "WARN"
         exit 0
     }
 
-    Write-Log "$($Keys.Count) icone(s) trouvee(s)"
+    Write-Log "$($Keys.Count) icône(s) trouvée(s)"
 
     $SuccessCount = 0
 
@@ -51,10 +51,10 @@ try {
         }
     }
 
-    Write-Log "$SuccessCount icone(s) activee(s)" "OK"
+    Write-Log "$SuccessCount icône(s) activée(s)" "OK"
 
     #
-    # Verification
+    # Vérification
     #
 
     $Failed = 0
@@ -82,12 +82,12 @@ try {
 
     if ($Failed -gt 0) {
 
-        throw "$Failed verification(s) en echec"
+        throw "$Failed vérification(s) en échec"
     }
 
-    Write-Log "Verification OK" "OK"
+    Write-Log "Vérification OK" "OK"
 
-    Write-Log "Configuration terminee" "OK"
+    Write-Log "Configuration terminée" "OK"
 }
 catch {
 
