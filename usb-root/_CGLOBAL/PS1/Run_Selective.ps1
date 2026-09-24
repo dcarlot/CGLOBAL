@@ -135,6 +135,7 @@ $Scripts = @(
     @{ Num="16"; File="16_TeamViewerQS.ps1"; Desc="TeamViewer QuickSupport [INTERNET]"; Tooltip="Télécharge et installe TeamViewer QuickSupport (connexion Internet requise)"; Net=$true },
     @{ Num="17"; File="17_DesinstallationOneDrive.ps1"; Desc="Désinstallation OneDrive"; Tooltip="Désinstalle OneDrive, bloque son retour pour les futurs profils et supprime les raccourcis"; Net=$false },
     @{ Num="19"; File="19_MisesAJourConstructeur.ps1"; Desc="Mises à jour constructeur [INTERNET]"; Tooltip="Détecte le constructeur et installe les mises à jour pilotes, BIOS et firmware sans redémarrer le poste pendant la séquence"; Net=$true },
+    @{ Num="20"; File="20_DesinstallationMcAfee.ps1"; Desc="Désinstallation McAfee"; Tooltip="Détecte et désinstalle automatiquement McAfee s'il est présent sur le poste"; Net=$false },
     @{ Num="85"; File="85_RenommagePoste.ps1"; Desc="Renommage du poste"; Tooltip="Affiche le nom actuel du poste et permet de le modifier après vérification de compatibilité (lettres, chiffres, trait d'union)"; Net=$false },
     @{ Num="90"; File="90_VerificationMotDePasseCompteLocal.ps1"; Desc="Vérification mot de passe local"; Tooltip="Vérifie si le compte local possède un mot de passe et propose d'en définir un"; Net=$false },
     @{ Num="99"; File="99_FinDeploiement.ps1"; Desc="Fin déploiement (restauration)"; Tooltip="Restaure les paramètres énergétiques et Windows Update (fin du mode déploiement)"; Net=$false }
@@ -406,12 +407,18 @@ function Confirm-GuestWifiProfileRemoval {
     try {
         if (-not (Test-GuestWifiProfileExists -SSID $script:GuestWifiSSID)) { return }
 
-        $Choice = [System.Windows.Forms.MessageBox]::Show(
-            "Le profil Wi-Fi '$($script:GuestWifiSSID)' est enregistré sur ce poste.`n`nVoulez-vous le supprimer ?`n`nOUI = supprimer le profil enregistré`nNON = conserver le profil et la connexion automatique",
-            "Profil Wi-Fi invité",
-            [System.Windows.Forms.MessageBoxButtons]::YesNo,
-            [System.Windows.Forms.MessageBoxIcon]::Question
-        )
+        if ($script:ExecutionMode -eq 'Interactif') {
+            $Choice = [System.Windows.Forms.MessageBox]::Show(
+                "Le profil Wi-Fi '$($script:GuestWifiSSID)' est enregistré sur ce poste.`n`nVoulez-vous le supprimer ?`n`nOUI = supprimer le profil enregistré`nNON = conserver le profil et la connexion automatique",
+                "Profil Wi-Fi invité",
+                [System.Windows.Forms.MessageBoxButtons]::YesNo,
+                [System.Windows.Forms.MessageBoxIcon]::Question
+            )
+        }
+        else {
+            $Choice = [System.Enum]::Parse([System.Windows.Forms.DialogResult], [string](Get-CGlobalDecision -Key 'RemoveGuestWifi' -Default 'Yes'))
+            Write-LogSelective "Décision Wi-Fi centralisée : $Choice" 'INFO'
+        }
 
         if ($Choice -ne [System.Windows.Forms.DialogResult]::Yes) {
             Write-LogSelective "Profil Wi-Fi '$($script:GuestWifiSSID)' conservé à la demande de l'utilisateur" "INFO"
@@ -424,21 +431,25 @@ function Confirm-GuestWifiProfileRemoval {
 
         if ($DeleteExitCode -eq 0) {
             Write-LogSelective "Profil Wi-Fi '$($script:GuestWifiSSID)' supprimé : $DeleteMessage" "OK"
-            [void][System.Windows.Forms.MessageBox]::Show(
-                "Le profil Wi-Fi '$($script:GuestWifiSSID)' a été supprimé de ce poste.",
-                "Profil Wi-Fi supprimé",
-                [System.Windows.Forms.MessageBoxButtons]::OK,
-                [System.Windows.Forms.MessageBoxIcon]::Information
-            )
+            if ($script:ExecutionMode -eq 'Interactif') {
+                [void][System.Windows.Forms.MessageBox]::Show(
+                    "Le profil Wi-Fi '$($script:GuestWifiSSID)' a été supprimé de ce poste.",
+                    "Profil Wi-Fi supprimé",
+                    [System.Windows.Forms.MessageBoxButtons]::OK,
+                    [System.Windows.Forms.MessageBoxIcon]::Information
+                )
+            }
         }
         else {
             Write-LogSelective "Échec de suppression du profil Wi-Fi '$($script:GuestWifiSSID)' (code $DeleteExitCode) : $DeleteMessage" "ERROR"
-            [void][System.Windows.Forms.MessageBox]::Show(
-                "Impossible de supprimer le profil Wi-Fi '$($script:GuestWifiSSID)'.`n`nConsultez le journal pour les détails.",
-                "Erreur de suppression",
-                [System.Windows.Forms.MessageBoxButtons]::OK,
-                [System.Windows.Forms.MessageBoxIcon]::Error
-            )
+            if ($script:ExecutionMode -eq 'Interactif') {
+                [void][System.Windows.Forms.MessageBox]::Show(
+                    "Impossible de supprimer le profil Wi-Fi '$($script:GuestWifiSSID)'.`n`nConsultez le journal pour les détails.",
+                    "Erreur de suppression",
+                    [System.Windows.Forms.MessageBoxButtons]::OK,
+                    [System.Windows.Forms.MessageBoxIcon]::Error
+                )
+            }
         }
     }
     catch {
@@ -458,6 +469,13 @@ function Resolve-InternetRequirement {
     param(
         [array]$ScriptsNeedingNet
     )
+    if ($script:ExecutionMode -ne 'Interactif') {
+        Write-LogSelective "Absence d'Internet en mode $($script:ExecutionMode) : tentative Wi-Fi automatique puis poursuite sans scripts Internet en cas d'échec" 'WARN'
+        if ((Enable-CGlobalWlanAdapter) -and (Get-GuestWifiCredentials)) {
+            if ((Connect-CGlobalGuestWifi) -and (Test-InternetConnection)) { return 'OK' }
+        }
+        return 'CONTINUE_WITHOUT'
+    }
 
     $ScriptsInternetText = ($ScriptsNeedingNet | ForEach-Object { "[$($_.Num)] $($_.Desc)" }) -join "`n"
 
@@ -613,6 +631,8 @@ $Content.Controls.Add($Panel,0,0)
 $Tooltip = New-Object System.Windows.Forms.ToolTip
 $Tooltip.AutoPopDelay = 10000; $Tooltip.InitialDelay = 500; $Tooltip.ReshowDelay = 200; $Tooltip.ShowAlways = $true
 $Checkboxes = @{}; $Results = @{}
+$script:ExecutionMode = 'Interactif'
+$script:SessionFile = 'C:\_CGLOBAL\CGLOBAL.Session.json'
 foreach ($Script in $Scripts) {
     $CB = New-Object System.Windows.Forms.CheckBox
     $CB.Text = "[$($Script.Num)] $($Script.Desc)"; $CB.AutoSize = $true
@@ -630,9 +650,9 @@ $Panel.Add_ClientSizeChanged($ResizeCheckboxes)
 
 $Commands = New-Object System.Windows.Forms.TableLayoutPanel
 $Commands.Dock = 'Fill'; $Commands.AutoScroll = $true; $Commands.Margin = New-Object System.Windows.Forms.Padding(0)
-$Commands.ColumnCount = 2; $Commands.RowCount = 8
+$Commands.ColumnCount = 2; $Commands.RowCount = 10
 $Commands.ColumnStyles.Add((New-PercentColumn 50)) | Out-Null; $Commands.ColumnStyles.Add((New-PercentColumn 50)) | Out-Null
-1..7 | ForEach-Object { $Commands.RowStyles.Add((New-AutoRow)) | Out-Null }
+1..9 | ForEach-Object { $Commands.RowStyles.Add((New-AutoRow)) | Out-Null }
 $Commands.RowStyles.Add((New-PercentRow 100)) | Out-Null
 $Content.Controls.Add($Commands,1,0)
 
@@ -656,21 +676,40 @@ $LegendLabel = New-Object System.Windows.Forms.Label
 $LegendLabel.Text="Légende :`r`n  Vert  = succès`r`n  Jaune = avertissement`r`n  Rouge = erreur / introuvable"
 $LegendLabel.AutoSize=$true; $LegendLabel.Dock='Fill'; $LegendLabel.Margin=New-Object System.Windows.Forms.Padding(4,4,4,8)
 $Commands.Controls.Add($LegendLabel,0,3); $Commands.SetColumnSpan($LegendLabel,2)
+
+$ModeGroup = New-Object System.Windows.Forms.GroupBox
+$ModeGroup.Text = 'Mode d execution'
+$ModeGroup.Dock = 'Fill'; $ModeGroup.AutoSize = $true
+$ModeFlow = New-Object System.Windows.Forms.FlowLayoutPanel
+$ModeFlow.Dock = 'Fill'; $ModeFlow.AutoSize = $true; $ModeFlow.WrapContents = $true
+$RadioInteractif = New-Object System.Windows.Forms.RadioButton
+$RadioInteractif.Text = 'Interactif'; $RadioInteractif.Checked = $true; $RadioInteractif.AutoSize = $true
+$RadioPrevalide = New-Object System.Windows.Forms.RadioButton
+$RadioPrevalide.Text = 'Prévalidé'; $RadioPrevalide.AutoSize = $true
+$RadioSilencieux = New-Object System.Windows.Forms.RadioButton
+$RadioSilencieux.Text = 'Silencieux'; $RadioSilencieux.AutoSize = $true
+$ModeFlow.Controls.AddRange(@($RadioInteractif,$RadioPrevalide,$RadioSilencieux))
+$ModeGroup.Controls.Add($ModeFlow)
+$Tooltip.SetToolTip($RadioInteractif,'Les scripts conservent leurs demandes et confirmations habituelles.')
+$Tooltip.SetToolTip($RadioPrevalide,'Toutes les décisions sont demandées avant le lancement, puis aucun popup pendant la séquence.')
+$Tooltip.SetToolTip($RadioSilencieux,'Aucune question pendant la séquence. Les choix prudents par défaut sont appliqués.')
+$Commands.Controls.Add($ModeGroup,0,4); $Commands.SetColumnSpan($ModeGroup,2)
+
 $ProgressBar = New-Object System.Windows.Forms.ProgressBar
 $ProgressBar.Dock='Fill'; $ProgressBar.MinimumSize=New-Object System.Drawing.Size(0,22); $ProgressBar.Margin=New-Object System.Windows.Forms.Padding(4)
 $ProgressBar.Minimum=0; $ProgressBar.Maximum=100; $ProgressBar.Value=0
-$Commands.Controls.Add($ProgressBar,0,4); $Commands.SetColumnSpan($ProgressBar,2)
+$Commands.Controls.Add($ProgressBar,0,5); $Commands.SetColumnSpan($ProgressBar,2)
 $ProgressLabel = New-Object System.Windows.Forms.Label
 $ProgressLabel.Text='Pret'; $ProgressLabel.AutoSize=$true; $ProgressLabel.Dock='Fill'; $ProgressLabel.AutoEllipsis=$true
-$ProgressLabel.Margin=New-Object System.Windows.Forms.Padding(4); $Commands.Controls.Add($ProgressLabel,0,5); $Commands.SetColumnSpan($ProgressLabel,2)
+$ProgressLabel.Margin=New-Object System.Windows.Forms.Padding(4); $Commands.Controls.Add($ProgressLabel,0,6); $Commands.SetColumnSpan($ProgressLabel,2)
 $BtnExecuter = New-Object System.Windows.Forms.Button; $BtnExecuter.Text='Executer'
 $BtnExecuter.Font=New-Object System.Drawing.Font('Segoe UI',10,[System.Drawing.FontStyle]::Bold); $BtnExecuter.BackColor=[System.Drawing.Color]::LightGreen
-Set-ButtonLayout $BtnExecuter 42; $Commands.Controls.Add($BtnExecuter,0,6)
+Set-ButtonLayout $BtnExecuter 42; $Commands.Controls.Add($BtnExecuter,0,7)
 $BtnQuitter = New-Object System.Windows.Forms.Button; $BtnQuitter.Text='Quitter'
 $BtnQuitter.Font=New-Object System.Drawing.Font('Segoe UI',10); $BtnQuitter.BackColor=[System.Drawing.Color]::LightCoral
 Set-ButtonLayout $BtnQuitter 42
 $BtnQuitter.Add_Click({ Export-Selection $Checkboxes; Write-LogSelective 'Fermeture par l''utilisateur (bouton Quitter)' 'INFO'; $Form.Close() })
-$Commands.Controls.Add($BtnQuitter,1,6)
+$Commands.Controls.Add($BtnQuitter,1,7)
 
 $LogLabel = New-Object System.Windows.Forms.Label
 $LogLabel.Text='Journal en direct du script en cours :'; $LogLabel.Font=New-Object System.Drawing.Font('Segoe UI',9,[System.Drawing.FontStyle]::Bold)
@@ -750,6 +789,61 @@ $Form.Add_Shown({
 })
 
 # ============================================================
+# Prévalidation centralisée
+# ============================================================
+function New-CGlobalSessionConfig {
+    param([array]$SelectedScripts, [string]$Mode)
+    $Config = [ordered]@{
+        Mode = $Mode
+        OfficeUninstall = 'No'
+        OneDriveUninstall = 'No'
+        ManufacturerUpdate = 'Cancel'
+        RenameComputer = 'No'
+        NewComputerName = ''
+        LocalPasswordAction = 'No'
+        LocalPasswordBlob = ''
+        DisableDeploymentMode = 'Yes'
+        LaunchWindowsUpdate = 'No'
+        RemoveGuestWifi = 'Yes'
+    }
+    if ($Mode -eq 'Prévalidé') {
+        $Nums = @($SelectedScripts | ForEach-Object { $_.Num })
+        if ('14' -in $Nums) {
+            $Config.OfficeUninstall = [string][System.Windows.Forms.MessageBox]::Show('Si Office ou OneNote est détecté, faut-il tout désinstaller ?','Prevalidation Office','YesNo','Question')
+        }
+        if ('17' -in $Nums) {
+            $Config.OneDriveUninstall = [string][System.Windows.Forms.MessageBox]::Show('Si OneDrive est détecté, faut-il le désinstaller et le bloquer ?','Prévalidation OneDrive','YesNo','Question')
+        }
+        if ('19' -in $Nums) {
+            $Config.ManufacturerUpdate = [string][System.Windows.Forms.MessageBox]::Show('Mises a jour constructeur :`n`nOUI = toutes, redémarrage autorisé`nNON = sans redémarrage forcé`nANNULER = ignorer le script','Prévalidation constructeur','YesNoCancel','Question')
+        }
+        if ('85' -in $Nums) {
+            $Config.RenameComputer = [string][System.Windows.Forms.MessageBox]::Show("Voulez-vous renommer le poste '$env:COMPUTERNAME' ?",'Prévalidation renommage','YesNo','Question')
+            if ($Config.RenameComputer -eq 'Yes') {
+                $Config.NewComputerName = Show-CGlobalInputBox -Title 'Prévalidation du renommage' -Message 'Nouveau nom du poste (15 caracteres maximum) :' -DefaultText $env:COMPUTERNAME
+                if ([string]::IsNullOrWhiteSpace($Config.NewComputerName)) { $Config.RenameComputer = 'No' }
+            }
+        }
+        if ('90' -in $Nums) {
+            $Config.LocalPasswordAction = [string][System.Windows.Forms.MessageBox]::Show('Si le compte local ne possède pas de mot de passe, faut-il en définir un ?','Prévalidation mot de passe','YesNo','Question')
+            if ($Config.LocalPasswordAction -eq 'Yes') {
+                $Config.LocalPasswordBlob = Show-CGlobalPasswordBox -Title 'Prévalidation du mot de passe local'
+                if ([string]::IsNullOrWhiteSpace($Config.LocalPasswordBlob)) { $Config.LocalPasswordAction = 'No' }
+            }
+        }
+        if ('99' -in $Nums) {
+            $Config.DisableDeploymentMode = [string][System.Windows.Forms.MessageBox]::Show('Faut-il désactiver le mode déploiement et restaurer Windows Update ?','Prévalidation fin déploiement','YesNo','Question')
+            if ($Config.DisableDeploymentMode -eq 'Yes') {
+                $Config.LaunchWindowsUpdate = [string][System.Windows.Forms.MessageBox]::Show('Faut-il lancer immédiatement la recherche et installation Windows Update ?','Prévalidation Windows Update','YesNo','Question')
+            }
+        }
+        $Config.RemoveGuestWifi = [string][System.Windows.Forms.MessageBox]::Show('Si le profil Wi-Fi invité est présent en fin de séquence, faut-il le supprimer ?','Prévalidation Wi-Fi','YesNo','Question')
+    }
+    $Config | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $script:SessionFile -Encoding UTF8
+    return $Config
+}
+
+# ============================================================
 # Logique d'exécution
 # ============================================================
 $BtnExecuter.Add_Click({
@@ -769,7 +863,7 @@ $BtnExecuter.Add_Click({
     # --- Aucun script coche ---
     if ($Selected.Count -eq 0) {
         $Result = [System.Windows.Forms.MessageBox]::Show(
-            "Attention, aucun script n'est coche.`n`nVoulez-vous quitter ou revenir à la sélection ?",
+            "Attention, aucun script n'est coché.`n`nVoulez-vous quitter ou revenir à la sélection ?",
             "Aucun script sélectionné",
             [System.Windows.Forms.MessageBoxButtons]::RetryCancel,
             [System.Windows.Forms.MessageBoxIcon]::Warning
@@ -782,6 +876,15 @@ $BtnExecuter.Add_Click({
         }
         return
     }
+
+
+    if ($RadioPrevalide.Checked) { $script:ExecutionMode = 'Prévalidé' }
+    elseif ($RadioSilencieux.Checked) { $script:ExecutionMode = 'Silencieux' }
+    else { $script:ExecutionMode = 'Interactif' }
+    $SessionConfig = New-CGlobalSessionConfig -SelectedScripts $Selected -Mode $script:ExecutionMode
+    $env:CGLOBAL_EXECUTION_MODE = $script:ExecutionMode
+    $env:CGLOBAL_SESSION_FILE = $script:SessionFile
+    Write-LogSelective "Mode d'exécution : $($script:ExecutionMode)" 'INFO'
 
     # --- Vérifier si Internet nécessaire ---
     $NeedInternet = $false
@@ -849,7 +952,7 @@ $BtnExecuter.Add_Click({
 
     foreach ($Script in $Selected) {
         if ($script:CancelRequested) {
-            Write-LogSelective "Execution interrompue par la fermeture de la fenêtre" "WARN"
+            Write-LogSelective "Exécution interrompue par la fermeture de la fenêtre" "WARN"
             break
         }
 
@@ -968,8 +1071,8 @@ $BtnExecuter.Add_Click({
     $ErrCount = ($Results.Values | Where-Object { $_ -eq "ERROR" -or $_ -eq "MISSING" }).Count
 
     [System.Windows.Forms.MessageBox]::Show(
-        "Execution terminee.`n`n$Total script(s) executés :`n  - $OkCount succès`n  - $WarnCount avertissement(s)`n  - $ErrCount erreur(s)`n`nConsultez le log pour les détails.",
-        "Termine",
+        "Execution terminée.`n`n$Total script(s) executés :`n  - $OkCount succès`n  - $WarnCount avertissement(s)`n  - $ErrCount erreur(s)`n`nConsultez le log pour les détails.",
+        "Terminé",
         [System.Windows.Forms.MessageBoxButtons]::OK,
         [System.Windows.Forms.MessageBoxIcon]::Information
     )
@@ -999,6 +1102,9 @@ Write-LogSelective "Affichage de l'interface de sélection" "INFO"
 [void]$Form.ShowDialog()
 Confirm-GuestWifiProfileRemoval
 Write-LogSelective "=== FERMETURE MODE SÉLECTIF ===" "INFO"
+Remove-Item -LiteralPath $script:SessionFile -Force -ErrorAction SilentlyContinue
+Remove-Item Env:CGLOBAL_EXECUTION_MODE -ErrorAction SilentlyContinue
+Remove-Item Env:CGLOBAL_SESSION_FILE -ErrorAction SilentlyContinue
 
 # Fermeture explicite de la fenêtre DOS parente (Run_Selective.cmd). On ne compte
 # plus sur le simple retour du .cmd après cet appel PowerShell : ça laissait parfois
