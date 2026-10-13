@@ -1,4 +1,4 @@
-﻿#Requires -Version 5.1
+#Requires -Version 5.1
 #Requires -RunAsAdministrator
 
 <#
@@ -24,6 +24,9 @@
  A executer en tant qu'administrateur (elevation requise).
  Fichier enregistre sans caracteres accentues pour eviter les problemes
  d'affichage lies a l'encodage selon l'editeur utilise.
+
+ VERSION CORRIGEE : Support du mode Prevalidé / Silencieux via
+ Get-CGlobalDecision -Key 'OfficeUninstall'
 #>
 
 [CmdletBinding()]
@@ -31,7 +34,7 @@ param()
 
 $ErrorActionPreference = 'Stop'
 
-Import-Module "C:\\_CGLOBAL\\PS1\\CGLOBAL.Common.psm1" -Force
+Import-Module "C:\_CGLOBAL\PS1\CGLOBAL.Common.psm1" -Force
 $LogFile = Get-CGlobalLogFile -ScriptPath $MyInvocation.MyCommand.Path
 Initialize-CGlobalLog -LogFile $LogFile
 
@@ -44,10 +47,10 @@ function Get-OfficeInstalls {
     }
 
     $uninstallKeys = @(
-        'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*',
-        'HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*',
-        'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*',
-        'HKU:\\*\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*'
+        'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*',
+        'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*',
+        'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*',
+        'HKU:\*\Software\Microsoft\Windows\CurrentVersion\Uninstall\*'
     )
 
     foreach ($keyPath in $uninstallKeys) {
@@ -63,7 +66,6 @@ function Get-OfficeInstalls {
             $uninstall = $_.UninstallString
 
             # Detection C2R : OfficeClickToRun.exe ou OfficeC2RClient.exe
-            # On match le nom de fichier sans se soucier du .exe
             if ($uninstall -match 'OfficeClickToRun|OfficeC2RClient') {
                 $type = 'Click-to-Run'
             }
@@ -91,7 +93,7 @@ function Show-DiagnosticSiVide {
 
     Write-Log "Diagnostic de recherche Office / OneNote" "WARN"
 
-    $c2rPath = 'HKLM:\\SOFTWARE\\Microsoft\\Office\\ClickToRun\\Configuration'
+    $c2rPath = 'HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Configuration'
 
     if (Test-Path $c2rPath) {
 
@@ -249,26 +251,38 @@ foreach ($item in $officeInstalls) {
 }
 
 # ------------------------------------------------------------------
-# Etape 3 : Validation utilisateur
+# Etape 3 : Validation utilisateur (CORRIGE : support mode Prevalidé/Silencieux)
 # ------------------------------------------------------------------
 
-$listeProduits = ($officeInstalls | ForEach-Object {
-    " - {0} (Version : {1}, Type : {2})" -f $_.Nom, $_.Version, $_.Type
-}) -join "`n"
+$ExecutionMode = Get-CGlobalExecutionMode
+$reponse = $null
 
-$messagePopup = (
-    "Les produits Office / OneNote suivants ont ete détectés :`n`n{0}`n`n" +
-    "Voulez-vous TOUS les désinstaller ?`n`nCette action est irreversible."
-) -f $listeProduits
+if ($ExecutionMode -ne 'Interactif') {
+    # Mode Prévalidé ou Silencieux : utiliser la décision centralisée
+    $reponse = [string](Get-CGlobalDecision -Key 'OfficeUninstall' -Default 'No')
+    Write-Log "Mode $ExecutionMode : décision prévalidée Office = $reponse" "INFO"
+}
 
-$reponse = Show-CGlobalPopup `
-    -Message $messagePopup `
-    -Title "Désinstallation Office / OneNote" `
-    -Buttons "YesNo" `
-    -Icon "Exclamation"
+if ($null -eq $reponse) {
+    # Mode Interactif ou aucune décision prévalidée : popup classique
+    $listeProduits = ($officeInstalls | ForEach-Object {
+        " - {0} (Version : {1}, Type : {2})" -f $_.Nom, $_.Version, $_.Type
+    }) -join "`n"
+
+    $messagePopup = (
+        "Les produits Office / OneNote suivants ont ete détectés :`n`n{0}`n`n" +
+        "Voulez-vous TOUS les désinstaller ?`n`nCette action est irreversible."
+    ) -f $listeProduits
+
+    $reponse = [string](Show-CGlobalPopup `
+        -Message $messagePopup `
+        -Title "Désinstallation Office / OneNote" `
+        -Buttons "YesNo" `
+        -Icon "Exclamation")
+}
 
 if ($reponse -ne 'Yes') {
-    Write-Log "Désinstallation Office / OneNote annulée par l'utilisateur" "WARN"
+    Write-Log "Désinstallation Office / OneNote annulée" "WARN"
     exit 0
 }
 

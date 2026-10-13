@@ -1,9 +1,21 @@
-﻿#Requires -Version 5.1
+#Requires -Version 5.1
 #Requires -RunAsAdministrator
+
+<#
+.SYNOPSIS
+ Désinstalle OneDrive, bloque son retour pour les futurs profils
+ et supprime les raccourcis.
+
+.NOTES
+ A executer en tant qu'administrateur (elevation requise).
+
+ VERSION CORRIGEE : Support du mode Prevalidé / Silencieux via
+ Get-CGlobalDecision -Key 'OneDriveUninstall'
+#>
 
 $ErrorActionPreference = 'Stop'
 
-Import-Module "C:\\_CGLOBAL\\PS1\\CGLOBAL.Common.psm1" -Force
+Import-Module "C:\_CGLOBAL\PS1\CGLOBAL.Common.psm1" -Force
 $LogFile = Get-CGlobalLogFile -ScriptPath $MyInvocation.MyCommand.Path
 Initialize-CGlobalLog -LogFile $LogFile
 
@@ -108,23 +120,35 @@ try {
     Write-Log "OneDrive détecté via: $($OneDriveDetails -join ', ')" "WARN"
 
     # --------------------------------------------
-    # 2. DEMANDE DE CONFIRMATION
+    # 2. DEMANDE DE CONFIRMATION (CORRIGE : support mode Prevalidé/Silencieux)
     # --------------------------------------------
 
-    Write-Log "Demande de confirmation à l'utilisateur" "INFO"
+    Write-Log "Demande de confirmation" "INFO"
 
-    $Choice = Show-CGlobalPopup `
-        -Message "OneDrive est installé sur ce poste.`n`nVoulez-vous le désinstaller ?`n`n- Suppression de la session actuelle`n- Blocage pour les futures sessions`n`nATTENTION: Cette action est irreversible.`nATTENTION: Si OneDrive à été installé volontairement, cliquez sur NON." `
-        -Title "Désinstallation OneDrive" `
-        -Buttons "YesNo" `
-        -Icon "Exclamation"
+    $ExecutionMode = Get-CGlobalExecutionMode
+    $Choice = $null
+
+    if ($ExecutionMode -ne 'Interactif') {
+        # Mode Prévalidé ou Silencieux : utiliser la décision centralisée
+        $Choice = [string](Get-CGlobalDecision -Key 'OneDriveUninstall' -Default 'No')
+        Write-Log "Mode $ExecutionMode : décision prévalidée OneDrive = $Choice" "INFO"
+    }
+
+    if ($null -eq $Choice) {
+        # Mode Interactif : popup classique
+        $Choice = [string](Show-CGlobalPopup `
+            -Message "OneDrive est installé sur ce poste.`n`nVoulez-vous le désinstaller ?`n`n- Suppression de la session actuelle`n- Blocage pour les futures sessions`n`nATTENTION: Cette action est irreversible.`nATTENTION: Si OneDrive à été installé volontairement, cliquez sur NON." `
+            -Title "Désinstallation OneDrive" `
+            -Buttons "YesNo" `
+            -Icon "Exclamation")
+    }
 
     if ($Choice -ne "Yes") {
-        Write-Log "Désinstallation OneDrive refusée par l'utilisateur" "WARN"
+        Write-Log "Désinstallation OneDrive refusée" "WARN"
         exit 0
     }
 
-    Write-Log "Désinstallation OneDrive validée par l'utilisateur" "OK"
+    Write-Log "Désinstallation OneDrive validée" "OK"
 
     # --------------------------------------------
     # 3. ARRET DU PROCESSUS ONEDRIVE
@@ -205,8 +229,6 @@ try {
     # --------------------------------------------
     # 6. SUPPRESSION DE LA CLÉ DE REGISTRE UNINSTALL
     # --------------------------------------------
-    # OneDriveSetup.exe supprime souvent la clé lui-meme.
-    # Si elle est déjà absente, c'est le résultat souhaite.
 
     if ($null -ne $UninstallKeyPath) {
         Write-Log "Suppression de la clé de registre Uninstall..." "INFO"
@@ -352,23 +374,19 @@ try {
 
     Write-Log "=== DÉSINSTALLATION ONEDRIVE TERMINÉE ===" "OK"
 
-    # Show-CGlobalPopup `
-    #     -Message "OneDrive a ete desinstalle avec succes.`n`n- Session actuelle: nettoyee`n- Futures sessions: bloquees." `
-    #     -Title "Succes" `
-    #     -Buttons "OK" `
-    #     -Icon "Information"
-
     exit 0
 }
 catch {
     Write-Log $_.Exception.Message "ERROR"
     Write-Log $_.ScriptStackTrace "ERROR"
 
-    Show-CGlobalPopup `
-        -Message "Une erreur est survenue lors de la désinstallation de OneDrive.`n`nErreur: $($_.Exception.Message)`n`nConsultez le fichier de log pour plus de details." `
-        -Title "Erreur" `
-        -Buttons "OK" `
-        -Icon "Stop"
+    if ((Get-CGlobalExecutionMode) -eq 'Interactif') {
+        Show-CGlobalPopup `
+            -Message "Une erreur est survenue lors de la désinstallation de OneDrive.`n`nErreur: $($_.Exception.Message)`n`nConsultez le fichier de log pour plus de details." `
+            -Title "Erreur" `
+            -Buttons "OK" `
+            -Icon "Stop"
+    }
 
     exit 1
 }

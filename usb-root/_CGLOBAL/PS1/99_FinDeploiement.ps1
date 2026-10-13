@@ -1,5 +1,17 @@
-﻿#Requires -Version 5.1
+#Requires -Version 5.1
 #Requires -RunAsAdministrator
+
+<#
+.SYNOPSIS
+ Restaure les paramètres énergétiques et Windows Update (fin du
+ mode déploiement).
+
+.NOTES
+ A executer en tant qu'administrateur (elevation requise).
+
+ VERSION CORRIGEE : Support du mode Prevalidé / Silencieux via
+ Get-CGlobalDecision -Key 'DisableDeploymentMode' et 'LaunchWindowsUpdate'
+#>
 
 $ErrorActionPreference = "Stop"
 
@@ -21,18 +33,34 @@ Initialize-CGlobalLog -LogFile $LogFile | Out-Null
 
 Write-Log "Début de la sortie du mode déploiement" "INFO"
 
+# ============================================================
+# CORRIGE : Support du mode Prevalidé/Silencieux
+# ============================================================
+$ExecutionMode = Get-CGlobalExecutionMode
+
 # ---------------------------------------------------------------------------
 # Confirmation de sortie du mode déploiement
 # ---------------------------------------------------------------------------
 
-$DisableDeploymentMode = Show-CGlobalPopup `
-    -Title "Mode déploiement" `
-    -Message "Voulez-vous désactiver le mode déploiement et réactiver le fonctionnement normal de Windows Update ?" `
-    -Buttons "YesNo" `
-    -Icon "Question"
+$DisableDeploymentMode = $null
+
+if ($ExecutionMode -ne 'Interactif') {
+    # Mode Prévalidé ou Silencieux : utiliser la décision centralisée
+    $DisableDeploymentMode = [string](Get-CGlobalDecision -Key 'DisableDeploymentMode' -Default 'No')
+    Write-Log "Mode $ExecutionMode : décision prévalidée DisableDeploymentMode = $DisableDeploymentMode" "INFO"
+}
+
+if ($null -eq $DisableDeploymentMode) {
+    # Mode Interactif : popup classique
+    $DisableDeploymentMode = [string](Show-CGlobalPopup `
+        -Title "Mode déploiement" `
+        -Message "Voulez-vous désactiver le mode déploiement et réactiver le fonctionnement normal de Windows Update ?" `
+        -Buttons "YesNo" `
+        -Icon "Question")
+}
 
 if ($DisableDeploymentMode -ne "Yes") {
-    Write-Log "Mode déploiement conservé à la demande de l'utilisateur" "INFO"
+    Write-Log "Mode déploiement conservé" "INFO"
     exit 0
 }
 
@@ -85,14 +113,12 @@ try {
     }
 
     # Nettoyage de la valeur qui peut griser les options de l'interface.
-    # Cette valeur ne doit pas être recréée par le script 99.
     if (Test-Path -LiteralPath $WUKey) {
         Remove-ItemProperty `
             -Path $WUKey `
             -Name "AllowOptionalContent" `
             -ErrorAction SilentlyContinue
 
-        # Nettoyage préventif de valeurs de blocage éventuelles.
         Remove-ItemProperty `
             -Path $WUKey `
             -Name "NoAutoUpdate" `
@@ -209,18 +235,29 @@ catch {
 }
 
 # ---------------------------------------------------------------------------
-# Demande de lancement immediat de Windows Update
+# Demande de lancement immediat de Windows Update (CORRIGE)
 # ---------------------------------------------------------------------------
 
-$LaunchUpdates = Show-CGlobalPopup `
-    -Title "Windows Update" `
-    -Message "Voulez-vous rechercher et installer immediatement les mises à jour Windows disponibles ?" `
-    -Buttons "YesNo" `
-    -Icon "Question"
+$LaunchUpdates = $null
+
+if ($ExecutionMode -ne 'Interactif') {
+    # Mode Prévalidé ou Silencieux : utiliser la décision centralisée
+    $LaunchUpdates = [string](Get-CGlobalDecision -Key 'LaunchWindowsUpdate' -Default 'No')
+    Write-Log "Mode $ExecutionMode : décision prévalidée LaunchWindowsUpdate = $LaunchUpdates" "INFO"
+}
+
+if ($null -eq $LaunchUpdates) {
+    # Mode Interactif : popup classique
+    $LaunchUpdates = [string](Show-CGlobalPopup `
+        -Title "Windows Update" `
+        -Message "Voulez-vous rechercher et installer immediatement les mises à jour Windows disponibles ?" `
+        -Buttons "YesNo" `
+        -Icon "Question")
+}
 
 if ($LaunchUpdates -eq "Yes") {
     try {
-        Write-Log "Lancement forcé de Windows Update demandé par l'utilisateur" "INFO"
+        Write-Log "Lancement forcé de Windows Update demandé" "INFO"
 
         $UsoClient = "$env:SystemRoot\System32\UsoClient.exe"
 
@@ -258,7 +295,7 @@ if ($LaunchUpdates -eq "Yes") {
 }
 else {
     Write-Log `
-        "Lancement immediat de Windows Update refusé par l'utilisateur" `
+        "Lancement immediat de Windows Update refusé" `
         "INFO"
 }
 
@@ -268,10 +305,16 @@ else {
 
 Write-Log "Mode déploiement désactivé" "OK"
 
-Show-CGlobalPopup `
-    -Title "Fin du déploiement" `
-    -Message "Le mode déploiement est désactivé. Windows Update automatique est réactivé. Vous pouvez fermer cette fenêtre." `
-    -Buttons "OK" `
-    -Icon "Information"
+# CORRIGE : popup final uniquement en mode interactif
+if ($ExecutionMode -eq 'Interactif') {
+    Show-CGlobalPopup `
+        -Title "Fin du déploiement" `
+        -Message "Le mode déploiement est désactivé. Windows Update automatique est réactivé. Vous pouvez fermer cette fenêtre." `
+        -Buttons "OK" `
+        -Icon "Information"
+}
+else {
+    Write-Log "Fin du déploiement (mode $ExecutionMode, pas de popup final)" "OK"
+}
 
 exit 0

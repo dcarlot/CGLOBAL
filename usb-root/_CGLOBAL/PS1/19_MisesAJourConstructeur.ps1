@@ -1,5 +1,17 @@
-﻿#Requires -Version 5.1
+#Requires -Version 5.1
 #Requires -RunAsAdministrator
+
+<#
+.SYNOPSIS
+ Détecte le constructeur et installe les mises à jour pilotes, BIOS
+ et firmware sans redémarrer le poste pendant la séquence.
+
+.NOTES
+ A executer en tant qu'administrateur (elevation requise).
+
+ VERSION CORRIGEE : Support du mode Prevalidé / Silencieux via
+ Get-CGlobalDecision -Key 'ManufacturerUpdate'
+#>
 
 $ErrorActionPreference = 'Stop'
 
@@ -79,9 +91,36 @@ function Install-WingetPackage {
     Write-Log "$PackageId installé" 'OK'
 }
 
+# ============================================================
+# CORRIGE : Get-UpdateMode supporte le mode Prevalidé/Silencieux
+# ============================================================
 function Get-UpdateMode {
     param([Parameter(Mandatory = $true)][string]$ManufacturerName)
 
+    $ExecutionMode = Get-CGlobalExecutionMode
+
+    if ($ExecutionMode -ne 'Interactif') {
+        # Mode Prévalidé ou Silencieux : utiliser la décision centralisée
+        $Prevalidated = [string](Get-CGlobalDecision -Key 'ManufacturerUpdate' -Default 'Cancel')
+        Write-Log "Mode $ExecutionMode : décision prévalidée constructeur = $Prevalidated" "INFO"
+
+        switch ($Prevalidated) {
+            'Yes' {
+                Write-Log 'Mode prévalidé : toutes les mises à jour, redémarrage autorisé' 'WARN'
+                return 'ALL'
+            }
+            'No' {
+                Write-Log 'Mode prévalidé : mises à jour sans redémarrage forcé' 'OK'
+                return 'NO_FORCED_REBOOT'
+            }
+            default {
+                Write-Log 'Script 19 ignoré (décision prévalidée = Cancel)' 'WARN'
+                return 'CANCEL'
+            }
+        }
+    }
+
+    # Mode Interactif : popup classique
     $Message = @"
 Choisissez le mode d'installation pour $ManufacturerName :
 
@@ -208,9 +247,6 @@ function Set-LenovoSystemUpdatePolicy {
 }
 
 function Disable-LenovoAutomaticScheduler {
-    # Les deux vues de registre sont écrites car Lenovo System Update peut être
-    # installé en version 32 ou 64 bits selon le poste (cf. Get-LenovoSystemUpdatePath),
-    # de la même manière que Set-LenovoSystemUpdatePolicy pour AdminCommandLine.
     $SchedulerPaths = @(
         'HKLM:\SOFTWARE\Lenovo\System Update\Preferences\UserSettings\Scheduler',
         'HKLM:\SOFTWARE\WOW6432Node\Lenovo\System Update\Preferences\UserSettings\Scheduler'
@@ -306,9 +342,6 @@ function Invoke-DellUpdates {
         "-outputLog=$DellLog"
     )
 
-    # 0 : succès ; 1/3010 : redémarrage requis selon les versions DCU ;
-    # 500 : aucune mise à jour disponible (constaté sur le terrain, pas une erreur).
-    # Les autres codes sont journalisés comme erreurs de traitement.
     if ($Result.ExitCode -eq 0) {
         Write-Log 'Traitement Dell Command Update terminé' 'OK'
     }
@@ -318,8 +351,11 @@ function Invoke-DellUpdates {
     }
     elseif ($Result.ExitCode -eq 500) {
         Write-Log 'Dell Command Update : aucune mise à jour disponible (code 500)' 'WARN'
-        Show-CGlobalPopup -Title 'Mises à jour Dell' -Buttons 'OK' -Icon 'Information' `
-            -Message "Dell Command Update n'a trouvé aucune mise à jour disponible pour ce poste." | Out-Null
+        # CORRIGE : popup uniquement en mode interactif
+        if ((Get-CGlobalExecutionMode) -eq 'Interactif') {
+            Show-CGlobalPopup -Title 'Mises à jour Dell' -Buttons 'OK' -Icon 'Information' `
+                -Message "Dell Command Update n'a trouvé aucune mise à jour disponible pour ce poste." | Out-Null
+        }
     }
     else {
         throw "Dell Command Update a retourné le code $($Result.ExitCode)"
@@ -343,7 +379,7 @@ function Test-PendingReboot {
 }
 
 try {
-    Write-Log '=== MISES À JOUR CONSTRUCTEUR ==='
+    Write-Log '=== MISES À JOURS CONSTRUCTEUR ==='
     $Manufacturer = Get-ComputerManufacturer
 
     switch ($Manufacturer) {
@@ -370,10 +406,16 @@ try {
         }
     }
 
+    # CORRIGE : popup reboot uniquement en mode interactif
     if ($script:RebootRequired) {
-        Show-CGlobalPopup -Message "Les mises à jour constructeur nécessitent un redémarrage du poste.`n`nPensez à redémarrer avant de considérer le déploiement terminé." `
-            -Title 'Redémarrage requis' -Buttons 'OK' -Icon 'Exclamation' | Out-Null
-        Write-Log 'Popup de redémarrage requis affichée à l opérateur' 'WARN'
+        if ((Get-CGlobalExecutionMode) -eq 'Interactif') {
+            Show-CGlobalPopup -Message "Les mises à jour constructeur nécessitent un redémarrage du poste.`n`nPensez à redémarrer avant de considérer le déploiement terminé." `
+                -Title 'Redémarrage requis' -Buttons 'OK' -Icon 'Exclamation' | Out-Null
+            Write-Log 'Popup de redémarrage requis affiché à l opérateur' 'WARN'
+        }
+        else {
+            Write-Log 'Redémarrage requis (mode non-interactif, pas de popup)' 'WARN'
+        }
     }
 
     Write-Log 'Mises à jour constructeur terminées' 'OK'
