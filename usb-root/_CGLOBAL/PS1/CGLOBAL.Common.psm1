@@ -1,4 +1,4 @@
-﻿# Charger System.Windows.Forms
+# Charger System.Windows.Forms
 Add-Type -AssemblyName System.Windows.Forms -ErrorAction SilentlyContinue
 
 # ============================================================
@@ -135,6 +135,96 @@ function Write-Log {
     Write-Host $Line -ForegroundColor $Color[$Level]
 }
 
+
+# ============================================================
+# Modes d'execution centralises (AJOUTE pour support prévalidation)
+# ============================================================
+$script:CGLOBAL_SessionConfig = $null
+
+function Get-CGlobalExecutionMode {
+    $Mode = [string]$env:CGLOBAL_EXECUTION_MODE
+    if ($Mode -notin @('Interactif', 'Prévalidé', 'Silencieux')) {
+        return 'Interactif'
+    }
+    return $Mode
+}
+
+function Get-CGlobalSessionConfig {
+    if ($null -ne $script:CGLOBAL_SessionConfig) {
+        return $script:CGLOBAL_SessionConfig
+    }
+    $Path = [string]$env:CGLOBAL_SESSION_FILE
+    if ([string]::IsNullOrWhiteSpace($Path) -or -not (Test-Path -LiteralPath $Path)) {
+        $script:CGLOBAL_SessionConfig = [PSCustomObject]@{}
+        return $script:CGLOBAL_SessionConfig
+    }
+    try {
+        $script:CGLOBAL_SessionConfig = Get-Content -LiteralPath $Path -Raw -Encoding UTF8 | ConvertFrom-Json
+    }
+    catch {
+        $script:CGLOBAL_SessionConfig = [PSCustomObject]@{}
+        Write-Log "Configuration de session illisible : $($_.Exception.Message)" 'WARN'
+    }
+    return $script:CGLOBAL_SessionConfig
+}
+
+function Get-CGlobalDecision {
+    param(
+        [Parameter(Mandatory = $true)][string]$Key,
+        [AllowNull()][object]$Default = $null
+    )
+    $Config = Get-CGlobalSessionConfig
+    $Property = $Config.PSObject.Properties[$Key]
+    if ($null -eq $Property) { return $Default }
+    return $Property.Value
+}
+
+function Show-CGlobalPasswordBox {
+    param([string]$Title = 'Définition du mot de passe')
+    $Form = New-Object System.Windows.Forms.Form
+    $Form.Text = $Title
+    $Form.StartPosition = 'CenterScreen'
+    $Form.FormBorderStyle = 'FixedDialog'
+    $Form.Width = 460
+    $Form.Height = 255
+    $Form.TopMost = $true
+    $Form.MaximizeBox = $false
+    $Form.MinimizeBox = $false
+    $Form.AutoScaleMode = [System.Windows.Forms.AutoScaleMode]::Dpi
+    $Label1 = New-Object System.Windows.Forms.Label
+    $Label1.Text = 'Entrez le mot de passe :'
+    $Label1.SetBounds(20, 20, 400, 20)
+    $Text1 = New-Object System.Windows.Forms.TextBox
+    $Text1.SetBounds(20, 45, 400, 24)
+    $Text1.UseSystemPasswordChar = $true
+    $Label2 = New-Object System.Windows.Forms.Label
+    $Label2.Text = 'Confirmez le mot de passe :'
+    $Label2.SetBounds(20, 85, 400, 20)
+    $Text2 = New-Object System.Windows.Forms.TextBox
+    $Text2.SetBounds(20, 110, 400, 24)
+    $Text2.UseSystemPasswordChar = $true
+    $Ok = New-Object System.Windows.Forms.Button
+    $Ok.Text = 'Valider'; $Ok.SetBounds(125, 155, 90, 30)
+    $Ok.DialogResult = [System.Windows.Forms.DialogResult]::OK
+    $Cancel = New-Object System.Windows.Forms.Button
+    $Cancel.Text = 'Annuler'; $Cancel.SetBounds(235, 155, 90, 30)
+    $Cancel.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
+    $Form.Controls.AddRange(@($Label1,$Text1,$Label2,$Text2,$Ok,$Cancel))
+    $Form.AcceptButton = $Ok; $Form.CancelButton = $Cancel
+    do {
+        $Result = $Form.ShowDialog()
+        if ($Result -ne [System.Windows.Forms.DialogResult]::OK) { $Form.Dispose(); return $null }
+        if (-not [string]::IsNullOrWhiteSpace($Text1.Text) -and $Text1.Text -eq $Text2.Text) { break }
+        [void][System.Windows.Forms.MessageBox]::Show('Les mots de passe sont vides ou différents.','Mot de passe invalide','OK','Exclamation')
+        $Text1.Clear(); $Text2.Clear(); $Text1.Focus()
+    } while ($true)
+    $Secure = ConvertTo-SecureString -String $Text1.Text -AsPlainText -Force
+    $Blob = ConvertFrom-SecureString -SecureString $Secure
+    $Text1.Clear(); $Text2.Clear(); $Form.Dispose()
+    return $Blob
+}
+
+
 function Show-CGlobalPopup {
     param(
         [Parameter(Mandatory = $true)]
@@ -229,4 +319,4 @@ function Show-CGlobalInputBox {
     return $null
 }
 
-Export-ModuleMember -Function Get-CGlobalLogFile, Initialize-CGlobalLog, Write-Log, Show-CGlobalPopup, Show-CGlobalInputBox
+Export-ModuleMember -Function Get-CGlobalLogFile, Initialize-CGlobalLog, Write-Log, Show-CGlobalPopup, Show-CGlobalInputBox, Get-CGlobalExecutionMode, Get-CGlobalSessionConfig, Get-CGlobalDecision, Show-CGlobalPasswordBox
