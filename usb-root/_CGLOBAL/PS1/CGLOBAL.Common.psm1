@@ -1,4 +1,4 @@
-# Charger System.Windows.Forms
+﻿# Charger System.Windows.Forms
 Add-Type -AssemblyName System.Windows.Forms -ErrorAction SilentlyContinue
 
 # ============================================================
@@ -271,30 +271,30 @@ function Show-CGlobalInputBox {
     $Form.FormBorderStyle = 'FixedDialog'
     $Form.MinimizeBox = $false
     $Form.MaximizeBox = $false
-    $Form.Width = 420
-    $Form.Height = 180
+    $Form.Width = 450
+    $Form.Height = 220
     $Form.Topmost = $true
 
     $Label = New-Object System.Windows.Forms.Label
     $Label.Text = $Message
-    $Label.SetBounds(10, 10, 390, 60)
+    $Label.SetBounds(10, 10, 420, 80)
     $Form.Controls.Add($Label)
 
     $TextBox = New-Object System.Windows.Forms.TextBox
     $TextBox.Text = $DefaultText
-    $TextBox.SetBounds(10, 75, 385, 24)
+    $TextBox.SetBounds(10, 95, 415, 24)
     $Form.Controls.Add($TextBox)
 
     $OkButton = New-Object System.Windows.Forms.Button
     $OkButton.Text = 'OK'
-    $OkButton.SetBounds(220, 105, 80, 28)
+    $OkButton.SetBounds(250, 130, 80, 28)
     $OkButton.DialogResult = [System.Windows.Forms.DialogResult]::OK
     $Form.Controls.Add($OkButton)
     $Form.AcceptButton = $OkButton
 
     $CancelButton = New-Object System.Windows.Forms.Button
     $CancelButton.Text = 'Annuler'
-    $CancelButton.SetBounds(310, 105, 85, 28)
+    $CancelButton.SetBounds(340, 130, 85, 28)
     $CancelButton.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
     $Form.Controls.Add($CancelButton)
     $Form.CancelButton = $CancelButton
