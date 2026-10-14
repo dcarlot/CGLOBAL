@@ -135,7 +135,7 @@ $Scripts = @(
     @{ Num="16"; File="16_TeamViewerQS.ps1"; Desc="TeamViewer QuickSupport [INTERNET]"; Tooltip="Télécharge et installe TeamViewer QuickSupport (connexion Internet requise)"; Net=$true },
     @{ Num="17"; File="17_DesinstallationOneDrive.ps1"; Desc="Désinstallation OneDrive"; Tooltip="Désinstalle OneDrive, bloque son retour pour les futurs profils et supprime les raccourcis"; Net=$false },
     @{ Num="19"; File="19_MisesAJourConstructeur.ps1"; Desc="Mises à jour constructeur [INTERNET]"; Tooltip="Détecte le constructeur et installe les mises à jour pilotes, BIOS et firmware sans redémarrer le poste pendant la séquence"; Net=$true },
-    @{ Num="20"; File="20_DesinstallationMcAfee.ps1"; Desc="Désinstallation McAfee"; Tooltip="Détecte et désinstalle automatiquement McAfee s'il est présent sur le poste"; Net=$false },
+    @{ Num="20"; File="20_DesinstallationMcAfee.ps1"; Desc="Désinstallation McAfee"; Tooltip="Détecte et désinstalle automatiquement McAfee s'il est présent sur le poste [INTERNET]"; Net=$true },
     @{ Num="85"; File="85_RenommagePoste.ps1"; Desc="Renommage du poste"; Tooltip="Affiche le nom actuel du poste et permet de le modifier après vérification de compatibilité (lettres, chiffres, trait d'union)"; Net=$false },
     @{ Num="90"; File="90_VerificationMotDePasseCompteLocal.ps1"; Desc="Vérification mot de passe local"; Tooltip="Vérifie si le compte local possède un mot de passe et propose d'en définir un"; Net=$false },
     @{ Num="99"; File="99_FinDeploiement.ps1"; Desc="Fin déploiement (restauration)"; Tooltip="Restaure les paramètres énergétiques et Windows Update (fin du mode déploiement)"; Net=$false }
