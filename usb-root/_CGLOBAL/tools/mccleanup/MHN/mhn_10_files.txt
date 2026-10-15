@@ -1,0 +1,20 @@
+;remove product files
+%PROGRAMFILES%\McAfee\MHN\McENCoR.dll
+%PROGRAMFILES%\McAfee\MHN\McENLoR.dll
+%PROGRAMFILES%\McAfee\MHN\McENRes.dll
+%PROGRAMFILES%\McAfee\MHN\McENSrv.dll
+%PROGRAMFILES%\McAfee\MHN\McENSvPS.dll
+%PROGRAMFILES%\McAfee\MHN\McENUIEx.dll
+%PROGRAMFILES%\McAfee\MHN\McENUIPS.dll
+%PROGRAMFILES%\McAfee\MHN\McENUI.exe
+%PROGRAMFILES%\McAfee\MHN\McEnUnIns.dll
+%PROGRAMFILES%\McAfee\MHN\McMhnVer.dll
+%PROGRAMFILES%\McAfee\MHN\enlang.inf
+%PROGRAMFILES%\McAfee\MHN\enres.inf
+%PROGRAMFILES%\McAfee\MHN\ensrv.inf
+%PROGRAMFILES%\McAfee\MHN\mcenins.inf
+%PROGRAMFILES%\McAfee\MHN\subst.inf
+%LOCALAPPDATA%\Microsoft\Internet Explorer\Quick Launch\McAfee EasyNetwork.lnk
+%COMMONDESKTOP%\McAfee EasyNetwork.lnk
+%LOCALAPPDATA%\Microsoft\Internet Explorer\Quick Launch\McAfee Easy Network.lnk
+%COMMONDESKTOP%\McAfee Easy Network.lnk

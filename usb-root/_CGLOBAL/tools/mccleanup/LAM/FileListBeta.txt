@@ -1,0 +1,4 @@
+%COMMONDESKTOP%\McAfee Cloud AV Beta.lnk
+%COMMONPROGRAMS%\McAfee Cloud AV Beta\Uninstall McAfee Cloud AV Beta.lnk
+%COMMONPROGRAMS%\McAfee Cloud AV Beta\McAfee Cloud AV Beta.lnk
+%COMMONPROGRAMS%\McAfee Cloud AV Beta\

@@ -1,0 +1,15 @@
+
+MSC Remover tool.
+------------------
+
+This tool can be used to manually uninstall MSC7.0 installations. 
+This is especially useful when the uninstall failed or was partially 
+successful and the user wants to remove MSC completely before trying to install again.
+
+This tool is supported on NT platforms and the various language releases of MSC.
+
+Usage:
+For uninstalling MSC7.0, please run the attached "mccleanup.exe" as an administrator.
+goto the directory that have all the MSC clean upfiles, run the following command line:
+mccleanup -p mcmsc
+

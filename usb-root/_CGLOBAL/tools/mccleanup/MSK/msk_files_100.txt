@@ -1,0 +1,62 @@
+%PROGRAMFILES%\McAfee\MSK\MskSet.dll
+%PROGRAMFILES%\McAfee\MSK\MskSet64.dll
+%PROGRAMFILES%\McAfee\MSK\Mskeuplg.dll
+%PROGRAMFILES%\McAfee\MSK\masecore.dll
+%PROGRAMFILES%\McAfee\MSK\mcabimp.dll
+%PROGRAMFILES%\McAfee\MSK\mskapbho.dll
+%PROGRAMFILES%\McAfee\MSK\mskapbho64.dll
+%PROGRAMFILES%\McAfee\MSK\mskengn.dll
+%PROGRAMFILES%\McAfee\MSK\mskmisp.dll
+%PROGRAMFILES%\McAfee\MSK\mskoeplg.dll
+%PROGRAMFILES%\McAfee\MSK\mskolplg.dll
+%PROGRAMFILES%\McAfee\MSK\mskpxplg.dll
+%PROGRAMFILES%\McAfee\MSK\msktb.dll
+%PROGRAMFILES%\McAfee\MSK\mskuc.dll
+%PROGRAMFILES%\McAfee\MSK\mskupd.dll
+%PROGRAMFILES%\McAfee\MSK\mskwm.dll
+%PROGRAMFILES%\McAfee\MSK\mskxaif.dll
+%PROGRAMFILES%\McAfee\MSK\rptspam.dll
+%PROGRAMFILES%\McAfee\MSK\rptspm64.dll
+%PROGRAMFILES%\McAfee\MSK\tbirdins.dll
+
+%PROGRAMFILES%\McAfee\MSK\mskxagnt.exe
+%PROGRAMFILES%\McAfee\MSK\msksrver.exe
+
+%PROGRAMFILES%\McAfee\MSK\1033\mskres.dll
+%PROGRAMFILES%\McAfee\MSK\1033\mskui.dll
+
+%PROGRAMFILES%\McAfee\MSK\IMskTB.xpt
+%PROGRAMFILES%\McAfee\MSK\antphish.inf
+%PROGRAMFILES%\McAfee\MSK\mskLI.inf
+%PROGRAMFILES%\McAfee\MSK\mskcmcnt.inf
+%PROGRAMFILES%\McAfee\MSK\mskmisp.inf
+%PROGRAMFILES%\McAfee\MSK\mskplg.inf
+%PROGRAMFILES%\McAfee\MSK\mskplg32.inf
+%PROGRAMFILES%\McAfee\MSK\msksrv.inf
+%PROGRAMFILES%\McAfee\MSK\msktbird.jar
+%PROGRAMFILES%\McAfee\MSK\mskuc.inf
+%PROGRAMFILES%\McAfee\MSK\oemcfg.xml
+%PROGRAMFILES%\McAfee\MSK\substLI.inf
+%PROGRAMFILES%\McAfee\MSK\mskplg64.inf
+
+
+
+%PROGRAMFILES%\McAfee\MSK\1033\ReadMe.txt
+%PROGRAMFILES%\McAfee\MSK\1033\instLD.inf
+%PROGRAMFILES%\McAfee\MSK\1033\mskhlp.inf
+%PROGRAMFILES%\McAfee\MSK\1033\mskres.dll
+%PROGRAMFILES%\McAfee\MSK\1033\mskres.inf
+%PROGRAMFILES%\McAfee\MSK\1033\mskui.dll
+%PROGRAMFILES%\McAfee\MSK\1033\mskuicfg.dat
+%PROGRAMFILES%\McAfee\MSK\1033\mskupd.xml
+%PROGRAMFILES%\McAfee\MSK\1033\mskwm.xml
+%PROGRAMFILES%\McAfee\MSK\1033\subst.inf
+
+
+;remove other msk plug-in files
+%PROGRAMFILES%\mozilla thunderbird\.autoreg
+%PROGRAMFILES%\mozilla thunderbird\chrome\msktbird.jar
+%PROGRAMFILES%\mozilla thunderbird\chrome\xpinstall.manifest
+%PROGRAMFILES%\mozilla thunderbird\components\IMskTB.xpt
+%PROGRAMFILES%\Mozilla Thunderbird\components\msktb.dll
+%PROGRAMFILES%\Qualcomm\Eudora\Plugins\MskEuplg.dll

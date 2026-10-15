@@ -1,0 +1,6 @@
+;remove product files
+%PROGRAMFILESCOMMON%\McAfee\McSvcHost\McSvHost.exe
+%PROGRAMFILESCOMMON%\McAfee\McSvcHost\McSHIns.dll
+%PROGRAMFILESCOMMON%\McAfee\McSvcHost\McSvHVer.dll
+%PROGRAMFILESCOMMON%\McAfee\McSvcHost\McSvcHost.inf
+

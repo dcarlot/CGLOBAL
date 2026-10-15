@@ -1,0 +1,51 @@
+;remove desktop shortcut
+%DESKTOP%\McAfee SpamKiller.lnk
+%COMMONDESKTOP%\McAfee SpamKiller.lnk
+
+;remove startup menu shortcut keys
+%COMMONPROGRAMS%\McAfee\McAfee SpamKiller.lnk
+%PROGRAMS%\McAfee\McAfee SpamKiller.lnk
+
+;win9x specific files
+%WINDIR%\Desktop\McAfee SpamKiller.lnk
+%WINDIR%\Start Menu\Programs\McAfee\McAfee SpamKiller.lnk
+
+;remove product files
+%PROGRAMFILES%\McAfee.com\Agent\app\msk.adf
+%PROGRAMFILES%\McAfee\SpamKiller\MSkAgent.exe
+%PROGRAMFILES%\McAfee\SpamKiller\MSKClnt.exe
+%PROGRAMFILES%\McAfee\SpamKiller\mskdcr.exe
+%PROGRAMFILES%\McAfee\SpamKiller\MSKDetct.exe
+%PROGRAMFILES%\McAfee\SpamKiller\MSKOlHlp.exe
+%PROGRAMFILES%\McAfee\SpamKiller\MSKSrvr.exe
+%PROGRAMFILES%\McAfee\SpamKiller\borlndmm.dll
+%PROGRAMFILES%\McAfee\SpamKiller\McABImp.dll
+%PROGRAMFILES%\McAfee\SpamKiller\McApfBHO.dll
+%PROGRAMFILES%\McAfee\SpamKiller\McLog.dll
+%PROGRAMFILES%\McAfee\SpamKiller\McMAPI.dll
+%PROGRAMFILES%\McAfee\SpamKiller\McRFC822.dll
+%PROGRAMFILES%\McAfee\SpamKiller\MSKCom.dll
+%PROGRAMFILES%\McAfee\SpamKiller\mskmsngr.dll
+%PROGRAMFILES%\McAfee\SpamKiller\MSKOEPlg.dll
+%PROGRAMFILES%\McAfee\SpamKiller\MSKOLPlg.dll
+%PROGRAMFILES%\McAfee\SpamKiller\MSKOLRes.dll
+%PROGRAMFILES%\McAfee\SpamKiller\MSKPing.dll
+%PROGRAMFILES%\McAfee\SpamKiller\MSKRescs.dll
+%PROGRAMFILES%\McAfee\SpamKiller\MSKUI.dll
+%PROGRAMFILES%\McAfee\SpamKiller\msvcp60.dll
+%PROGRAMFILES%\McAfee\SpamKiller\MSK.chm
+%PROGRAMFILES%\McAfee\SpamKiller\McApfBHO.dat
+%PROGRAMFILES%\McAfee\SpamKiller\MSKColors.dat
+%PROGRAMFILES%\McAfee\SpamKiller\MSN.phd
+%PROGRAMFILES%\McAfee\SpamKiller\POP3.phd
+%PROGRAMFILES%\McAfee\SpamKiller\SMTP.phd
+%PROGRAMFILES%\McAfee\SpamKiller\MSKClien.inf
+%PROGRAMFILES%\McAfee\SpamKiller\MSKCommo.inf
+%PROGRAMFILES%\McAfee\SpamKiller\MSKDicti.inf
+%PROGRAMFILES%\McAfee\SpamKiller\MSKExtra.inf
+%PROGRAMFILES%\McAfee\SpamKiller\MSKFilte.inf
+%PROGRAMFILES%\McAfee\SpamKiller\MSKProto.inf
+%PROGRAMFILES%\McAfee\SpamKiller\MSKResou.inf
+%PROGRAMFILES%\McAfee\SpamKiller\MSKServe.inf
+%PROGRAMFILES%\McAfee\SpamKiller\ReadMe.txt
+%PROGRAMFILES%\McAfee\SpamKiller\MSKSrvr.tlb

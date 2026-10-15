@@ -1,0 +1,40 @@
+
+    %APPDATA%\McAfee\McAfee Shared Components\Centralv3\CentENU.ini
+
+    %APPDATA%\McAfee\McAfee Shared Components\Centralv3\CentENG.ini
+
+    %APPDATA%\McAfee\McAfee Shared Components\Centralv3\CentENA.ini
+
+    %APPDATA%\McAfee\McAfee Shared Components\Centralv3\CentESN.ini
+
+    %APPDATA%\McAfee\McAfee Shared Components\Centralv3\CentESP.ini
+
+    %APPDATA%\McAfee\McAfee Shared Components\Centralv3\CentESM.ini
+
+    %APPDATA%\McAfee\McAfee Shared Components\Centralv3\CentDEU.ini
+
+    %APPDATA%\McAfee\McAfee Shared Components\Centralv3\CentJPN.ini
+
+    %APPDATA%\McAfee\McAfee Shared Components\Centralv3\CentFRA.ini
+
+    %APPDATA%\McAfee\McAfee Shared Components\Centralv3\CentFRC.ini
+
+    %APPDATA%\McAfee\McAfee Shared Components\Centralv3\CentPTB.ini
+
+    %APPDATA%\McAfee\McAfee Shared Components\Centralv3\CentPTG.ini
+
+    %ALLUSERS%\Start Menu\Programs\McAfee\McAfee Shared Features\McAfee Shredder 5.lnk
+
+    %ALLUSERS%\Menu DÈmarrer\Programmes\McAfee\McAfee Shared Features\McAfee Shredder 5.lnk
+
+    %ALLUSERS%\Men˙ Inicio\Programas\McAfee\McAfee Shared Features\McAfee Shredder 5.lnk
+
+    %ALLUSERS%\Startmen¸\Programme\McAfee\McAfee Shared Features\McAfee Shredder 5.lnk
+
+    %ALLUSERS%\Menu Avvio\Programmi\McAfee\McAfee Shared Features\McAfee Shredder 5.lnk
+
+    %ALLUSERS%\Menu Iniciar\Programas\McAfee\McAfee Shared Features\McAfee Shredder 5.lnk
+
+    %ALLUSERS%\Menu Start\Programma's\McAfee\McAfee Shared Features\McAfee Shredder 5.lnk
+
+    %ALLUSERS%\ÉXÉ^Å[Ég ÉÅÉjÉÖÅ[\ÉvÉçÉOÉâÉÄ\McAfee\McAfee Shared Features\McAfee Shredder 5.lnk

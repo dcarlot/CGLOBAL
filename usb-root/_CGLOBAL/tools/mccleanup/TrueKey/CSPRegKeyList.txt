@@ -1,0 +1,25 @@
+; CSP registry
+HKLM\SOFTWARE\McAfee\CSP
+HKLM\SOFTWARE\Wow6432Node\McAfee\CSP
+
+; CSP service
+HKLM\SYSTEM\CurrentControlSet\Services\mccspsvc
+
+; This entry exist in TK 1.4
+HKEY_CLASSES_ROOT\McCSPClientInternal.1	
+
+
+
+
+
+
+
+
+;HKCR\CLSID\{8F2BC96B-68C5-40E8-9CE1-368E3ACAC09B}
+;HKCR\CLSID\{B62A9F7D-4F97-4740-9EEE-3554F2AD2E4B}
+;HKLM\SOFTWARE\McAfee\DAClient
+;HKLM\SOFTWARE\McAfee\CSPLite
+
+;HKLM\SOFTWARE\Wow6432Node\McAfee\CSP
+
+

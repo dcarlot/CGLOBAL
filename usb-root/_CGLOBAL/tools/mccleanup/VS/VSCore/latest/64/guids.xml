@@ -1,0 +1,95 @@
+<Package xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="mfeguids.xsd">
+	<ManifestMap>
+		<General>
+			<Version>19.5.0.163.8</Version>
+			<Name>guids</Name>
+		</General>
+		<!-- Telemetry IDs for production products are maintained in this file and start at 1.   
+ 
+	Each group starts at a new block of 100. Telemetry IDs for test products start at 10,000  
+ 
+	and are maintained in testguids.xml-->
+		<Group ref="ALL">
+			<ProductId priv="0x7" telemetryId="1">{5632277D-6655-4CF5-B09E-13368E2D2631}</ProductId>
+			<!--DLP-->
+			<ProductId priv="0x7" telemetryId="2">{37307DCA-6C60-41a8-BB18-5CF8242DEBEF}</ProductId>
+			<!--ADconnector-->
+			<ProductId priv="0x7" telemetryId="3">{331E2F05-02B7-4111-B232-06F0AB323B97}</ProductId>
+			<!--DXL-->
+			<ProductId priv="0x7" telemetryId="4">{B0B6AAEC-4FF5-4d15-9505-FA576B85EEEA}</ProductId>
+			<!--AMCORE-->
+			<ProductId priv="0x7" telemetryId="5">{D6F57F24-695D-4942-BAB0-2F75B3042B41}</ProductId>
+			<!--HIPS-->
+			<ProductId priv="0x7" telemetryId="6">{618995CB-AFB2-4970-9CB7-35379796835A}</ProductId>
+			<!--LABS-->
+			<ProductId priv="0x7" telemetryId="7">{45419BCF-40FB-44d7-8FF8-E2B5E4411614}</ProductId>
+			<!--LAM-->
+			<ProductId priv="0x7" telemetryId="8">{D7687DD1-979A-4052-A6E5-EDB967901C48}</ProductId>
+			<!--MA-->
+			<ProductId priv="0x7" telemetryId="9">{E2C05A3D-04A1-418A-8C51-B0D650A54E7E}</ProductId>
+			<!--MAR-->
+			<ProductId priv="0x7" telemetryId="10">{27B30835-3379-416C-B2B3-8036E517645D}</ProductId>
+			<!--MCP-->
+			<ProductId priv="0x7" telemetryId="11">{FC04F053-70E4-46B8-B2D9-B78F3AE001E3}</ProductId>
+			<!--MFP-->
+			<ProductId priv="0x7" telemetryId="12">{6A3BBC4B-7727-4C40-8617-F6F2DADB806C}</ProductId>
+			<!--MFS-->
+			<ProductId priv="0x7" telemetryId="13">{D3D0E997-1EE3-4817-81F6-919685EC06A8}</ProductId>
+			<!--NIA-->
+			<ProductId priv="0x7" telemetryId="14">{73E8CCF1-4340-4852-82E9-DEDF9EB79167}</ProductId>
+			<!--RealProtect-->
+			<ProductId priv="0x7" telemetryId="15">{755915E6-30CE-4B62-BB37-95A32B2D8D1F}</ProductId>
+			<!--Solidcore-->
+			<ProductId priv="0x7" telemetryId="16">{3B0FCDAE-F07C-4649-A5CB-7A18EEB4DCB3}</ProductId>
+			<!--TIE-->
+			<ProductId priv="0x7" telemetryId="17">{EA334ECD-7513-486B-A265-0C698FACBB06}</ProductId>
+			<!--ENS-->
+			<ProductId priv="0x7" telemetryId="20">{DC5E767E-6ADA-4613-87D7-58B5C0C5B74E}</ProductId>
+			<!--TRIG-->
+			<ProductId priv="0x7" telemetryId="21">{E678301D-AAB6-4859-9642-8ADB8037849A}</ProductId>
+			<!--MAC-->
+			<ProductId priv="0x7" telemetryId="22">{3CE6DA78-2636-4668-8CBB-E0E12725D1B9}</ProductId>
+			<!--Coretrax-->
+			<ProductId priv="0x7" telemetryId="23">{0C279163-6045-4783-B2C6-1835DA7E1BA7}</ProductId>
+			<!--ESP-->
+			<ProductId priv="0x7" telemetryId="24">{A704C827-C5DC-405f-8CFA-6EE34E9AC8DA}</ProductId>
+			<!--MOV-->
+			<ProductId priv="0x7" telemetryId="25">{0BEF7C3D-A0A5-4c56-8F43-603CC124BB48}</ProductId>
+			<!--CloudAV-->
+			<ProductId priv="0x7" telemetryId="26">{43EE5BE0-61BB-413A-A21E-3CAB4C8DD421}</ProductId>
+			<!--MPT-ALL-->
+			<ProductId priv="0x7" telemetryId="27">{511A5DE8-AA60-4817-8059-D9592D5DD9BD}</ProductId>
+			<!--Hermine-1219828-->
+			<ProductId priv="0x7" telemetryId="28">{FD5BFD0D-10A7-4E59-98A4-9E00925A92F4}</ProductId>
+			<!--Echelon-1224199-->
+			<ProductId priv="0x7" telemetryId="29">{82AEAFBD-F3FA-4716-92A6-95BD51A963BE}</ProductId>
+			<!--Performance Advisor-1236360-->
+			<ProductId priv="0x7" telemetryId="30">{D03DA5D7-C802-4738-A2F3-14009D641A47}</ProductId>
+			<!--Scorpion-1239073-->
+		</Group>
+		<Group ref="VSEALL">
+			<ProductId priv="0x7" telemetryId="100">{790352C7-6F69-4553-9BB5-0D430ABD6C64}</ProductId>
+			<!--VSE-->
+			<ProductId priv="0x7" telemetryId="101">{3739AA56-A3C2-4F60-8834-2C392C1C6208}</ProductId>
+			<!--stinger-->
+		</Group>
+		<Group ref="VSEALL_TEST">
+			<ProductId priv="0x7" telemetryId="200">{89D06A41-5000-4432-B663-BFC1C872F656}</ProductId>
+			<!--MPT-VSE_TEST-->
+		</Group>
+		<Group ref="UNINSTALL">
+			<ProductId priv="0x8" telemetryId="300">{7C55CE1C-B9F7-4839-8118-9BF35730160C}</ProductId>
+			<!--For force un-installation-->
+		</Group>
+		<Group ref="WSS">
+			<ProductId priv="0x7" telemetryId="400">{E179F170-519B-469d-AF72-BF56E2B1EED7}</ProductId>
+			<!--VSO-AV-->
+			<ProductId priv="0x7" telemetryId="401">{308C1AD7-765B-4A17-B25B-D415F07357F3}</ProductId>
+			<!--VSO-Prescan-->
+		</Group>
+		<Group ref="MGS">
+			<ProductId priv="0x7" telemetryId="500">{F8617501-0B86-43B3-8F61-FEB2BFB56061}</ProductId>
+			<!-- McAfee Game Safe -->
+		</Group>
+	</ManifestMap>
+	<Signature><SignedInfo><Reference><DigestValue sha256="6f2e385667acac13ce839730388c5f2d7a329d52f7e83764fbd9edf2a3f60e4c">808aa981d6768d71f1e63915785ef23f</DigestValue></Reference></SignedInfo><SignatureValue><![CDATA[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]]></SignatureValue></Signature></Package>

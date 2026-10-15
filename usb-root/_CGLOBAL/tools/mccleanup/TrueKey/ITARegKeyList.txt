@@ -1,0 +1,14 @@
+; ITA Uninstall string
+HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{177F3D6F-C4A1-478A-B978-AD91C2EF3EC8}
+
+
+
+
+;HKLM\SOFTWARE\Classes\Intel.ITA.CP
+
+; ITA service
+;HKLM\SYSTEM\CurrentControlSet\Services\Intel(R) TechnologyAccessService
+
+; ITA filter driver
+;HKLM\SYSTEM\CurrentControlSet\Services\ndisrd
+

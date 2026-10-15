@@ -1,0 +1,69 @@
+; ----------------------------------------------------------------------
+; MFENDISK_M.INF
+;
+; MfeNdisk Miniport INF file
+;
+; Copyright (C) 2008 McAfee, Inc.
+; ----------------------------------------------------------------------
+
+[Version]
+signature   = "$Windows NT$"
+Class       = Net
+ClassGUID   = {4d36e972-e325-11ce-bfc1-08002be10318}
+Provider    = %Mfe%
+DriverVer   = 04/27/2013,14.2.0.0
+CatalogFile = mfendisk_m.cat
+
+[ControlFlags]
+ExcludeFromSelect = mfe_ndiskmp
+
+[DestinationDirs]
+DefaultDestDir=12
+; No files to copy 
+
+[Manufacturer]
+%Mfe% = MCAFEE, NTx86, NTamd64
+
+; For Win2k 
+
+[MCAFEE]
+%MfeNdiskMp_Desc% = MfeNdiskMp.ndi, mfe_ndiskmp
+
+; For WinXP and later
+[MCAFEE.NTx86]
+%MfeNdiskMp_Desc% = MfeNdiskMp.ndi, mfe_ndiskmp
+
+[MCAFEE.NTamd64]
+%MfeNdiskMp_Desc% = MfeNdiskMp.ndi, mfe_ndiskmp
+
+[MfeNdiskMp.ndi]
+AddReg          = MfeNdiskMp.ndi.AddReg
+Characteristics = 0x29 ;NCF_NOT_USER_REMOVABLE | NCF_VIRTUAL | NCF_HIDDEN
+
+[MfeNdiskMp.ndi.AddReg]
+HKR, Ndi, Service,  0,  MfeNdiskMp
+
+[MfeNdiskMp.ndi.Services]
+AddService = mfendiskmp, 0x2, MfeNdiskMp.AddService
+
+
+[MfeNdiskMp.AddService]
+ServiceType    = 1 ;SERVICE_KERNEL_DRIVER
+StartType      = 3 ;SERVICE_DEMAND_START
+ErrorControl   = 1 ;SERVICE_ERROR_NORMAL
+ServiceBinary  = %12%\mfendisk.sys
+AddReg         = MfeNdiskMp.AddService.AddReg
+
+
+[MfeNdiskMp.AddService.AddReg]
+; ----------------------------------------------------------------------
+; Add any miniport-specific parameters here.  These are params that your
+; filter device is going to use.
+;
+;HKR, Parameters, ParameterName,  0x10000, "MultiSz", "Parameter", "Value"
+;HKR, Parameters, ParameterName2, 0x10001, 4
+
+[Strings]
+Mfe = "McAfee"
+MfeNdiskMp_Desc = "McAfee Core NDIS Intermediate Filter Miniport"
+

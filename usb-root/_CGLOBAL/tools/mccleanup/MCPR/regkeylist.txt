@@ -1,0 +1,2 @@
+HKEY_USERS\S-1-5-18\Software\McAfee
+HKEY_USERS\.DEFAULT\Software\McAfee

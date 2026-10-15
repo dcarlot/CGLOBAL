@@ -1,0 +1,145 @@
+%PROGRAMFILES%\McAfee.com\VSO\ediskimg.inf
+%PROGRAMFILES%\McAfee.com\VSO\804mbd1.chk
+%PROGRAMFILES%\McAfee.com\VSO\804mbd1.IMG
+%PROGRAMFILES%\McAfee.com\Shared\mccomctl.dll
+%PROGRAMFILES%\McAfee.com\Shared\mccomctl.inf
+%DESKTOP%\McAfee.com Scan For Viruses.lnk
+%DESKTOP%\McAfee ±½´y¯f¬r.lnk
+%DESKTOP%\McAfee Auf Viren überprüfen.lnk
+%DESKTOP%\McAfee Scan.lnk
+%DESKTOP%\McAfee Scan For Viruses.lnk
+%DESKTOP%\McAfee Detectar virus
+%DESKTOP%\McAfee Analyse antivirus
+%DESKTOP%\McAfee Ricerca virus
+%DESKTOP%\McAfee ƒEƒCƒ‹ƒX‚ÌƒXƒLƒƒƒ“.lnk
+%DESKTOP%\McAfee ƒEƒCƒ‹ƒX ƒXƒLƒƒƒ“.lnk
+%DESKTOP%\McAfee Scannen op virussen
+%DESKTOP%\McAfee Verificar a Existência de Vírus
+%COMMONDESKTOP%\McAfee.com Scan For Viruses.lnk
+%COMMONDESKTOP%\McAfee ±½´y¯f¬r.lnk
+%COMMONDESKTOP%\McAfee Auf Viren überprüfen.lnk
+%COMMONDESKTOP%\McAfee Scan.lnk
+%COMMONDESKTOP%\McAfee Scan For Viruses.lnk
+%COMMONDESKTOP%\McAfee Detectar virus
+%COMMONDESKTOP%\McAfee Analyse antivirus
+%COMMONDESKTOP%\McAfee Ricerca virus
+%COMMONDESKTOP%\McAfee ƒEƒCƒ‹ƒX‚ÌƒXƒLƒƒƒ“.lnk
+%COMMONDESKTOP%\McAfee ƒEƒCƒ‹ƒX ƒXƒLƒƒƒ“.lnk
+%COMMONDESKTOP%\McAfee Scannen op virussen
+%COMMONDESKTOP%\McAfee Verificar a Existência de Vírus
+%PROGRAMS%\McAfee\McAfee VirusScan
+%COMMONPROGRAMS%\McAfee\McAfee VirusScan
+%PROGRAMFILES%\McAfee.com\VSO\unicows.dll
+%PROGRAMFILES%\McAfee.com\VSO\redist.txt
+%PROGRAMFILES%\McAfee.com\VSO\license.txt
+%PROGRAMFILES%\McAfee.com\VSO\oasres.inf
+%PROGRAMFILES%\McAfee.com\VSO\emscnres.dll
+%PROGRAMFILES%\McAfee.com\VSO\emlscres.inf
+%PROGRAMFILES%\McAfee.com\VSO\McVSEscn.exe
+%PROGRAMFILES%\McAfee.com\VSO\McVSSkt.Dll
+%PROGRAMFILES%\McAfee.com\VSO\emlscbin.inf
+%PROGRAMFILES%\McAfee.com\VSO\naiavf5x.inf
+%PROGRAMFILES%\Mcafee.com\VSO\mcscan32.dll
+%PROGRAMFILES%\Mcafee.com\VSO\vsoeng.inf
+%PROGRAMFILES%\Mcafee.com\VSO\signlic.txt
+%WINDIR%\system\MCSCAN32.VXD
+%PROGRAMFILES%\Mcafee.com\VSO\RWABS16.DLL
+%PROGRAMFILES%\Mcafee.com\VSO\RWABS32.DLL
+%PROGRAMFILES%\McAfee.com\VSO\mytilus.dll
+%PROGRAMFILES%\McAfee.com\VSO\oasbin.inf
+%PROGRAMFILES%\McAfee.com\VSO\vsengver.dll
+%WINDIR%\system\vshinit.vxd
+%WINDIR%\system\vshield.vxd
+%WINDIR%\system\mcutil.vxd
+%WINDIR%\system\mckrnl.vxd
+%PROGRAMFILES%\McAfee.com\VSO\naiavfin.exe
+%PROGRAMFILES%\McAfee.com\VSO\naiavf5a.sys
+%PROGRAMFILES%\McAfee.com\VSO\naiavf5i.sys
+%PROGRAMFILES%\McAfee.com\VSO\naiavf5x.sys
+%WINDIR%\system32\drivers\naiavf5a.sys
+%WINDIR%\system32\drivers\naiavf5i.sys
+%WINDIR%\system32\drivers\naiavf5x.sys
+%PROGRAMFILES%\McAfee.com\VSO\naiavf5x.cat
+%PROGRAMFILES%\McAfee.com\VSO\McShield.exe
+%PROGRAMFILES%\McAfee.com\VSO\ftl.dll
+%PROGRAMFILES%\McAfee.com\VSO\client9x.dll
+%PROGRAMFILES%\McAfee.com\VSO\naiann.dll
+%PROGRAMFILES%\McAfee.com\VSO\ntclient.dll
+%PROGRAMFILES%\McAfee.com\VSO\ScanServ.dll
+%WINDIR%\system32\drivers\NaiFsRec.sys
+%WINDIR%\system32\drivers\NaiFiltr.sys
+%PROGRAMFILES%\McAfee.com\VSO\NaiFiltr.inf
+%PROGRAMFILES%\McAfee.com\VSO\Naifiltr.cat
+%PROGRAMFILES%\McAfee.com\VSO\NAIEvent.dll
+%PROGRAMFILES%\McAfee.com\VSO\NaiEvent.dll
+%PROGRAMFILES%\McAfee.com\VSO\Res00\McShield.dll
+%PROGRAMFILES%\McAfee.com\VSO\Res09\McShield.dll
+%PROGRAMFILES%\McAfee.com\VSO\Res11\McShield.dll
+%PROGRAMFILES%\McAfee.com\VSO\naiannps.dll
+%PROGRAMFILES%\McAfee.com\VSO\mcvsps.dll
+%PROGRAMFILES%\McAfee.com\VSO\oasclnt.exe
+%PROGRAMFILES%\McAfee.com\VSO\mcvsshld.exe
+%PROGRAMFILES%\McAfee.com\VSO\mcvsctl.dll
+%PROGRAMFILES%\McAfee.com\VSO\edisk.dll
+%PROGRAMFILES%\McAfee.com\VSO\vsoupd.dll
+%PROGRAMFILES%\McAfee.com\VSO\mcmnhdlr.exe
+%PROGRAMFILES%\McAfee.com\VSO\mcvsmap.exe
+%PROGRAMFILES%\McAfee.com\VSO\mcavtsub.dll
+%PROGRAMFILES%\McAfee.com\VSO\mcvsdiag.dll
+%PROGRAMFILES%\McAfee.com\VSO\vso.inf
+%PROGRAMFILES%\McAfee.com\VSO\mcshld9x.exe
+%PROGRAMFILES%\McAfee.com\VSO\mcvsrte.exe
+%PROGRAMFILES%\McAfee.com\VSO\mcurial.dll
+%PROGRAMFILES%\McAfee.com\VSO\PATCHW32.DLL
+%PROGRAMFILES%\McAfee.com\VSO\scan.dat
+%PROGRAMFILES%\McAfee.com\VSO\extra.dat
+%PROGRAMFILES%\McAfee.com\VSO\Names.dat
+%PROGRAMFILES%\McAfee.com\VSO\clean.dat
+%PROGRAMFILES%\McAfee.com\VSO\vsodat.inf
+%PROGRAMFILES%\McAfee.com\Agent\uninst\vsoremui.dll
+%PROGRAMFILES%\McAfee.com\VSO\vsocfg.inf
+%PROGRAMFILES%\McAfee.com\VSO\ashldres.dll
+%PROGRAMFILES%\McAfee.com\VSO\vsoui.dll
+%PROGRAMFILES%\McAfee.com\VSO\mvsuicfg.dat
+%PROGRAMFILES%\McAfee.com\VSO\config.ini
+%PROGRAMFILES%\McAfee.com\VSO\vsezres.dll
+%PROGRAMFILES%\McAfee.com\VSO\vsez.adf
+%PROGRAMFILES%\McAfee.com\VSO\mcvso.ui
+%PROGRAMFILES%\McAfee.com\VSO\vsoagnt.ui
+%PROGRAMFILES%\McAfee.com\Agent\uninst\vsorem.ui
+%PROGRAMFILES%\McAfee.com\Agent\app\vso.adf
+%PROGRAMFILES%\McAfee.com\VSO\vscfgui.dll
+%PROGRAMFILES%\McAfee.com\VSO\vsowow.dll
+%PROGRAMFILES%\McAfee.com\VSO\vso.chm
+%PROGRAMFILES%\McAfee.com\VSO\readme.txt
+%PROGRAMFILES%\McAfee.com\VSO\vscfgui.inf
+%PROGRAMFILES%\McAfee.com\VSO\vscfgw32.dll
+%PROGRAMFILES%\McAfee.com\Agent\uninst\vscfgui.dll
+%PROGRAMFILES%\McAfee.com\VSO\vsagntui.inf
+%PROGRAMFILES%\McAfee.com\VSO\vsagntui.dll
+%PROGRAMFILES%\McAfee.com\VSO\mcinsupd.exe
+%PROGRAMFILES%\McAfee.com\VSO\mcinsupd.inf
+%PROGRAMFILES%\McAfee.com\VSO\outscan.dll
+%PROGRAMFILES%\McAfee.com\VSO\vsolplg.dll
+%PROGRAMFILES%\McAfee.com\VSO\vsolui.dll
+%PROGRAMFILES%\McAfee.com\VSO\oscnbin.inf
+%PROGRAMFILES%\McAfee.com\VSO\outscres.dll
+%PROGRAMFILES%\McAfee.com\VSO\oscnres.inf
+%PROGRAMFILES%\McAfee.com\VSO\mcvsftsn.exe
+%PROGRAMFILES%\McAfee.com\VSO\imscnbin.inf
+%PROGRAMFILES%\McAfee.com\VSO\ftscnres.dll
+%PROGRAMFILES%\McAfee.com\VSO\appinit.ini
+%PROGRAMFILES%\McAfee.com\VSO\imscnres.inf
+%PROGRAMFILES%\McAfee.com\VSO\mcvsscrp.dll
+%PROGRAMFILES%\McAfee.com\VSO\scrpsbin.inf
+%PROGRAMFILES%\McAfee.com\VSO\scrpres.dll
+%PROGRAMFILES%\McAfee.com\VSO\scrstres.inf
+%PROGRAMFILES%\McAfee.com\VSO\wormres.dll
+%PROGRAMFILES%\McAfee.com\VSO\wrmstres.inf
+%PROGRAMFILES%\McAfee.com\VSO\mcvsworm.dll
+%PROGRAMFILES%\McAfee.com\VSO\wrmstbin.inf
+%PROGRAMFILES%\McAfee.com\VSO\shlres.dll
+%PROGRAMFILES%\McAfee.com\VSO\shextres.inf
+%PROGRAMFILES%\McAfee.com\VSO\mcvsshl.dll
+%PROGRAMFILES%\McAfee.com\VSO\shextbin.inf
+%WINDIR%\Tasks\McAfee.com Scan for Viruses - My Computer (VMW-user1).job

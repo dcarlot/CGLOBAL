@@ -1,0 +1,10 @@
+%WINDIR%\system32\drivers\mfeavfk.sys
+%WINDIR%\system32\drivers\mfebopk.sys
+%WINDIR%\system32\drivers\mfehidk.sys
+%WINDIR%\system32\drivers\mfesmfk.sys
+%WINDIR%\system32\drivers\mferkdk.sys
+%WINDIR%\sysnative\drivers\mfeavfk.sys
+%WINDIR%\sysnative\drivers\mfebopk.sys
+%WINDIR%\sysnative\drivers\mfehidk.sys
+%WINDIR%\sysnative\drivers\mfesmfk.sys
+%WINDIR%\sysnative\drivers\mferkdk.sys

@@ -1,0 +1,11 @@
+; BCA registry
+HKLM\SOFTWARE\Intel\BCA
+
+; BCA service
+HKLM\SYSTEM\CurrentControlSet\Services\IntelBCAsvc
+
+; BCA uninstall string
+HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{9143B00E-75C1-4A4F-849C-BADC791E03A5}
+
+; BCA Redist uninstall string
+HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{C0BA52C1-FCDD-4F7F-9CE6-273A216A620F}

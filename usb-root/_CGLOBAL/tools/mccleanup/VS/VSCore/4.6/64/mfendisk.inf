@@ -1,0 +1,119 @@
+; ----------------------------------------------------------------------
+; MFENDISK.INF
+;
+; MfeNdisk driver INF file - this is the INF for the service (protocol)
+; part.
+;
+; Copyright (C) 2008 McAfee, Inc.
+;
+; ----------------------------------------------------------------------
+
+[Version]
+Signature   = "$Windows NT$"
+Class       = NetService
+ClassGUID   = {4D36E974-E325-11CE-BFC1-08002BE10318}
+Provider    = %Mfe%
+DriverVer   = 04/27/2013,14.2.0.0
+CatalogFile = mfendisk.cat
+
+
+[Manufacturer]
+%Mfe% = MCAFEE, NTx86, NTamd64
+
+[ControlFlags]
+; none
+
+
+; For Win2k
+
+[MCAFEE]
+%MfeNdisk_Desc% = MfeNdisk.ndi, mfe_ndisk
+
+;For WinXP and later
+
+[MCAFEE.NTx86]
+%MfeNdisk_Desc% = MfeNdisk.ndi, mfe_ndisk
+
+[MCAFEE.NTamd64]
+%MfeNdisk_Desc% = MfeNdisk.ndi, mfe_ndisk
+
+
+[MfeNdisk.ndi]
+AddReg          = MfeNdisk.ndi.AddReg, MfeNdisk.AddReg
+Characteristics = 0x4418 ;  NCF_FILTER | NCF_NDIS_PROTOCOL | NCF_NO_SERVICE | NCF_HIDDEN
+CopyFiles       = MfeNdisk.Files.Sys
+CopyInf         = mfendisk_m.inf
+
+[MfeNdisk.ndi.Remove]
+DelFiles = MfeNdisk.Files.Sys
+
+[MfeNdisk.ndi.Services]
+AddService = mfendisk,, MfeNdisk.AddService
+
+[MfeNdisk.AddService]
+DisplayName    = %MfeNdiskService_Desc%
+ServiceType    = 1 ;SERVICE_KERNEL_DRIVER
+StartType      = 3 ;SERVICE_DEMAND_START
+ErrorControl   = 1 ;SERVICE_ERROR_NORMAL
+ServiceBinary  = %12%\mfendisk.sys
+AddReg         = MfeNdisk.AddService.AddReg
+
+
+[MfeNdisk.AddService.AddReg]
+
+
+; ----------------------------------------------------------------------
+; File copy
+;
+[SourceDisksNames]
+1=%DiskDescription%,"",,
+
+[SourceDisksFiles]
+mfendisk.sys=1
+
+[DestinationDirs]
+DefaultDestDir = 12
+MfeNdisk.Files.Sys   = 12   ; %windir%\System32\drivers
+
+[MfeNdisk.Files.Sys]
+mfendisk.sys,,,2
+
+; ----------------------------------------------------------------------
+; Filter Install
+;
+
+[MfeNdisk.ndi.AddReg]
+HKR, Ndi, HelpText, , %MfeNdisk_HELP%
+
+; ----------------------------------------------------------------------
+; !!--Filter Specific--!!
+;
+; Note:
+; 1. Other components may also have UpperRange/LowerRange but for filters
+;    the value of both of them must be noupper/nolower
+; 2. The value FilterClass is required.
+; 3. The value Service is required
+; 4. FilterDeviceInfId is the InfId of the filter device (miniport) that will
+;    be installed for each filtered adapter.
+;    In this case this is mfe_ndiskmp (refer to mfendisk_m.inf)
+;
+HKR, Ndi,            FilterClass,         , mfe_firewall
+HKR, Ndi,            FilterDeviceInfId,   , mfe_ndiskmp
+HKR, Ndi,            Service,             , mfendisk
+HKR, Ndi\Interfaces, UpperRange,          , noupper
+HKR, Ndi\Interfaces, LowerRange,          , nolower
+HKR, Ndi\Interfaces, FilterMediaTypes,    , "ethernet, wan, jnprncva"
+
+[MfeNdisk.AddReg]
+; The following key is Required
+; The following key is MfeNdisk specific
+HKR, Parameters, Param1, 0, 4
+
+; ----------------------------------------------------------------------
+[Strings]
+Mfe = "McAfee, Inc."
+DiskDescription = "McAfee Core NDIS Intermediate Driver Disk"
+
+MfeNdisk_Desc = "McAfee Core NDIS Intermediate Filter"
+MfeNdisk_HELP = "McAfee Core NDIS Intermediate Filter"
+MfeNdiskService_Desc = "McAfee Core NDIS Intermediate Filter"

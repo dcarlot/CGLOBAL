@@ -1,0 +1,3 @@
+HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\NetBT\DependOnService
+HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001\Services\NetBT\DependOnService
+HKEY_LOCAL_MACHINE\SYSTEM\ControlSet002\Services\NetBT\DependOnService

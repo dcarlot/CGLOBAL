@@ -1,0 +1,78 @@
+; Copyright (C) 2019 McAfee, LLC. All Rights Reserved.
+
+[Version]
+Signature   = "$Windows NT$"
+Class       = "ANTIVIRUS"
+ClassGuid   = {B1D1A169-C54F-4379-81DB-BEE7D88D7454}
+Provider    = %ProviderName%
+DriverVer = 06/21/2022,22.6.0.59
+CatalogFile = mfeelam.cat				; This cannot be replaced with %ServiceFile% 
+PnpLockDown = 1
+
+;
+; Default install sections
+;
+
+[DefaultInstall.ntamd64]
+OptionDesc  = %ServiceDescription%
+CopyFiles   = Service.Files
+[DefaultInstall.ntamd64.Services]
+AddService  = %ServiceName%,,Service.Install
+
+[DefaultInstall.ntarm64]
+OptionDesc  = %ServiceDescription%
+CopyFiles   = Service.Files
+[DefaultInstall.ntarm64.Services]
+AddService  = %ServiceName%,,Service.Install
+
+;
+; Services sections
+;
+
+[Service.Install]
+DisplayName     = %ServiceName%
+Description     = %ServiceDescription%
+ServiceBinary   = %12%\%ServiceFile%    ; %windir%\system32\drivers\
+ServiceType     = 1                     ; SERVICE_KERNEL_DRIVER
+StartType       = 0                     ; SERVICE_BOOT_START
+ErrorControl    = 3                     ; SERVICE_ERROR_CRITICAL
+LoadOrderGroup  = "Early-Launch"
+
+;
+; Copy files
+;
+
+[DestinationDirs]
+DefaultDestDir  = 12
+Service.Files   = 12                    ; %windir%\system32\drivers
+
+[SourceDisksFiles]
+mfeelam.sys = 1                         ; This cannot be replaced with %ServiceFile% 
+
+[SourceDisksNames]
+1 = %SourceDiskName%
+
+[Service.Files]
+mfeelam.sys,mfeelam.sys,,4              ; These cannot be replaced with %ServiceFile%
+
+;
+; Strings
+;
+
+[Strings]
+ProviderName        = "McAfee, LLC"
+ServiceDescription  = "McAfee ELAM Driver"
+ServiceName         = "mfeelam"
+ServiceFile         = "mfeelam.sys"
+CatalogFile         = "mfeelam.cat"
+SourceDiskName      = "McAfee Security Driver Installation Disk"
+
+;
+; ELAM sections
+;
+
+[SignatureAttributes]
+mfeelam.sys = SignatureAttributes.Elam  ; This filename cannot be replaces with %ServiceFile%
+
+[SignatureAttributes.Elam]
+Elam=true

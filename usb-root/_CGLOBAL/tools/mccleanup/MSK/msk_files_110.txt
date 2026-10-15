@@ -1,0 +1,7 @@
+;remove other msk plug-in files
+%PROGRAMFILES%\mozilla thunderbird\.autoreg
+%PROGRAMFILES%\mozilla thunderbird\chrome\msktbird.jar
+%PROGRAMFILES%\mozilla thunderbird\chrome\xpinstall.manifest
+%PROGRAMFILES%\mozilla thunderbird\components\IMskTB.xpt
+%PROGRAMFILES%\Mozilla Thunderbird\components\msktb.dll
+%PROGRAMFILES%\Qualcomm\Eudora\Plugins\MskEuplg.dll

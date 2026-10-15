@@ -1,0 +1,23 @@
+
+;remove product files
+%PROGRAMFILES%\McAfee\MSHR\ShrCL.exe
+%PROGRAMFILES%\McAfee\MSHR\ShrCore.dll
+%PROGRAMFILES%\McAfee\MSHR\ShrMISP.dll
+%PROGRAMFILES%\McAfee\MSHR\ShrRes.dll
+%PROGRAMFILES%\McAfee\MSHR\mcshr.inf
+%PROGRAMFILES%\McAfee\MSHR\mcshrres.inf
+%PROGRAMFILES%\McAfee\MSHR\Shredder.ini
+
+%PROGRAMFILES%\McAfee\MQC\McpAdmin.exe
+%PROGRAMFILES%\McAfee\MQC\qcconsol.exe
+%PROGRAMFILES%\McAfee\MQC\McpSched.dll
+%PROGRAMFILES%\McAfee\MQC\McpIns.dll
+%PROGRAMFILES%\McAfee\MQC\qclite.dll
+%PROGRAMFILES%\McAfee\MQC\qcmisp.dll
+%PROGRAMFILES%\McAfee\MQC\qcres.dll
+%PROGRAMFILES%\McAfee\MQC\McpIns.inf
+%PROGRAMFILES%\McAfee\MQC\mcpmain.inf
+%PROGRAMFILES%\McAfee\MQC\mcqc.inf
+%PROGRAMFILES%\McAfee\MQC\mcqres.inf
+%PROGRAMFILES%\McAfee\MQC\mru.ini
+%PROGRAMFILES%\McAfee\MQC\qcconf.dat

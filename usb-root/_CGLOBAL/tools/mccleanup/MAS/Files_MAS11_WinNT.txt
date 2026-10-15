@@ -1,0 +1,8 @@
+%PROGRAMFILES%\McAfee.com\Agent\app\mas.adf
+%PROGRAMFILES%\McAfee.com\Agent\Custom_Uninstall\masreg.inf
+%PROGRAMFILES%\McAfee.com\Agent\Uninst\masrem.ui
+%COMMON APPDATA%\McAfee.com\Agent\RegWiz\RegApp\mas.ini
+
+%COMMONPROGRAMS%\McAfee\McAfee AntiSpyware.lnk
+%ALLUSERS%\Desktop\McAfee AntiSpyware.lnk
+%WINDIR%\Tasks\McAfee AntiSpyware.job

@@ -1,0 +1,21 @@
+;remove product files
+%PROGRAMFILES%\McAfee\MSC\McNmcCPS.dll
+%PROGRAMFILES%\McAfee\MSC\McNmcCnt.dll
+%PROGRAMFILES%\McAfee\MSC\McNmcCoR.dll
+%PROGRAMFILES%\McAfee\MSC\McNmcIns.dll
+%PROGRAMFILES%\McAfee\MSC\McNmcLoR.dll
+%PROGRAMFILES%\McAfee\MSC\McNmcPrv.dll
+%PROGRAMFILES%\McAfee\MSC\McNmcRes.dll
+%PROGRAMFILES%\McAfee\MSC\McNmcSPS.dll
+%PROGRAMFILES%\McAfee\MSC\McNmcSrv.dll
+%PROGRAMFILES%\McAfee\MSC\McNmcUI.dll
+%PROGRAMFILES%\McAfee\MSC\McNmcVer.dll
+%PROGRAMFILES%\McAfee\MSC\nmcclnt.inf
+%PROGRAMFILES%\McAfee\MSC\nmcins.inf
+%PROGRAMFILES%\McAfee\MSC\nmclang.inf
+%PROGRAMFILES%\McAfee\MSC\nmcoem.inf
+%PROGRAMFILES%\McAfee\MSC\nmcpost.inf
+%PROGRAMFILES%\McAfee\MSC\nmcpre.inf
+%PROGRAMFILES%\McAfee\MSC\nmcres.inf
+%PROGRAMFILES%\McAfee\MSC\nmcsrv.inf
+%PROGRAMFILES%\McAfee\MSC\nmcuicfg.dat

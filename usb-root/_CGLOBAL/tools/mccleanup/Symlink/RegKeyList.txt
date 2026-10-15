@@ -1,0 +1,2 @@
+HKEY_LOCAL_MACHINE\Software\McAfee Jobs\SymLinkRemover
+HKEY_LOCAL_MACHINE\Software\McAfee Jobs

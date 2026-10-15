@@ -1,0 +1,18 @@
+HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\Credential Providers\{FF032558-38DA-4472-B969-31A636B7E5C7}
+HKCR\CLSID\{FF032558-38DA-4472-B969-31A636B7E5C7}
+HKLM\SOFTWARE\Classes\CLSID\{FF032558-38DA-4472-B969-31A636B7E5C7}
+
+; add yap service entry
+;HKLM\SYSTEM\ControlSet\Services\
+
+;saplugin.dll
+; Password Box plugin dll placeholder
+
+; yap uninstall string
+;HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\????????
+
+; Remove yap registry
+HKLM\SOFTWARE\McAfeeYAP
+
+; Remove TrueKey services
+HKLM\SYSTEM\CurrentControlSet\Services\TrueKey

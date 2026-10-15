@@ -1,0 +1,92 @@
+; Copyright (C) 2021 McAfee, LLC. All Rights Reserved.
+
+[Version]
+Signature   = "$Windows NT$"
+Class       = "ANTIVIRUS"
+ClassGuid   = {B1D1A169-C54F-4379-81DB-BEE7D88D7454}
+Provider    = %ProviderName%
+DriverVer = 06/21/2022,22.6.0.59
+CatalogFile = mfesec.cat				; This cannot be replaced with %CatalogFile%
+PnpLockDown = 1
+
+;
+; Default install sections
+;
+ 
+[DefaultInstall.ntamd64]
+OptionDesc  = %ServiceDescription%
+CopyFiles   = Service.Files
+AddReg      = Service.AddRegistry
+[DefaultInstall.ntamd64.Services]
+AddService  = %ServiceName%,,Service.Install
+
+[DefaultInstall.ntarm64]
+OptionDesc  = %ServiceDescription%
+CopyFiles   = Service.Files
+AddReg      = Service.AddRegistry
+[DefaultInstall.ntarm64.Services]
+AddService  = %ServiceName%,,Service.Install
+
+;
+; Service sections
+;
+
+[Service.Install]
+DisplayName     = %ServiceName%
+Description     = %ServiceDescription%
+ServiceBinary   = %12%\%ServiceFile%    ; %windir%\system32\drivers\
+ServiceType     = 2                     ; SERVICE_FILE_SYSTEM_DRIVER
+StartType       = 0                     ; SERVICE_BOOT_START
+ErrorControl    = 1                     ; SERVICE_ERROR_NORMAL
+Dependencies    = "FltMgr"
+LoadOrderGroup  = "FSFilter Anti-Virus"
+AddReg          = Service.AddRegistry
+
+;
+; Registry modifications
+;
+
+[Service.AddRegistry]
+HKR,,"DebugFlags",0x00010001 ,0x0
+HKR,,"SupportedFeatures",0x00010001,0x3
+HKR,"Instances","DefaultInstance",0x00000000,%DefaultInstance%
+HKR,"Instances\"%Instance1.Name%,"Altitude",0x00000000,%Instance1.Altitude%
+HKR,"Instances\"%Instance1.Name%,"Flags",0x00010001,%Instance1.Flags%
+
+;
+; Copy files
+;
+
+[DestinationDirs]
+DefaultDestDir  = 12
+Service.Files   = 12                    ; %windir%\system32\drivers
+
+[SourceDisksFiles]
+mfesec.sys = 1,,                        ; This cannot be replaced with %ServiceFile% 
+
+[SourceDisksNames]
+1 = %SourceDiskName%,,,
+
+[Service.Files]
+mfesec.sys                              ; This cannot be replaced with %ServiceFile%
+
+;
+; Strings
+;
+
+[Strings]
+ProviderName        = "McAfee, LLC"
+ServiceDescription  = "McAfee Security Driver"
+ServiceName         = "mfesec"
+ServiceFile         = "mfesec.sys"
+CatalogFile         = "mfesec.cat"
+SourceDiskName      = "McAfee Security Driver Installation Disk"
+
+;
+; Instances
+;
+
+DefaultInstance     = "mfesec Instance"
+Instance1.Name      = "mfesec Instance"
+Instance1.Altitude  = "321150.5"
+Instance1.Flags     = 0x0 ; Allow all attachments

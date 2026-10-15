@@ -1,0 +1,16 @@
+%COMMONDESKTOP%\Set up Family Protection.lnk
+%DESKTOP%\Set up Family Protection.lnk
+%COMMONDESKTOP%\Configure McAfee Family Protection.lnk
+%DESKTOP%\Configure McAfee Family Protection.lnk
+%COMMONDESKTOP%\Configure Family Protection.lnk
+%DESKTOP%\Configure Family Protection.lnk
+%COMMONDESKTOP%\Configure Safe Eyes.lnk
+%DESKTOP%\Configure Safe Eyes.lnk
+%COMMONPROGRAMS%\McAfee Family Protection\Remove Family Protection.lnk
+%COMMONPROGRAMS%\McAfee Family Protection\Set up Family Protection.lnk
+%WINDIR%\System32\ICF.dll
+%WINDIR%\System32\seinst.dll
+%WINDIR%\sysnative\ICF.dll
+%WINDIR%\sysnative\seinst.dll
+%WINDIR%\sediag.exe
+%WINDIR%\serecat.exe

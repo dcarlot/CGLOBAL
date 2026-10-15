@@ -1,0 +1,14 @@
+%COMMONDESKTOP%\McAfee Security Center.lnk
+%COMMONPROGRAMS%\McAfee\McAfee SecurityCenter.lnk
+%COMMONPROGRAMS%\McAfee\McAfee Total Protection.lnk
+%COMMONDESKTOP%\McAfee Total Protection.lnk
+%COMMONPROGRAMS%\McAfee\McAfee LiveSafe – Internet Security.lnk
+%COMMONDESKTOP%\McAfee LiveSafe – Internet Security.lnk
+%COMMONPROGRAMS%\McAfee\McAfee Small Business - PC Security.lnk
+%COMMONDESKTOP%\McAfee Small Business - PC Security.lnk
+%COMMONPROGRAMS%\McAfee\McAfee All Access – Total Protection.lnk
+%COMMONDESKTOP%\McAfee All Access – Total Protection.lnk
+%COMMONPROGRAMS%\McAfee\McAfee LiveSafe.lnk
+%COMMONDESKTOP%\McAfee LiveSafe.lnk
+%COMMONPROGRAMS%\McAfee\McAfee® Total Protection.lnk
+%COMMONDESKTOP%\McAfee® Total Protection.lnk

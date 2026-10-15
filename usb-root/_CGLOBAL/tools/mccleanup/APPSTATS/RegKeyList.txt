@@ -1,0 +1,6 @@
+;Appstats keys
+HKLM\SYSTEM\CurrentControlSet\services\MfeASKM
+HKLM\SYSTEM\CurrentControlSet\services\MfeASUM
+HKLM\SYSTEM\ControlSet001\Enum\Root\LEGACY_MFEASKM
+
+

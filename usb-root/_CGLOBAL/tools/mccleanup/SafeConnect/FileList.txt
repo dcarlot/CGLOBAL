@@ -1,0 +1,2 @@
+%COMMONDESKTOP%\McAfee Safe Connect.lnk
+%PROGRAMDATA%\Microsoft\Windows\Start Menu\Programs\McAfee Safe Connect.lnk

@@ -1,0 +1,29 @@
+
+VS Remover tool.
+------------------
+
+This tool can be used to manually uninstall VS9 or VS10 installations. 
+This is especially useful when the uninstall failed or was partially 
+successful and the user wants to remove VirusScan completely before trying to install again.
+
+This tool is supported on 9x & NT platforms and the various language releases of VirusScan.
+
+Usage:
+For uninstalling either VS9 or VS10, please run the attached "VSCleanup.exe" as an administrator.
+
+Release to QA, drop #1 : 11/14/2005
+-----------------------------------
+
+VSS location: $/VSO/DOCS/MVT/Manual Uninstall, Label: 'VS Remover-14/11/2005'
+
+The unit test cases for this tool is entered in Palin under "VirusScan 10.0", "Cleanup Utility"(2).
+
+Known issues: 
+1. The shortcuts in other languages will not be removed by this tool currently.
+2. If all the permissions are removed on a registry key or file, the item will not be removed and the error will be written to the log file.
+
+
+Release to QA, drop #3 : 11/18/2005
+-----------------------------------
+
+Fixed bug: MCAF00035854 - EN-US > VS Cleanup Tool > DAT Files and all folders under VSO remain after running VS Cleanup Tool. 

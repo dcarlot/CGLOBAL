@@ -1,0 +1,71 @@
+;remove product files
+%PROGRAMFILES%\McAfee\MWL\AUTORUN.INF
+%PROGRAMFILES%\McAfee\MWL\Installer.zip
+%PROGRAMFILES%\McAfee\MWL\MFC80CHS.dll
+%PROGRAMFILES%\McAfee\MWL\MFC80CHT.dll
+%PROGRAMFILES%\McAfee\MWL\MFC80DEU.dll
+%PROGRAMFILES%\McAfee\MWL\MFC80ENU.dll
+%PROGRAMFILES%\McAfee\MWL\MFC80ESP.dll
+%PROGRAMFILES%\McAfee\MWL\MFC80FRA.dll
+%PROGRAMFILES%\McAfee\MWL\MFC80ITA.dll
+%PROGRAMFILES%\McAfee\MWL\MFC80JPN.dll
+%PROGRAMFILES%\McAfee\MWL\MFC80KOR.dll
+%PROGRAMFILES%\McAfee\MWL\MWLMisp.dll
+%PROGRAMFILES%\McAfee\MWL\MWLMispUtils.dll
+%PROGRAMFILES%\McAfee\MWL\McMWLUnIns.dll
+%PROGRAMFILES%\McAfee\MWL\McMwlVer.dll
+%PROGRAMFILES%\McAfee\MWL\MessageB.txt
+%PROGRAMFILES%\McAfee\MWL\Microsoft.VC80.CRT.manifest
+%PROGRAMFILES%\McAfee\MWL\Microsoft.VC80.MFC.manifest
+%PROGRAMFILES%\McAfee\MWL\MwlGui.exe
+%PROGRAMFILES%\McAfee\MWL\MwlRes.dll
+%PROGRAMFILES%\McAfee\MWL\MwlSvc.exe
+%PROGRAMFILES%\McAfee\MWL\NetFilterMP.inf
+%PROGRAMFILES%\McAfee\MWL\PrestoCallback.dll
+%PROGRAMFILES%\McAfee\MWL\PrestoSvcPS.dll
+%PROGRAMFILES%\McAfee\MWL\Sqlite3.dll
+%PROGRAMFILES%\McAfee\MWL\Ssleay32.dll
+%PROGRAMFILES%\McAfee\MWL\StarBurn.dll
+%PROGRAMFILES%\McAfee\MWL\WnASPI32.dll
+%PROGRAMFILES%\McAfee\MWL\Wsc8021xu.dll
+%PROGRAMFILES%\McAfee\MWL\WscConnectionMgru.dll
+%PROGRAMFILES%\McAfee\MWL\WscWlansu.dll
+%PROGRAMFILES%\McAfee\MWL\Wscnetdr.sys
+%PROGRAMFILES%\McAfee\MWL\dunzip32.dll
+%PROGRAMFILES%\McAfee\MWL\fcw.ico
+%PROGRAMFILES%\McAfee\MWL\jbtregistryu.dll
+%PROGRAMFILES%\McAfee\MWL\libeay32.dll
+%PROGRAMFILES%\McAfee\MWL\mfc80u.dll
+%PROGRAMFILES%\McAfee\MWL\msvcp80.dll
+%PROGRAMFILES%\McAfee\MWL\msvcr80.dll
+%PROGRAMFILES%\McAfee\MWL\mwlAPMod.inf
+%PROGRAMFILES%\McAfee\MWL\mwlApp.inf
+%PROGRAMFILES%\McAfee\MWL\mwlDriver.inf
+%PROGRAMFILES%\McAfee\MWL\mwlLang.inf
+%PROGRAMFILES%\McAfee\MWL\mwlMisp.inf
+%PROGRAMFILES%\McAfee\MWL\mwlRedist.inf
+%PROGRAMFILES%\McAfee\MWL\mwlins.inf
+%PROGRAMFILES%\McAfee\MWL\netFilter.inf
+%PROGRAMFILES%\McAfee\MWL\setupSNK.exe
+%PROGRAMFILES%\McAfee\MWL\snetcfg.bkp
+%PROGRAMFILES%\McAfee\MWL\snetcfg.exe
+%PROGRAMFILES%\McAfee\MWL\subst.inf
+%PROGRAMFILES%\McAfee\MWL\wscnetdr.cat
+%PROGRAMFILES%\McAfee\MWL\wscnetdr.inf
+%PROGRAMFILES%\McAfee\MWL\wscnetlibu.dll
+%PROGRAMFILES%\McAfee\MWL\wscpapconfigu.dll
+%PROGRAMFILES%\McAfee\MWL\wscpapmodulesu.dll
+%PROGRAMFILES%\McAfee\MWL\wscpcommu.dll
+%PROGRAMFILES%\McAfee\MWL\wscpkeyexchangeu.dll
+%PROGRAMFILES%\McAfee\MWL\wscpnetmgru.dll
+%PROGRAMFILES%\McAfee\MWL\wscserviceu.dll
+%PROGRAMFILES%\McAfee\MWL\wscsettingsu.dll
+%PROGRAMFILES%\McAfee\MWL\wscutilu.dll
+%PROGRAMFILES%\McAfee\MWL\mwlguist.exe
+%WINDIR%\system32\drivers\WscNetDr.sys
+%LOCALAPPDATA%\Microsoft\Internet Explorer\Quick Launch\McAfee Wireless Network Security.lnk
+%LOCALAPPDATA%\Microsoft\Internet Explorer\Quick Launch\McAfee Wireless Home Network Security.lnk
+%COMMONDESKTOP%\McAfee Wireless Network Security.lnk
+%COMMONDESKTOP%\McAfee Wireless Home Network Security.lnk
+%COMMONPROGRAMS%\McAfee\McAfee Wireless Network Security.lnk
+%COMMONPROGRAMS%\McAfee\McAfee Wireless Home Network Security.lnk

@@ -1,0 +1,4 @@
+%COMMONDESKTOP%\McAfee Cloud AV.lnk
+%COMMONPROGRAMS%\McAfee Cloud AV\Uninstall McAfee Cloud AV.lnk
+%COMMONPROGRAMS%\McAfee Cloud AV\McAfee Cloud AV.lnk
+%COMMONPROGRAMS%\McAfee Cloud AV\

@@ -1,0 +1,39 @@
+%PROGRAMDATA%\Intel Security
+%WINDIR%\system32\drivers\mfeaack.sys
+%WINDIR%\Sysnative\drivers\mfeaack.sys
+%WINDIR%\system32\drivers\mfeelamk.sys
+%WINDIR%\Sysnative\drivers\mfeelamk.sys
+%WINDIR%\system32\drivers\mfencrk.sys
+%WINDIR%\Sysnative\drivers\mfencrk.sys
+%WINDIR%\system32\drivers\mfencbdc.sys
+%WINDIR%\Sysnative\drivers\mfencbdc.sys
+%WINDIR%\system32\mfevtps.exe
+%WINDIR%\Sysnative\mfevtps.exe
+%WINDIR%\system32\mfeplk.sys
+%WINDIR%\Sysnative\mfeplk.sys
+%APPDATA%\McAfee\CSP\ETW\mclogs.etl
+%APPDATA%\McAfee\CSP\ETW\
+%PROGRAMDATA%\McAfee\CSP\CSPService.log
+%APPDATA%\McAfee\CSP
+%PROGRAMDATA%\McAfee\HackerWatch\data\HwLocal.xdb
+%PROGRAMDATA%\McAfee\HackerWatch\data\HwLocal.xdb-journal
+%PROGRAMDATA%\McAfee\HackerWatch\data
+%PROGRAMDATA%\McAfee\HackerWatch\
+%PROGRAMFILES%\common files\McAfee\ModuleCore\Modules
+%PROGRAMFILES%\common files\McAfee\ModuleCore
+%PROGRAMFILES%\common files\McAfee\AMCore\EM\EMSystemWideDataStore.PDS
+%PROGRAMFILES%\common files\McAfee\AMCore\EM\
+%PROGRAMFILES%\common files\McAfee\AMCore\
+%PROGRAMFILES%\Common Files\McAfee\CSP\core.db
+%PROGRAMFILES%\Common Files\McAfee\CSP\report.db
+%PROGRAMFILES%\Common Files\McAfee\CSP\
+%PROGRAMFILES%\Common Files\McAfee\
+%PROGRAMDATA%\McAfee\MSC\mcchl.uri
+%PROGRAMDATA%\McAfee\MSC\mcwin32data.mtr
+%PROGRAMDATA%\McAfee\MSC\mcwin32data.mtr.ex
+%PROGRAMDATA%\McAfee\MSC\
+
+;Bug 1218120
+%PROGRAMDATA%\McAfee\Logging\*.json
+%PROGRAMDATA%\McAfee\Logging\
+

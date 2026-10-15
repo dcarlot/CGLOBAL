@@ -1,0 +1,4 @@
+%COMMONDESKTOP%\NextGen AV.lnk
+%COMMONPROGRAMS%\CloudAV\Uninstall NextGen AV.lnk
+%COMMONPROGRAMS%\CloudAV\NextGen AV.lnk
+%COMMONPROGRAMS%\CloudAV\

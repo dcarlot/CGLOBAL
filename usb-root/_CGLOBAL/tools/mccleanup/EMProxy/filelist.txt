@@ -1,0 +1,7 @@
+%PROGRAMFILESCOMMON%\McAfee\EmProxy\emproxy.exe
+%PROGRAMFILESCOMMON%\McAfee\EmProxy\emproxy.inf
+%PROGRAMFILESCOMMON%\McAfee\EmProxy\emprxres.dll
+%PROGRAMFILESCOMMON%\McAfee\EmProxy\emprxres.inf
+%PROGRAMFILESCOMMON%\McAfee\EmProxy\emprxyps.dll
+%PROGRAMFILESCOMMON%\McAfee\EmProxy\emtray.exe
+%PROGRAMFILESCOMMON%\McAfee\EmProxy\emtray.inf

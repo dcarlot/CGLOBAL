@@ -1,0 +1,3 @@
+%PROGRAMFILESCOMMON%\McAfee\Auth\authmain.inf
+%PROGRAMFILESCOMMON%\McAfee\Auth\authcore.inf
+%PROGRAMFILESCOMMON%\McAfee\Auth\AuthCore.exe

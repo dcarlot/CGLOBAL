@@ -1,0 +1,1 @@
+%COMMONAPPDATA%\McAfee\MSC\ProductCustomization.json

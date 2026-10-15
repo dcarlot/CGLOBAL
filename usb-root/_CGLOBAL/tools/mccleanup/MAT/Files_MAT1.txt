@@ -1,0 +1,4 @@
+%COMMONPROGRAMS%\McAfee\McAfee AntiTheft.lnk
+%COMMONPROGRAMS%\McAfee\McAfee File Lock.lnk
+%WINDIR%\System32\drivers\McPvDrv.sys
+%WINDIR%\sysnative\drivers\McPvDrv.sys

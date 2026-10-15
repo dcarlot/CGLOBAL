@@ -1,0 +1,576 @@
+Document Type: WSE
+item: Global
+  Version=9.0
+  Title= Installation
+  Title French Canadian= Installation
+  Title French= Installation
+  Title German= Installation
+  Title Castilian Spanish= Installation
+  Title Japanese= Installation
+  Flags=01000100
+  Languages=65 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+  Copy Default=1
+  Japanese Font Name=MS Gothic
+  Japanese Font Size=9
+  Start Gradient=0 0 255
+  End Gradient=0 0 0
+  Windows Flags=00000100001000010001010000000000
+  Log Pathname=%MAINDIR%\INSTALL.LOG
+  Message Font=MS Sans Serif
+  Font Size=8
+  Pages Modified=10011001011100100000000100000011
+  Extra Pages=00000000000000000000000000110000
+  Disk Label=Default
+  Disk Filename=SETUP
+  Patch Flags=0000000000000001
+  Patch Threshold=85
+  Patch Memory=4000
+  MIF PDF Version=1.0
+  MIF SMS Version=2.0
+  EXE Filename=%_EXEPATH_%
+  FTP Cluster Size=20
+  Per-User Version ID=1
+  Dialogs Version=7
+  Version File=%_ESD_VER_%
+  Version Copyright=Copyright (c) 2006 McAfee, Inc.
+  Version Company=McAfee Inc.
+  Crystal Format=10111100101100000010001001001001
+  Crystal Destination=00000000000000000000000000001011
+  Step View=&All
+  Variable Name1=_SYS_
+  Variable Default1=C:\WINNT\System32
+  Variable Flags1=00001000
+  Variable Name2=_WIN_
+  Variable Default2=C:\WINNT
+  Variable Flags2=00001000
+  Variable Name3=_WISE_
+  Variable Default3=D:\Tools\WISEIN~1
+  Variable Flags3=00001000
+  Variable Name4=_INIT_WINDOW_
+  Variable Default4=HIDE
+  Variable Flags4=00001000
+  Variable Name5=_EXEPATH_
+  Variable Description5=Output file name and path
+  Variable Name6=_ESD_VER_
+  Variable Default6=1.0.999.0
+  Variable Flags6=00001000
+  Variable Name7=_SRCDIR_
+  Variable Description7=Directory containing source files to include in the package
+  Variable Default7=.
+end
+item: Remark
+  Text=If you do not want Rem statements to appear when you create a new installation,
+end
+item: Remark
+  Text=open Empty Project.wse from the Template folder in the Wise application
+end
+item: Remark
+  Text=directory, delete the Rem statements, and select Save from the File menu.
+end
+item: Open/Close INSTALL.LOG
+  Flags=00000001
+end
+item: Remark
+end
+item: Remark
+  Text=If the destination system does not have a writable Windows\System directory, system files will be written to the Windows\ directory
+end
+item: Check if File/Dir Exists
+  Pathname=%SYS%
+  Flags=10000100
+end
+item: Set Variable
+  Variable=SYS
+  Value=%WIN%
+end
+item: End Block
+end
+item: Remark
+end
+item: Remark
+  Text=APPTITLE is the application title of the installation
+end
+item: Set Variable
+  Variable=APPTITLE
+  Value=McAfee Consumer Product Removal Tool
+  Flags=10000000
+end
+item: Remark
+end
+item: Remark
+  Text=GROUP is the variable that holds the Program Files Group that shortcuts will be placed on the Windows Start Menu
+end
+item: Set Variable
+  Variable=GROUP
+  Flags=10000000
+end
+item: Remark
+end
+item: Remark
+  Text=DISABLED variable is initialized for backward compatability
+end
+item: Set Variable
+  Variable=DISABLED
+  Value=!
+end
+item: Remark
+end
+item: Remark
+  Text=MAINDIR is the variable that holds the default destination directory
+end
+item: Set Variable
+  Variable=MAINDIR
+  Value=%TEMP%\MCPR.tmp
+  Flags=10000000
+end
+item: Remark
+end
+item: Remark
+  Text=USERNAME is the variable that holds the Windows Logon name
+end
+item: Get System Information
+  Variable=USERNAME
+  Flags=00010001
+end
+item: Remark
+end
+item: Remark
+  Text=This IF/THEN/ELSE blocks reads the default Program Files and Common directories from the registry
+end
+item: Check Configuration
+  Flags=10111011
+end
+item: Get Registry Key Value
+  Variable=COMMON
+  Key=SOFTWARE\Microsoft\Windows\CurrentVersion
+  Default=C:\Program Files\Common Files
+  Value Name=CommonFilesDir
+  Flags=00000100
+end
+item: Get Registry Key Value
+  Variable=PROGRAM_FILES
+  Key=SOFTWARE\Microsoft\Windows\CurrentVersion
+  Default=C:\Program Files
+  Value Name=ProgramFilesDir
+  Flags=00000100
+end
+item: Set Variable
+  Variable=MAINDIR
+  Value=%MAINDIR%
+  Flags=00001100
+end
+item: Set Variable
+  Variable=EXPLORER
+  Value=1
+end
+item: Else Statement
+end
+item: Set Variable
+  Variable=MAINDIR
+  Value=%MAINDIR%
+  Flags=00001100
+end
+item: End Block
+end
+item: Remark
+end
+item: Remark
+  Text=BACKUP is the variable that holds the path that all backup files will be copied to when overwritten
+end
+item: Set Variable
+  Variable=BACKUP
+  Value=%MAINDIR%\BACKUP
+  Flags=10000000
+end
+item: Remark
+end
+item: Remark
+  Text=DOBACKUP determines if a backup will be performed.  The possible values are A (do backup) or B (do not do backup)
+end
+item: Set Variable
+  Variable=DOBACKUP
+  Value=B
+  Flags=10000000
+end
+item: Remark
+end
+item: Remark
+  Text=If COMPONENTS are enabled, the COMPONENTS variable is initialized with possible selections
+end
+item: Set Variable
+  Variable=COMPONENTS
+  Flags=10000000
+end
+item: Remark
+end
+item: Remark
+  Text=BRANDING determines if the installation will be branded with a name and company.  By default, this is written to the INST directory (installation media).
+end
+item: Set Variable
+  Variable=BRANDING
+  Value=0
+end
+item: If/While Statement
+  Variable=BRANDING
+  Value=1
+end
+item: Read INI Value
+  Variable=NAME
+  Pathname=%INST%\CUSTDATA.INI
+  Section=Registration
+  Item=Name
+end
+item: Read INI Value
+  Variable=COMPANY
+  Pathname=%INST%\CUSTDATA.INI
+  Section=Registration
+  Item=Company
+end
+item: If/While Statement
+  Variable=NAME
+end
+item: Set Variable
+  Variable=DOBRAND
+  Value=1
+end
+item: Get System Information
+  Variable=NAME
+  Flags=00000110
+end
+item: Get System Information
+  Variable=COMPANY
+  Flags=00000111
+end
+item: End Block
+end
+item: End Block
+end
+item: Remark
+end
+item: Remark
+  Text=The Wizard Loop contains the dialog screens that the user sees in the installation
+end
+item: Remark
+  Text=If you would like to change the graphic on the dialog boxes, you need to change it by double-clicking on the Wizard Loop line and change the bitmap path.
+end
+item: Wizard Block
+  Direction Variable=DIRECTION
+  Display Variable=DISPLAY
+  Bitmap Pathname=%_WISE_%\Dialogs\Template\TopImage.bmp
+  X Position=0
+  Y Position=0
+  Filler Color=8421376
+  Flags=00000001
+end
+item: Remark
+  Text=If you need to change the size of your Custom Dialogs, you need only change the "Welcome" screen.  
+end
+item: Remark
+  Text=It's size is the template for all following dialogs within the Wizard Loop.
+end
+item: Remark
+  Text=This reinitialized the BACKUP directory so that it reflects the change the user made to MAINDIR
+end
+item: If/While Statement
+  Variable=DISPLAY
+  Value=Select Destination Directory
+end
+item: Set Variable
+  Variable=BACKUP
+  Value=%MAINDIR%\BACKUP
+end
+item: End Block
+end
+item: End Block
+end
+item: Remark
+end
+item: Remark
+  Text=When the BACKUP feature is enabled, the BACKUPDIR is initialized
+end
+item: If/While Statement
+  Variable=DOBACKUP
+  Value=A
+end
+item: Set Variable
+  Variable=BACKUPDIR
+  Value=%BACKUP%
+end
+item: End Block
+end
+item: Remark
+end
+item: Remark
+  Text=The BRANDING information is written to the INI file on the installation media.
+end
+item: If/While Statement
+  Variable=BRANDING
+  Value=1
+end
+item: If/While Statement
+  Variable=DOBRAND
+  Value=1
+end
+item: Edit INI File
+  Pathname=%INST%\CUSTDATA.INI
+  Settings=[Registration]
+  Settings=NAME=%NAME%
+  Settings=COMPANY=%COMPANY%
+  Settings=
+end
+item: End Block
+end
+item: End Block
+end
+item: Remark
+end
+item: Remark
+  Text=Begin writing to the INSTALL.LOG 
+end
+item: Open/Close INSTALL.LOG
+end
+item: Remark
+end
+item: Remark
+  Text=Check free disk space calculates free disk space as well as component sizes.
+end
+item: Remark
+  Text=It should be located before all Install File actions.
+end
+item: Check Disk Space
+  Component=COMPONENTS
+end
+item: Install File
+  Source=%_SRCDIR_%\master.ini
+  Destination=%MAINDIR%\master.ini
+  Flags=0000000010000010
+end
+item: Install File
+  Source=%_SRCDIR_%\mccleanup.exe
+  Destination=%MAINDIR%\mccleanup.exe
+  Flags=0000000010000010
+end
+item: Install File
+  Source=%_SRCDIR_%\McClnUI.exe
+  Destination=%MAINDIR%\McClnUI.exe
+  Flags=0000000010000010
+end
+item: Install File
+  Source=%_SRCDIR_%\EMProxy\*.*
+  Destination=%MAINDIR%\EMProxy
+  Flags=0000000100000010
+end
+item: Install File
+  Source=%_SRCDIR_%\FWDriver\*.*
+  Destination=%MAINDIR%\FWDriver
+  Flags=0000000100000010
+end
+item: Install File
+  Source=%_SRCDIR_%\HW\*.*
+  Destination=%MAINDIR%\HW
+  Flags=0000000100000010
+end
+item: Install File
+  Source=%_SRCDIR_%\MAS\*.*
+  Destination=%MAINDIR%\MAS
+  Flags=0000000100000010
+end
+item: Install File
+  Source=%_SRCDIR_%\MBK\*.*
+  Destination=%MAINDIR%\MBK
+  Flags=0000000100000010
+end
+item: Install File
+  Source=%_SRCDIR_%\MHN\*.*
+  Destination=%MAINDIR%\MHN
+  Flags=0000000100000010
+end
+item: Install File
+  Source=%_SRCDIR_%\MNA\*.*
+  Destination=%MAINDIR%\MNA
+  Flags=0000000100000010
+end
+item: Install File
+  Source=%_SRCDIR_%\MPS\*.*
+  Destination=%MAINDIR%\MPS
+  Flags=0000000100000010
+end
+item: Install File
+  Source=%_SRCDIR_%\MQC\*.*
+  Destination=%MAINDIR%\MQC
+  Flags=0000000100000010
+end
+item: Install File
+  Source=%_SRCDIR_%\MSAD\*.*
+  Destination=%MAINDIR%\MSAD
+  Flags=0000000100000010
+end
+item: Install File
+  Source=%_SRCDIR_%\MOBK\*.*
+  Destination=%MAINDIR%\MOBK
+  Flags=0000000100000010
+end
+item: Install File
+  Source=%_SRCDIR_%\MSC\*.*
+  Destination=%MAINDIR%\MSC
+  Flags=0000000100000010
+end
+item: Install File
+  Source=%_SRCDIR_%\MSHR\*.*
+  Destination=%MAINDIR%\MSHR
+  Flags=0000000100000010
+end
+item: Install File
+  Source=%_SRCDIR_%\MSK\*.*
+  Destination=%MAINDIR%\MSK
+  Flags=0000000100000010
+end
+item: Install File
+  Source=%_SRCDIR_%\MWL\*.*
+  Destination=%MAINDIR%\MWL
+  Flags=0000000100000010
+end
+item: Install File
+  Source=%_SRCDIR_%\McProxy\*.*
+  Destination=%MAINDIR%\McProxy
+  Flags=0000000100000010
+end
+item: Install File
+  Source=%_SRCDIR_%\Mpf\*.*
+  Destination=%MAINDIR%\Mpf
+  Flags=0000000100000010
+end
+item: Install File
+  Source=%_SRCDIR_%\NMC\*.*
+  Destination=%MAINDIR%\NMC
+  Flags=0000000100000010
+end
+item: Install File
+  Source=%_SRCDIR_%\RedirSvc\*.*
+  Destination=%MAINDIR%\RedirSvc
+  Flags=0000000100000010
+end
+item: Install File
+  Source=%_SRCDIR_%\McSvcHost\*.*
+  Destination=%MAINDIR%\McSvcHost
+  Flags=0000000100000010
+end
+item: Install File
+  Source=%_SRCDIR_%\VS\*.*
+  Destination=%MAINDIR%\VS
+  Flags=0000000100000010
+end
+item: Install File
+  Source=%_SRCDIR_%\MCPR\*.*
+  Destination=%MAINDIR%\MCPR
+  Flags=0000000100000010
+end
+item: Remark
+end
+item: Remark
+  Text=This include script allows uninstall support
+end
+item: Remark
+end
+item: Remark
+  Text=The following two lines reset COMMON and MAINDIR to short filesnames. This is for backwards compatibility.
+end
+item: Set Variable
+  Variable=COMMON
+  Value=%COMMON%
+  Flags=00010100
+end
+item: Set Variable
+  Variable=MAINDIR
+  Value=%MAINDIR%
+  Flags=00010100
+end
+item: Remark
+end
+item: Remark
+  Text=This IF/THEN/ELSE reads the correct registry entries for shortcut/icon placement
+end
+item: Check Configuration
+  Flags=10111011
+end
+item: Get Registry Key Value
+  Variable=STARTUPDIR
+  Key=Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders
+  Default=%WIN%\Start Menu\Programs\StartUp
+  Value Name=StartUp
+  Flags=00000010
+end
+item: Get Registry Key Value
+  Variable=DESKTOPDIR
+  Key=Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders
+  Default=%WIN%\Desktop
+  Value Name=Desktop
+  Flags=00000010
+end
+item: Get Registry Key Value
+  Variable=STARTMENUDIR
+  Key=Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders
+  Default=%WIN%\Start Menu
+  Value Name=Start Menu
+  Flags=00000010
+end
+item: Get Registry Key Value
+  Variable=GROUPDIR
+  Key=Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders
+  Default=%WIN%\Start Menu\Programs
+  Value Name=Programs
+  Flags=00000010
+end
+item: Get Registry Key Value
+  Variable=CSTARTUPDIR
+  Key=Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders
+  Default=%STARTUPDIR%
+  Value Name=Common Startup
+  Flags=00000100
+end
+item: Get Registry Key Value
+  Variable=CDESKTOPDIR
+  Key=Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders
+  Default=%DESKTOPDIR%
+  Value Name=Common Desktop
+  Flags=00000100
+end
+item: Get Registry Key Value
+  Variable=CSTARTMENUDIR
+  Key=Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders
+  Default=%STARTMENUDIR%
+  Value Name=Common Start Menu
+  Flags=00000100
+end
+item: Get Registry Key Value
+  Variable=CGROUPDIR
+  Key=Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders
+  Default=%GROUPDIR%
+  Value Name=Common Programs
+  Flags=00000100
+end
+item: Set Variable
+  Variable=CGROUP_SAVE
+  Value=%GROUP%
+end
+item: Set Variable
+  Variable=GROUP
+  Value=%GROUPDIR%\%GROUP%
+end
+item: Else Statement
+end
+item: End Block
+end
+item: Remark
+end
+item: Execute Program
+  Pathname=%MAINDIR%\mccleanup.exe
+  Command Line=-p mocp,mpfpcu,mpfp,mps,shred,mpscu,mskcu,msk,emproxy,mas,fwdriver,hw,mbk,mcproxy,mhn,mqccu,mqc,shrd,nmc,redir,mna,mwl,msad,mobk,vs,msc,mcpr,mcsvchost -log "%TEMP%" -w %MAINDIR%
+  Default Directory=%MAINDIR%
+end
+item: New Event
+  Name=Cancel
+end
+item: Remark
+  Text=This include script supports a rollback to preinstallation state if the user chooses to cancel before the installation is complete.
+end

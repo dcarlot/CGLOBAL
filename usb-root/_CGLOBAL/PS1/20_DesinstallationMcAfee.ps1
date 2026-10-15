@@ -6,15 +6,21 @@
  Désinstalle complètement McAfee de manière totalement silencieuse.
 
 .DESCRIPTION
- Stratégie en 2 étapes :
-   1. Utilisation directe de MCPR.exe (outil officiel McAfee)
-   2. En dernier recours : suppression manuelle forcée (services, fichiers, registre)
+ Stratégie :
+   0. Détection (registre Uninstall + paquets AppX)
+   1. Suppression des paquets AppX McAfee (Lenovo récents)
+   2. Arrêt des processus / services McAfee
+   3. mccleanup.exe (moteur de MCPR, sans interface) depuis C:\_CGLOBAL\tools\mccleaner
+   4. En dernier recours : suppression manuelle forcée (services, fichiers, registre)
 
- Note : La désinstallation classique de McAfee n'est PAS silencieuse
- (McAfee force l'affichage de popups). On utilise donc directement MCPR.exe.
+ Le dossier tools\mccleaner contient le contenu extrait de MCPR.exe (dossier $1) :
+ mccleanup.exe, master.ini, les .wse, les sous-dossiers, etc.
+ Ordre de recherche : disque local -> clé USB (_CGLOBAL\tools\mccleaner)
+ -> (secours) téléchargement de MCPR.exe + extraction avec 7-Zip.
 
 .NOTES
- A executer en tant qu'administrateur (elevation requise).
+ A exécuter en tant qu'administrateur (élévation requise).
+ Fichier à enregistrer en UTF-8 avec BOM (accents lisibles par PowerShell 5.1).
 #>
 
 $ErrorActionPreference = 'Stop'
@@ -24,16 +30,67 @@ $LogFile = Get-CGlobalLogFile -ScriptPath $MyInvocation.MyCommand.Path
 Initialize-CGlobalLog -LogFile $LogFile
 
 # ============================================================
-# Configuration du cache MCPR.exe
+# Configuration
 # ============================================================
 
-$script:MCPR_CacheMaxAgeDays = 90
-$script:MCPR_MinValidSizeBytes = 5242880
-$script:MCPR_Url = "https://download.mcafee.com/products/licensed/cust_support_patches/MCPR.exe"
+$script:ToolsDir            = "C:\_CGLOBAL\tools"
+$script:McCleanerDir        = Join-Path $script:ToolsDir "mccleaner"
+$script:McCleanupExe        = Join-Path $script:McCleanerDir "mccleanup.exe"
+$script:McCleanerWarnDays   = 180          # simple avertissement, ne bloque pas
+$script:McCleanupTimeoutSec = 1200         # 20 min max pour mccleanup
 
-# ------------------------------------------------------------------
-# Détection de la clé USB
-# ------------------------------------------------------------------
+# Secours uniquement : MCPR.exe téléchargé puis extrait avec 7-Zip
+$script:MCPR_Url               = "https://download.mcafee.com/products/licensed/cust_support_patches/MCPR.exe"
+$script:MCPR_MinValidSizeBytes = 5242880
+
+# Liste des composants issue de StartCleanup.bat (MCPR)
+$script:McCleanupComponents = "StopServices,MFSY,PEF,MXD,CSP,Sustainability,MOCP,MFP,APPSTATS,Auth,EMproxy,FWdiver,HW,MAS,MAT,MBK,MCPR,McProxy,McSvcHost,VUL,MHN,MNA,MOBK,MPFP,MPFPCU,MPS,SHRED,MPSCU,MQC,MQCCU,MSAD,MSHR,MSK,MSKCU,MWL,NMC,RedirSvc,VS,REMEDIATION,MSC,YAP,TRUEKEY,LAM,PCB,Symlink,SafeConnect,MGS,WMIRemover,RESIDUE"
+
+$script:UninstallRegPaths = @(
+    "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall",
+    "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"
+)
+
+# ============================================================
+# Détection
+# ============================================================
+
+function Get-McAfeeRegistryEntries {
+    $Entries = @()
+    foreach ($RegPath in $script:UninstallRegPaths) {
+        if (Test-Path $RegPath) {
+            Get-ChildItem -Path $RegPath -ErrorAction SilentlyContinue |
+                ForEach-Object {
+                    $Props = Get-ItemProperty -Path $_.PSPath -ErrorAction SilentlyContinue
+                    if ($Props.DisplayName -match '(?i)\bMcAfee\b') {
+                        $Entries += $Props
+                    }
+                }
+        }
+    }
+    return $Entries
+}
+
+function Get-McAfeeAppx {
+    try {
+        return @(Get-AppxPackage -AllUsers -ErrorAction Stop |
+            Where-Object { $_.Name -match '(?i)McAfee' -or $_.PublisherId -match '(?i)McAfee' })
+    }
+    catch {
+        Write-Log "Lecture des paquets AppX impossible : $($_.Exception.Message)" "WARN"
+        return @()
+    }
+}
+
+function Get-McAfeeRemainingCount {
+    $Reg  = @(Get-McAfeeRegistryEntries).Count
+    $Appx = @(Get-McAfeeAppx).Count
+    return ($Reg + $Appx)
+}
+
+# ============================================================
+# Clé USB
+# ============================================================
 
 function Get-UsbCGlobalPath {
     $UsbDrives = Get-CimInstance Win32_LogicalDisk |
@@ -51,109 +108,150 @@ function Get-UsbCGlobalPath {
     return $null
 }
 
-# ------------------------------------------------------------------
-# Vérification de validité d'un fichier MCPR.exe
-# ------------------------------------------------------------------
+# ============================================================
+# Préparation du dossier mccleaner
+# ============================================================
 
-function Test-MCPRFileValid {
-    param([string]$FilePath)
+function Test-McCleanerValid {
+    param([string]$Dir)
 
-    if (-not (Test-Path $FilePath)) {
+    $Exe = Join-Path $Dir "mccleanup.exe"
+    $Ini = Join-Path $Dir "master.ini"
+
+    if (-not (Test-Path $Exe)) { return $false }
+    if (-not (Test-Path $Ini)) {
+        Write-Log "master.ini absent dans $Dir (dossier incomplet)" "WARN"
         return $false
     }
 
-    $File = Get-Item $FilePath
-    $FileAge = (Get-Date) - $File.LastWriteTime
-
-    Write-Log "Fichier MCPR détecté : $FilePath"
-    Write-Log "Age: $($FileAge.Days) jours"
-
-    if ($FileAge.TotalDays -gt $script:MCPR_CacheMaxAgeDays) {
-        Write-Log "Fichier trop ancien" "WARN"
-        return $false
-    }
-
-    if ($File.Length -lt $script:MCPR_MinValidSizeBytes) {
-        Write-Log "Fichier trop petit" "WARN"
-        return $false
+    $Age = (Get-Date) - (Get-Item $Exe).LastWriteTime
+    if ($Age.TotalDays -gt $script:McCleanerWarnDays) {
+        Write-Log "mccleanup.exe date de $([int]$Age.TotalDays) jours : pensez à mettre à jour le dossier mccleaner" "WARN"
     }
 
     return $true
 }
 
-# ------------------------------------------------------------------
-# Recherche et préparation de MCPR.exe
-# ------------------------------------------------------------------
+function Copy-McCleanerFrom {
+    param([string]$SourceDir)
 
-function Find-MCPR {
-    $UsbCGlobalPath = Get-UsbCGlobalPath
+    New-Item -Path $script:McCleanerDir -ItemType Directory -Force | Out-Null
+    Copy-Item -Path (Join-Path $SourceDir '*') -Destination $script:McCleanerDir -Recurse -Force
+}
 
-    # 1. Chercher sur la clé USB
-    if ($UsbCGlobalPath) {
-        $UsbFile = Join-Path $UsbCGlobalPath "tools\MCPR.exe"
-        if (Test-MCPRFileValid -FilePath $UsbFile) {
-            Write-Log "MCPR.exe valide trouvé sur la clé USB" "OK"
+function Initialize-McCleaner {
+    # 1. Disque local
+    if (Test-McCleanerValid -Dir $script:McCleanerDir) {
+        Write-Log "mccleaner valide sur le disque local : $script:McCleanerDir" "OK"
+        return $true
+    }
 
-            # Copier sur le disque dur
-            $LocalFile = "C:\_CGLOBAL\tools\MCPR.exe"
-            if (-not (Test-Path $LocalFile) -or (Get-Item $LocalFile).LastWriteTime -lt (Get-Item $UsbFile).LastWriteTime) {
-                if (-not (Test-Path "C:\_CGLOBAL\tools")) {
-                    New-Item -Path "C:\_CGLOBAL\tools" -ItemType Directory -Force | Out-Null
-                }
-                Copy-Item -Path $UsbFile -Destination $LocalFile -Force
-                Write-Log "MCPR.exe copié vers $LocalFile" "OK"
-            }
-            return $LocalFile
+    # 2. Clé USB
+    $Usb = Get-UsbCGlobalPath
+    if ($Usb) {
+        $UsbDir = Join-Path $Usb "tools\mccleaner"
+        if (Test-McCleanerValid -Dir $UsbDir) {
+            Copy-McCleanerFrom -SourceDir $UsbDir
+            Write-Log "mccleaner copié depuis la clé USB vers $script:McCleanerDir" "OK"
+            return $true
         }
     }
 
-    # 2. Chercher sur le disque dur
-    $LocalFile = "C:\_CGLOBAL\tools\MCPR.exe"
-    if (Test-MCPRFileValid -FilePath $LocalFile) {
-        Write-Log "MCPR.exe valide trouvé sur le disque dur" "OK"
-        return $LocalFile
+    # 3. Secours : MCPR.exe + 7-Zip
+    Write-Log "Dossier mccleaner introuvable, tentative via MCPR.exe + 7-Zip" "WARN"
+
+    $SevenZip = @("$env:ProgramFiles\7-Zip\7z.exe",
+                  "${env:ProgramFiles(x86)}\7-Zip\7z.exe",
+                  (Join-Path $script:ToolsDir "7z.exe")) |
+                Where-Object { Test-Path $_ } | Select-Object -First 1
+
+    if (-not $SevenZip) {
+        Write-Log "7-Zip introuvable : impossible d'extraire MCPR.exe" "ERROR"
+        return $false
     }
 
-    # 3. Télécharger depuis Internet
-    Write-Log "Téléchargement de MCPR.exe..." "INFO"
-
+    $McprFile = Join-Path $script:ToolsDir "MCPR.exe"
     try {
-        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-
-        if (-not (Test-Path "C:\_CGLOBAL\tools")) {
-            New-Item -Path "C:\_CGLOBAL\tools" -ItemType Directory -Force | Out-Null
+        if (-not (Test-Path $script:ToolsDir)) {
+            New-Item -Path $script:ToolsDir -ItemType Directory -Force | Out-Null
         }
 
-        Invoke-WebRequest -Uri $script:MCPR_Url -OutFile $LocalFile -UseBasicParsing
-
-        $File = Get-Item $LocalFile
-        if ($File.Length -lt $script:MCPR_MinValidSizeBytes) {
-            throw "Fichier téléchargé invalide"
-        }
-
-        Write-Log "MCPR.exe téléchargé : $([Math]::Round($File.Length / 1MB, 2)) Mo" "OK"
-
-        # Copier vers la clé USB
-        if ($UsbCGlobalPath) {
-            $ToolsFolder = Join-Path $UsbCGlobalPath "tools"
-            if (-not (Test-Path $ToolsFolder)) {
-                New-Item -Path $ToolsFolder -ItemType Directory -Force | Out-Null
+        if (-not (Test-Path $McprFile) -or (Get-Item $McprFile).Length -lt $script:MCPR_MinValidSizeBytes) {
+            Write-Log "Téléchargement de MCPR.exe..." "INFO"
+            [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+            Invoke-WebRequest -Uri $script:MCPR_Url -OutFile $McprFile -UseBasicParsing
+            if ((Get-Item $McprFile).Length -lt $script:MCPR_MinValidSizeBytes) {
+                throw "Fichier téléchargé invalide"
             }
-            Copy-Item -Path $LocalFile -Destination (Join-Path $ToolsFolder "MCPR.exe") -Force
-            Write-Log "MCPR.exe copié vers la clé USB" "OK"
+            Write-Log "MCPR.exe téléchargé" "OK"
         }
 
-        return $LocalFile
+        $Tmp = Join-Path $env:TEMP "mcpr_extract"
+        Remove-Item $Tmp -Recurse -Force -ErrorAction SilentlyContinue
+        & $SevenZip x $McprFile "-o$Tmp" -y | Out-Null
+
+        $Found = Get-ChildItem -Path $Tmp -Recurse -Filter mccleanup.exe -ErrorAction SilentlyContinue |
+                 Select-Object -First 1
+        if (-not $Found) {
+            throw "mccleanup.exe introuvable après extraction"
+        }
+
+        Copy-McCleanerFrom -SourceDir $Found.DirectoryName
+        Remove-Item $Tmp -Recurse -Force -ErrorAction SilentlyContinue
+        Write-Log "mccleaner extrait dans $script:McCleanerDir" "OK"
+
+        # Sauvegarde sur la clé USB pour les prochaines fois
+        if ($Usb) {
+            $UsbDest = Join-Path $Usb "tools\mccleaner"
+            New-Item -Path $UsbDest -ItemType Directory -Force | Out-Null
+            Copy-Item -Path (Join-Path $script:McCleanerDir '*') -Destination $UsbDest -Recurse -Force
+            Write-Log "mccleaner copié vers la clé USB" "OK"
+        }
+
+        return (Test-McCleanerValid -Dir $script:McCleanerDir)
     }
     catch {
-        Write-Log "Échec du téléchargement : $($_.Exception.Message)" "ERROR"
-        return $null
+        Write-Log "Échec de la préparation de mccleaner : $($_.Exception.Message)" "ERROR"
+        return $false
     }
 }
 
-# ------------------------------------------------------------------
+# ============================================================
+# Paquets AppX
+# ============================================================
+
+function Remove-McAfeeAppx {
+    $Packages = Get-McAfeeAppx
+    if ($Packages.Count -eq 0) { return }
+
+    Write-Log "Suppression de $($Packages.Count) paquet(s) AppX McAfee..." "INFO"
+
+    foreach ($Pkg in $Packages) {
+        try {
+            Remove-AppxPackage -Package $Pkg.PackageFullName -AllUsers -ErrorAction Stop
+            Write-Log "AppX supprimé : $($Pkg.Name)" "OK"
+        }
+        catch {
+            Write-Log "AppX non supprimé : $($Pkg.Name) - $($_.Exception.Message)" "WARN"
+        }
+    }
+
+    try {
+        Get-AppxProvisionedPackage -Online -ErrorAction Stop |
+            Where-Object { $_.DisplayName -match '(?i)McAfee' } |
+            ForEach-Object {
+                Remove-AppxProvisionedPackage -Online -PackageName $_.PackageName -ErrorAction Stop | Out-Null
+                Write-Log "Paquet provisionné supprimé : $($_.DisplayName)" "OK"
+            }
+    }
+    catch {
+        Write-Log "Paquets provisionnés : $($_.Exception.Message)" "WARN"
+    }
+}
+
+# ============================================================
 # Arrêt des processus et services McAfee
-# ------------------------------------------------------------------
+# ============================================================
 
 function Stop-McAfeeProcessesAndServices {
     Write-Log "Arrêt des processus McAfee..." "INFO"
@@ -191,56 +289,62 @@ function Stop-McAfeeProcessesAndServices {
     Start-Sleep -Seconds 2
 }
 
-# ------------------------------------------------------------------
-# Exécution de MCPR.exe en mode silencieux
-# ------------------------------------------------------------------
+# ============================================================
+# mccleanup.exe en mode silencieux
+# ============================================================
 
-function Invoke-MCPR {
+function Invoke-McCleanup {
     Write-Log "============================================================" "INFO"
-    Write-Log "Exécution de MCPR.exe (McAfee Consumer Product Removal)" "INFO"
+    Write-Log "Exécution de mccleanup.exe (moteur MCPR, sans interface)" "INFO"
     Write-Log "============================================================" "INFO"
 
-    $MCPRPath = Find-MCPR
-
-    if ($null -eq $MCPRPath) {
-        Write-Log "MCPR.exe introuvable" "ERROR"
+    if (-not (Initialize-McCleaner)) {
+        Write-Log "mccleaner indisponible" "ERROR"
         return $false
     }
 
-    Write-Log "Utilisation de : $MCPRPath" "INFO"
-
     try {
-        # MCPR.exe avec paramètres silencieux
-        # /Q = Quiet, /A = Automatic, /S = Silent
+        # Paramètres : -p (composants), -s (silent)
+        # Note : -v retiré car non documenté officiellement
         $Process = Start-Process `
-            -FilePath $MCPRPath `
-            -ArgumentList "/Q", "/A", "/S" `
-            -Wait `
+            -FilePath $script:McCleanupExe `
+            -ArgumentList "-p", $script:McCleanupComponents, "-s" `
+            -WorkingDirectory $script:McCleanerDir `
             -PassThru `
             -WindowStyle Hidden `
             -ErrorAction Stop
 
-        $ExitCode = $Process.ExitCode
-        Write-Log "MCPR terminé avec le code $ExitCode" "INFO"
+        if (-not $Process.WaitForExit($script:McCleanupTimeoutSec * 1000)) {
+            Write-Log "mccleanup dépasse $script:McCleanupTimeoutSec s : arrêt forcé" "ERROR"
+            Stop-Process -Id $Process.Id -Force -ErrorAction SilentlyContinue
+            return $false
+        }
 
-        return ($ExitCode -eq 0)
+        # Vérification du code retour
+        if ($Process.ExitCode -eq 0) {
+            Write-Log "mccleanup terminé avec succès (code 0)" "OK"
+        } else {
+            Write-Log "mccleanup terminé avec le code $($Process.ExitCode)" "WARN"
+        }
+
+        return $true
     }
     catch {
-        Write-Log "Erreur MCPR : $($_.Exception.Message)" "ERROR"
+        Write-Log "Erreur mccleanup : $($_.Exception.Message)" "ERROR"
         return $false
     }
 }
 
-# ------------------------------------------------------------------
+# ============================================================
 # Suppression manuelle forcée
-# ------------------------------------------------------------------
+# ============================================================
 
 function Remove-McAfeeManually {
     Write-Log "============================================================" "INFO"
     Write-Log "Suppression manuelle forcée de McAfee" "INFO"
     Write-Log "============================================================" "INFO"
 
-    # 1. Supprimer les services
+    # 1. Services
     Write-Log "Suppression des services..." "INFO"
     Get-Service -ErrorAction SilentlyContinue |
         Where-Object { $_.DisplayName -match '(?i)McAfee' -or $_.Name -match '(?i)^McAfee|^mfe' } |
@@ -252,7 +356,7 @@ function Remove-McAfeeManually {
             catch { }
         }
 
-    # 2. Supprimer les dossiers
+    # 2. Dossiers
     Write-Log "Suppression des dossiers..." "INFO"
     $Folders = @(
         "$env:ProgramFiles\McAfee",
@@ -275,7 +379,7 @@ function Remove-McAfeeManually {
         }
     }
 
-    # 3. Supprimer les clés de registre
+    # 3. Clés de registre
     Write-Log "Suppression des clés de registre..." "INFO"
     $RegPaths = @(
         "HKLM:\SOFTWARE\McAfee",
@@ -293,13 +397,9 @@ function Remove-McAfeeManually {
         }
     }
 
-    # 4. Supprimer les entrées Uninstall
+    # 4. Entrées Uninstall
     Write-Log "Suppression des entrées Uninstall..." "INFO"
-    $UninstallPaths = @(
-        "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall",
-        "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall",
-        "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"
-    )
+    $UninstallPaths = $script:UninstallRegPaths + "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"
 
     foreach ($UninstallPath in $UninstallPaths) {
         if (Test-Path $UninstallPath) {
@@ -317,7 +417,7 @@ function Remove-McAfeeManually {
         }
     }
 
-    # 5. Supprimer les tâches planifiées
+    # 5. Tâches planifiées
     Write-Log "Suppression des tâches planifiées..." "INFO"
     Get-ScheduledTask -ErrorAction SilentlyContinue |
         Where-Object { $_.TaskName -match '(?i)McAfee' } |
@@ -333,102 +433,72 @@ function Remove-McAfeeManually {
     return $true
 }
 
-# ------------------------------------------------------------------
+# ============================================================
 # Programme principal
-# ------------------------------------------------------------------
+# ============================================================
 
 try {
     Write-Log "============================================================" "INFO"
     Write-Log "=== DÉSINSTALLATION MCAFEE ===" "INFO"
     Write-Log "============================================================" "INFO"
 
-    # 1. Détection
+    # 0. Détection
     Write-Log "Recherche des produits McAfee..." "INFO"
 
-    $McAfeeEntries = @()
-    $RegistryPaths = @(
-        "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall",
-        "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"
-    )
-
-    foreach ($RegPath in $RegistryPaths) {
-        if (Test-Path $RegPath) {
-            Get-ChildItem -Path $RegPath -ErrorAction SilentlyContinue |
-                ForEach-Object {
-                    $Props = Get-ItemProperty -Path $_.PSPath -ErrorAction SilentlyContinue
-                    if ($Props.DisplayName -match '(?i)\bMcAfee\b') {
-                        $McAfeeEntries += $Props
-                    }
-                }
-        }
-    }
-
-    if ($McAfeeEntries.Count -eq 0) {
+    $Initial = Get-McAfeeRemainingCount
+    if ($Initial -eq 0) {
         Write-Log "Aucun produit McAfee détecté" "OK"
         exit 0
     }
+    Write-Log "$Initial produit(s) / paquet(s) McAfee détecté(s)" "WARN"
 
-    Write-Log "$($McAfeeEntries.Count) produit(s) McAfee détecté(s)" "WARN"
+    # 1. Paquets AppX
+    Remove-McAfeeAppx
 
     # 2. Arrêt des processus et services
     Stop-McAfeeProcessesAndServices
 
-    # 3. Exécution de MCPR.exe
-    Write-Log "Tentative avec MCPR.exe..." "WARN"
-    Invoke-MCPR
+    # 3. mccleanup.exe
+    $McCleanupResult = Invoke-McCleanup
+    if ($McCleanupResult) {
+        Write-Log "mccleanup exécuté avec succès" "OK"
+    } else {
+        Write-Log "mccleanup a échoué ou est indisponible" "WARN"
+    }
 
     Start-Sleep -Seconds 3
 
     # 4. Vérification
-    $RemainingEntries = @()
-    foreach ($RegPath in $RegistryPaths) {
-        if (Test-Path $RegPath) {
-            Get-ChildItem -Path $RegPath -ErrorAction SilentlyContinue |
-                ForEach-Object {
-                    $Props = Get-ItemProperty -Path $_.PSPath -ErrorAction SilentlyContinue
-                    if ($Props.DisplayName -match '(?i)\bMcAfee\b') {
-                        $RemainingEntries += $Props
-                    }
-                }
-        }
-    }
-
-    if ($RemainingEntries.Count -eq 0) {
-        Write-Log "MCPR a supprimé tous les composants McAfee" "OK"
+    $Remaining = Get-McAfeeRemainingCount
+    if ($Remaining -eq 0) {
+        Write-Log "mccleanup a supprimé tous les composants McAfee" "OK"
+        Write-Log "Un redémarrage est recommandé pour finaliser (pilotes)" "WARN"
         Write-Log "=== DÉSINSTALLATION MCAFEE TERMINÉE ===" "OK"
         exit 0
     }
 
-    Write-Log "$($RemainingEntries.Count) produit(s) restent après MCPR" "WARN"
+    Write-Log "$Remaining produit(s) restent après mccleanup" "WARN"
 
     # 5. Suppression manuelle forcée
-    Write-Log "Suppression manuelle forcée..." "WARN"
-    Remove-McAfeeManually
+    $ManualResult = Remove-McAfeeManually
+    if ($ManualResult) {
+        Write-Log "Suppression manuelle exécutée avec succès" "OK"
+    } else {
+        Write-Log "Suppression manuelle a échoué" "WARN"
+    }
 
     Start-Sleep -Seconds 2
 
     # 6. Vérification finale
-    $FinalEntries = @()
-    foreach ($RegPath in $RegistryPaths) {
-        if (Test-Path $RegPath) {
-            Get-ChildItem -Path $RegPath -ErrorAction SilentlyContinue |
-                ForEach-Object {
-                    $Props = Get-ItemProperty -Path $_.PSPath -ErrorAction SilentlyContinue
-                    if ($Props.DisplayName -match '(?i)\bMcAfee\b') {
-                        $FinalEntries += $Props
-                    }
-                }
-        }
-    }
-
-    if ($FinalEntries.Count -eq 0) {
+    $Final = Get-McAfeeRemainingCount
+    if ($Final -eq 0) {
         Write-Log "Tous les composants McAfee ont été supprimés" "OK"
         Write-Log "=== DÉSINSTALLATION MCAFEE TERMINÉE ===" "OK"
     }
     else {
-        Write-Log "$($FinalEntries.Count) produit(s) restent" "WARN"
-        Write-Log "Un redémarrage peut être nécessaire" "WARN"
+        Write-Log "$Final produit(s) restent" "WARN"
     }
+    Write-Log "Un redémarrage est recommandé pour finaliser" "WARN"
 
     exit 0
 }

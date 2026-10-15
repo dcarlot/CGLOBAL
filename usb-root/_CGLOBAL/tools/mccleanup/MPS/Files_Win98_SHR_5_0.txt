@@ -1,0 +1,27 @@
+
+	%APPDATA%\McAfee\McAfee Shared Components\Centralv3\CentENU.ini
+
+	%APPDATA%\McAfee\McAfee Shared Components\Centralv3\CentENG.ini
+
+	%APPDATA%\McAfee\McAfee Shared Components\Centralv3\CentENA.ini
+
+	%APPDATA%\McAfee\McAfee Shared Components\Centralv3\CentESN.ini
+
+	%APPDATA%\McAfee\McAfee Shared Components\Centralv3\CentESP.ini
+
+	%APPDATA%\McAfee\McAfee Shared Components\Centralv3\CentESM.ini
+
+	%APPDATA%\McAfee\McAfee Shared Components\Centralv3\CentDEU.ini
+
+	%APPDATA%\McAfee\McAfee Shared Components\Centralv3\CentJPN.ini
+
+	%APPDATA%\McAfee\McAfee Shared Components\Centralv3\CentFRA.ini
+
+	%APPDATA%\McAfee\McAfee Shared Components\Centralv3\CentFRC.ini
+
+	%APPDATA%\McAfee\McAfee Shared Components\Centralv3\CentPTB.ini
+
+	%APPDATA%\McAfee\McAfee Shared Components\Centralv3\CentPTG.ini
+
+	%PROGRAMS%\McAfee\McAfee Shared Features\McAfee Shredder 5.lnk
+

@@ -1,0 +1,2309 @@
+<Package xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="mfehidin.xsd">
+	<CoreInstall>
+		<CoreInstall2>
+			<General>
+				<Version>15.8.0.349.12</Version>
+				<ProductId>{45419BCF-40FB-44d7-8FF8-E2B5E4411614}</ProductId>
+				<CorePath>McAfee\SystemCore</CorePath>
+				<CorePath_X86>McAfee\SystemCore</CorePath_X86>
+				<SourcePath_X86>..\x86</SourcePath_X86>
+				<Base>
+					<FileName sha256="b8332b69f7983ec2304fc08575904f8766ba89fbd0344dc2061dffb17f1bd344">mfehidk.sys</FileName>
+					<FileName sha256="6cf8626523daff68f4e5d91b309e5ec4a80fc27c331e567ee457a348bc73caa2">mfevtps.exe</FileName>
+					<FileName sha256="d17c9d6ffed50f12b81284cd63b7d2c0e908bbfd88051212c5c0562e6cdee6f0">mfehidk_messages.dll</FileName>
+					<FileName sha256="9c0362743b9f14ebdf33ea5bd47caf1d4fa46c033854ebdfd84299c78e61b408">mfetdi2k.sys</FileName>
+					<FileName sha256="8eb39d168c961c7590f906082d764eba29ba93c35431892d6226f3cbe67be73b">mfewfpk.sys</FileName>
+					<Inf>mfehidk.inf</Inf>
+					<Cat>mfehidk.cat</Cat>
+					<Inf>mfetdi2k.inf</Inf>
+					<Cat>mfetdi2k.cat</Cat>
+					<Inf>mfewfpk.inf</Inf>
+					<Cat>mfewfpk.cat</Cat>
+				</Base>
+			</General>
+			<Feature tag="mms" required="yes" GUID="{2AA87236-7E59-449B-BDE1-D2A6045ED15B}" winver="5100-">
+				<Core>
+					<FileName sha256="e9491e5e5c872b4dddef0d210e902ba5f3c959d9028049efd1ed7fe2264ce6e3">mfemmsa.dll</FileName>
+					<FileName sha256="d30be04d8ea89d97773bae1cd9627106f144bc49323a632be2ce9d3d851ba66b">mfemms_messages.dll</FileName>
+					<!-- trigger start API -->
+					<FileName winver="6200-" sha256="8fc1c911b6ae75aadfb905c2f2082016f940b4faf8280517e45301a812ef891e">mfestwa.dll</FileName>
+					<FileName sha256="adc381cc0d428912c5470fe0eeb70c0382971fd66c9ff898a7ccd9eb5711cb4b">mmsinfo.exe</FileName>
+					<!-- Install this 32-bit file on 64-bit machines -->
+					<Directory platform="x64" location="$COREPATH_X86">
+						<FileName source="$SOURCEPATH_X86" sign_source="..\release" sha256="6df5871308742928e8aee22380a9a02c4f134fe26095c3425703e3b3ba54f23a">mfemmsa.dll</FileName>
+					</Directory>
+				</Core>
+				<!-- WIN8+ -->
+				<Service location="$COREPATH" install_as="win_only" control="start_stop_restart" winver="6200-" safeboot="network">
+					<FileName sha256="8fe68b700f2412296fdfcd71f8a989efd6acdea4f5a72badb903d7121a0c5e6b">mfemms.exe</FileName>
+					<ServiceName>mfemms</ServiceName>
+					<DisplayName>McAfee Service Controller</DisplayName>
+					<Description>Manages McAfee Services</Description>
+					<DependOnService></DependOnService>
+					<LockDownEnabled>1</LockDownEnabled>
+					<Start>SERVICE_AUTO_START</Start>
+					<TriggerStart/>
+					<EventSource>mfemms_messages.dll</EventSource>
+				</Service>
+				<!-- 2k3 to Win7 -->
+				<Service location="$COREPATH" install_as="win_only" control="start_stop_restart" winver="5200-6199" safeboot="network">
+					<FileName sha256="8fe68b700f2412296fdfcd71f8a989efd6acdea4f5a72badb903d7121a0c5e6b">mfemms.exe</FileName>
+					<ServiceName>mfemms</ServiceName>
+					<DisplayName>McAfee Service Controller</DisplayName>
+					<Description>Manages McAfee Services</Description>
+					<DependOnService></DependOnService>
+					<LockDownEnabled>1</LockDownEnabled>
+					<Start>SERVICE_AUTO_START</Start>
+					<FailureRestart>
+						<ResetPeriod>1800</ResetPeriod>
+						<RestartCount>5</RestartCount>
+						<RestartDelay>1</RestartDelay>
+					</FailureRestart>
+					<EventSource>mfemms_messages.dll</EventSource>
+				</Service>
+				<!-- XP -->
+				<Service location="$COREPATH" install_as="win_only" control="start_stop_restart" winver="5100-5199" safeboot="network">
+					<FileName sha256="8fe68b700f2412296fdfcd71f8a989efd6acdea4f5a72badb903d7121a0c5e6b">mfemms.exe</FileName>
+					<ServiceName>mfemms</ServiceName>
+					<DisplayName>McAfee Service Controller</DisplayName>
+					<Description>Manages McAfee Services</Description>
+					<DependOnService></DependOnService>
+					<Group>Extended Base</Group>
+					<LockDownEnabled>1</LockDownEnabled>
+					<Start>SERVICE_AUTO_START</Start>
+					<FailureRestart>
+						<ResetPeriod>1800</ResetPeriod>
+						<RestartCount>5</RestartCount>
+						<RestartDelay>1</RestartDelay>
+					</FailureRestart>
+					<EventSource>mfemms_messages.dll</EventSource>
+				</Service>
+				<!-- Create install reference to SystemCore folders -->
+				<Registry key="HKLM\software\mcafee\SystemCore"/>
+				<Registry key="HKLM\system\CurrentControlSet\services\mfemms">
+					<Value type="DWORD" name="ServiceDelayNormal" data="60"/>
+					<Value type="DWORD" name="ServiceDelayLate" data="120"/>
+				</Registry>
+				<!-- Common self-protection rules should be associated with the MMS feature.  All other features should ONLY include feature specific items. -->
+				<PointProductList>
+					<PointProduct ProductGuid="$MANIFESTID" Name="SystemCore">
+						<!-- The PolicyGuid should match the Feature GUID-->
+						<AacPolicy PolicyGuid="2AA87236-7E59-449B-BDE1-D2A6045ED15B" IsSticky="true">
+							<Description>$VSCOREVERSION</Description>
+							<!-- rule will only have effect if VSE 8.x is installed -->
+							<AacRule RuleGuid="{B5222B47-011E-4DE9-B6D3-EC5864811476}" GroupTag="mfemms" ReactionType="AAC_REACTION_EXCEPTIONAL_ALLOW" ReportEvent="false" IsEnabled="true">
+								<Description>Exclude legacy mcshield from Protect SystemCore Files and Registry Settings</Description>
+								<AacSubRule Role="AAC_ROLE_INITIATOR">
+									<AacMatchObject ObjectType="AAC_OBJECT_PROCESS">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>$COREPATH\MCSHIELD.EXE</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_VTP_TRUST" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_INT8>1</TYPE_INT8>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_FILE">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>$COREPATH\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>$COREPATH_X86\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<!-- AAC_ACCESS_CREATE|AAC_ACCESS_WRITE|AAC_ACCESS_DELETE-->
+											<TYPE_BITMASK>0x1000b</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_KEY">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>HKLMS\MCAFEE\SYSTEMCORE\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<!-- AAC_ACCESS_CREATE|AAC_ACCESS_DELETE|AAC_ACCESS_RESTORE_KEY|AAC_ACCESS_REPLACE_KEY-->
+											<TYPE_BITMASK>0x309</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_KEY">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>HKLMS\MCAFEE\SYSCOREINSTALLER\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>HKLMS\MCAFEE\RebootRequired\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<!-- AAC_ACCESS_CREATE|AAC_ACCESS_DELETE|AAC_ACCESS_RESTORE_KEY|AAC_ACCESS_REPLACE_KEY-->
+											<TYPE_BITMASK>0x309</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_KEY">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>HKLMS\MCAFEE</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<!-- AAC_ACCESS_DELETE|AAC_ACCESS_RESTORE_KEY|AAC_ACCESS_REPLACE_KEY-->
+											<TYPE_BITMASK>0x308</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_VALUE">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>HKLMS\MCAFEE\SYSTEMCORE\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<!-- AAC_ACCESS_CREATE|AAC_ACCESS_WRITE|AAC_ACCESS_DELETE-->
+											<TYPE_BITMASK>0xb</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_VALUE">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>HKLMS\MCAFEE\SYSCOREINSTALLER\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>HKLMS\MCAFEE\RebootRequired\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<!-- AAC_ACCESS_CREATE|AAC_ACCESS_WRITE|AAC_ACCESS_DELETE-->
+											<TYPE_BITMASK>0xb</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+							</AacRule>
+							<AacRule RuleGuid="B5F7EA0B-841B-4344-AA14-77A4BBD54A89" GroupTag="Default" ReactionType="AAC_REACTION_EXCEPTIONAL_ALLOW" ReportEvent="false" IsEnabled="true">
+								<Description>Allow smss.exe to manipulate .deleteme files</Description>
+								<AacSubRule Role="AAC_ROLE_INITIATOR">
+									<AacMatchObject ObjectType="AAC_OBJECT_PROCESS">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<!-- Only SMSS.EXE -->
+											<TYPE_STRING>$SYSTEM32ROOT\SMSS.EXE</TYPE_STRING>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_FILE">
+										<!-- Only files named deleteme -->
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>$COREPATH\**.deleteme</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>$COREPATH_X86\**.deleteme</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<!-- AAC_ACCESS_CREATE|AAC_ACCESS_WRITE|AAC_ACCESS_DELETE-->
+											<TYPE_BITMASK>0xb</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+							</AacRule>
+							<AacRule RuleGuid="C711057B-69B6-4CC5-A9AC-CAF5D0514E88" GroupTag="Default" ReactionType="AAC_REACTION_EXCEPTIONAL_ALLOW" ReportEvent="false" IsEnabled="true">
+								<Description>Allow smss.exe to create/delete in a rename operation. Rename is only allowed for deleteme files, per rule above. See comments in this rule for why this works. It relies on some quirks in AAC rename matching</Description>
+								<AacSubRule Role="AAC_ROLE_INITIATOR">
+									<AacMatchObject ObjectType="AAC_OBJECT_PROCESS">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>$SYSTEM32ROOT\SMSS.EXE</TYPE_STRING>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_FILE">
+										<!-- This is a bit convoluted, to work around some AAC quirks -->
+										<!-- If there is a target and a source file, and the access mask does not include rename, we know this is pass 2 of a rename -->
+										<!-- Pass 2 runs through the rules w/ target name as source, and access mask as create | delete -->
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>$COREPATH\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_TARGET_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>$COREPATH\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>$COREPATH_X86\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_TARGET_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>$COREPATH_X86\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_EXCLUDE" IsRange="false">
+											<!-- Here we explicitly disallow rename. "Phase 2" of rename matching in AAC does not have this bit set -->
+											<!-- The intent is to block rename of anything other than deleteme files, per the rule above -->
+											<TYPE_BITMASK>0x1000000</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+							</AacRule>
+							<AacRule RuleGuid="{A0144FA3-8BE7-4e37-9EBB-4F196BBDECB2}" GroupTag="mfemms" ReactionType="AAC_REACTION_BLOCK" ReportEvent="true" IsEnabled="true">
+								<Description>Protect SystemCore Files and Registry Settings</Description>
+								<AacSubRule Role="AAC_ROLE_INITIATOR">
+									<AacMatchObject ObjectType="AAC_OBJECT_PROCESS">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>**</TYPE_STRING>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<!-- protect syscore directories and files -->
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_FILE">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>$COREPATH</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>$COREPATH_X86</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>$COREPATH\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>$COREPATH_X86\**</TYPE_STRING>
+										</AacMatchData>
+										<!-- exclusion is for VSE 8.x compatibility, files are only used by dainstall for firefox scriptscan -->
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_EXCLUDE">
+											<TYPE_STRING>$COREPATH\INSTALL.RDF</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_EXCLUDE">
+											<TYPE_STRING>$COREPATH\CHROME.MANIFEST</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_EXCLUDE">
+											<TYPE_STRING>$COREPATH\COMPONENTS\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_EXCLUDE">
+											<TYPE_STRING>$COREPATH\COMPONENTS</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_EXCLUDE">
+											<TYPE_STRING>$COREPATH_X86\INSTALL.RDF</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_EXCLUDE">
+											<TYPE_STRING>$COREPATH_X86\CHROME.MANIFEST</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_EXCLUDE">
+											<TYPE_STRING>$COREPATH_X86\COMPONENTS\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_EXCLUDE">
+											<TYPE_STRING>$COREPATH_X86\COMPONENTS</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>$VTPPATH</TYPE_STRING>
+										</AacMatchData>
+										<!-- protect syscore base driver files -->
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>$SYSTEM32ROOT\DRIVERS\MFEHIDK.SYS</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<!-- AAC_ACCESS_CREATE|AAC_ACCESS_WRITE|AAC_ACCESS_DELETE-->
+											<TYPE_BITMASK>0x1000b</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<!-- only match WFPK on vistasp1+ -->
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_FILE">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>$SYSTEM32ROOT\DRIVERS\MFEWFPK.SYS</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OS_VERSION" MatchOp="AAC_OP_INCLUDE" IsRange="true">
+											<TYPE_INT32>6000</TYPE_INT32>
+											<TYPE_INT32>10999</TYPE_INT32>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<!-- AAC_ACCESS_CREATE|AAC_ACCESS_WRITE|AAC_ACCESS_DELETE-->
+											<TYPE_BITMASK>0x1000b</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<!-- only match TDI2K on w2k->vista -->
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_FILE">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>$SYSTEM32ROOT\DRIVERS\MFETDI2K.SYS</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OS_VERSION" MatchOp="AAC_OP_INCLUDE" IsRange="true">
+											<TYPE_INT32>5000</TYPE_INT32>
+											<TYPE_INT32>6000</TYPE_INT32>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<!-- AAC_ACCESS_CREATE|AAC_ACCESS_WRITE|AAC_ACCESS_DELETE-->
+											<TYPE_BITMASK>0x1000b</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<!-- protect syscore reg keys -->
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_VALUE">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>HKLMS\MCAFEE\SYSTEMCORE\**</TYPE_STRING>
+										</AacMatchData>
+										<!-- exclusion is for VSE 8.x compatibility, key is only used if vscore is installed anyways -->
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_EXCLUDE">
+											<TYPE_STRING>HKLMS\MCAFEE\SYSTEMCORE\VSCORE\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>HKLMS\MCAFEE\SYSCOREINSTALLER\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>HKLMS\MCAFEE\RebootRequired\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<!-- AAC_ACCESS_CREATE|AAC_ACCESS_WRITE|AAC_ACCESS_DELETE-->
+											<TYPE_BITMASK>0xb</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_KEY">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>HKLMS\MCAFEE\SYSTEMCORE\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_EXCLUDE">
+											<TYPE_STRING>HKLMS\MCAFEE\SYSTEMCORE\VSCORE\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>HKLMS\MCAFEE\SYSCOREINSTALLER\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>HKLMS\MCAFEE\RebootRequired\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<!-- AAC_ACCESS_CREATE|AAC_ACCESS_DELETE|AAC_ACCESS_RESTORE_KEY|AAC_ACCESS_REPLACE_KEY-->
+											<TYPE_BITMASK>0x309</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<!-- protect mms and vtp from debugging and shimming  -->
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_KEY">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKLM\SOFTWARE\MICROSOFT\WINDOWS NT\CURRENTVERSION\APPCOMPATFLAGS\CUSTOM\MFEVTPS.EXE</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKLM\SOFTWARE\MICROSOFT\WINDOWS NT\CURRENTVERSION\APPCOMPATFLAGS\CUSTOM\MFEMMS.EXE</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKLM\SOFTWARE\MICROSOFT\WINDOWS NT\CURRENTVERSION\IMAGE FILE EXECUTION OPTIONS\MFEVTPS.EXE\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKLM\SOFTWARE\MICROSOFT\WINDOWS NT\CURRENTVERSION\IMAGE FILE EXECUTION OPTIONS\MFEMMS.EXE\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<!-- AAC_ACCESS_CREATE -->
+											<TYPE_BITMASK>0x1</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<!-- protect McAfee Trust cert store  -->
+								<!-- protect ISG Trust cert store  -->
+								<!-- protect MMS eventlog registration -->
+								<!-- protect HIDK eventlog registration -->
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_KEY">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKLM\SOFTWARE\MICROSOFT\SYSTEMCERTIFICATES\MCAFEE TRUST\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKLM\SOFTWARE\MICROSOFT\SYSTEMCERTIFICATES\ISG TRUST\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKCCS\SERVICES\EVENTLOG\SYSTEM\MCAFEE SERVICE CONTROLLER\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKCCS\SERVICES\EVENTLOG\SYSTEM\MFEHIDK\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<!-- AAC_ACCESS_CREATE|AAC_ACCESS_WRITE|AAC_ACCESS_DELETE -->
+											<TYPE_BITMASK>0x309</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_VALUE">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKLM\SOFTWARE\MICROSOFT\SYSTEMCERTIFICATES\MCAFEE TRUST\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKLM\SOFTWARE\MICROSOFT\SYSTEMCERTIFICATES\ISG TRUST\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKLM\SOFTWARE\WOW6432NODE\MICROSOFT\SYSTEMCERTIFICATES\MCAFEE TRUST\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKLM\SOFTWARE\WOW6432NODE\MICROSOFT\SYSTEMCERTIFICATES\ISG TRUST\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKCCS\SERVICES\EVENTLOG\SYSTEM\MCAFEE SERVICE CONTROLLER\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKCCS\SERVICES\EVENTLOG\SYSTEM\MFEHIDK\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_BITMASK>0xb</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<!-- protect McAfee key from delete/restore/replace, since there's no central place to do it for Consumer products -->
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_KEY">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>HKLMS\MCAFEE</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<!-- AAC_ACCESS_DELETE|AAC_ACCESS_RESTORE_KEY|AAC_ACCESS_REPLACE_KEY-->
+											<TYPE_BITMASK>0x308</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+							</AacRule>
+							<!-- Protect SysCore Drivers and mfemms service registry keys -->
+							<AacRule RuleGuid="{BA235B65-179C-4cbb-8421-4716FAD836BC}" GroupTag="mfemms" ReactionType="AAC_REACTION_EXCEPTIONAL_ALLOW" ReportEvent="false" IsEnabled="true">
+								<Description>Exclude Legacy mfehidin From Protect SysCore Drivers</Description>
+								<AacSubRule Role="AAC_ROLE_INITIATOR">
+									<AacMatchObject ObjectType="AAC_OBJECT_PROCESS">
+										<!-- Block all processes -->
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>%SYSTEMDRIVE%\**\MFEHIDIN.EXE</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_PRODUCT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>SYSCORE*</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_VTP_TRUST" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_INT8>1</TYPE_INT8>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_VALUE">
+										<!-- protect mfehidk service -->
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKCCS\SERVICES\MFEHIDK\*</TYPE_STRING>
+										</AacMatchData>
+										<!-- protect mfevtps service -->
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKCCS\SERVICES\MFEVTP\*</TYPE_STRING>
+										</AacMatchData>
+										<!-- protect mfewfpk service -->
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKCCS\SERVICES\MFEWFPK\*</TYPE_STRING>
+										</AacMatchData>
+										<!-- protect mfetdi2k service -->
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKCCS\SERVICES\MFETDI2K\*</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKLMS\MCAFEE\SYSTEMCORE\mfehidin_install_references\**</TYPE_STRING>
+										</AacMatchData>
+										<!-- protect mfemms service -->
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<!-- AAC_ACCESS_CREATE|AAC_ACCESS_WRITE|AAC_ACCESS_DELETE-->
+											<TYPE_BITMASK>0xb</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_KEY">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKLMS\MCAFEE\SYSTEMCORE\mfehidin_install_references\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<!-- AAC_ACCESS_CREATE|AAC_ACCESS_WRITE|AAC_ACCESS_DELETE-->
+											<TYPE_BITMASK>0xb</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_FILE">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>$COREPATH\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>$COREPATH_X86\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<!-- AAC_ACCESS_CREATE|AAC_ACCESS_WRITE|AAC_ACCESS_DELETE-->
+											<TYPE_BITMASK>0xb</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+							</AacRule>
+							<AacRule RuleGuid="{BA235B65-179C-4cbb-8421-4716FAD836BD}" GroupTag="mfemms" ReactionType="AAC_REACTION_BLOCK" ReportEvent="true" IsEnabled="true">
+								<Description>Protect MMS Service Data</Description>
+								<AacSubRule Role="AAC_ROLE_INITIATOR">
+									<AacMatchObject ObjectType="AAC_OBJECT_PROCESS">
+										<!-- Block all processes -->
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>**</TYPE_STRING>
+										</AacMatchData>
+										<!-- except services.exe -->
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_EXCLUDE">
+											<TYPE_STRING>$SYSTEM32ROOT\SERVICES.EXE</TYPE_STRING>
+										</AacMatchData>
+										<!-- except system.exe -->
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_EXCLUDE">
+											<TYPE_STRING>SYSTEM</TYPE_STRING>
+										</AacMatchData>
+										<!-- except mfemms.exe -->
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_EXCLUDE">
+											<TYPE_STRING>$COREPATH\MFEMMS.EXE</TYPE_STRING>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_KEY">
+										<!-- protect mfemms services -->
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKCCS\SERVICES\MFEMMS\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<!-- AAC_ACCESS_CREATE|AAC_ACCESS_DELETE|AAC_ACCESS_RESTORE_KEY|AAC_ACCESS_REPLACE_KEY-->
+											<TYPE_BITMASK>0x309</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_VALUE">
+										<!-- protect mfemms services -->
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKCCS\SERVICES\MFEMMS\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<!-- AAC_ACCESS_CREATE|AAC_ACCESS_WRITE|AAC_ACCESS_DELETE-->
+											<TYPE_BITMASK>0xb</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+							</AacRule>
+							<AacRule RuleGuid="{BA235B65-179C-4cbb-8421-4716FAD836BB}" GroupTag="mfemms" ReactionType="AAC_REACTION_BLOCK" ReportEvent="true" IsEnabled="true">
+								<Description>Protect SysCore Drivers and Services</Description>
+								<AacSubRule Role="AAC_ROLE_INITIATOR">
+									<AacMatchObject ObjectType="AAC_OBJECT_PROCESS">
+										<!-- Block all processes -->
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>**</TYPE_STRING>
+										</AacMatchData>
+										<!-- except services.exe -->
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_EXCLUDE">
+											<TYPE_STRING>$SYSTEM32ROOT\SERVICES.EXE</TYPE_STRING>
+										</AacMatchData>
+										<!-- except system process -->
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_EXCLUDE">
+											<TYPE_STRING>SYSTEM</TYPE_STRING>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_VALUE">
+										<!-- protect mfehidk service -->
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKCCS\SERVICES\MFEHIDK\**</TYPE_STRING>
+										</AacMatchData>
+										<!-- protect mfevtps service -->
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKCCS\SERVICES\MFEVTP\**</TYPE_STRING>
+										</AacMatchData>
+										<!-- protect mfewfpk service -->
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKCCS\SERVICES\MFEWFPK\**</TYPE_STRING>
+										</AacMatchData>
+										<!-- protect mfetdi2k service -->
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKCCS\SERVICES\MFETDI2K\**</TYPE_STRING>
+										</AacMatchData>
+										<!-- protect csconfigflags for enumerated device nodes -->
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKCCS\HARDWARE PROFILES\CURRENT\SYSTEM\CURRENTCONTROLSET\ENUM\ROOT\LEGACY_MFE*\0000\CSCONFIGFLAGS</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKCCS\HARDWARE PROFILES\0001\SYSTEM\CURRENTCONTROLSET\ENUM\ROOT\LEGACY_MFE*\0000\CSCONFIGFLAGS</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKCCS\HARDWARE PROFILES\0000\SYSTEM\CURRENTCONTROLSET\ENUM\ROOT\LEGACY_MFE*\0000\CSCONFIGFLAGS</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<!-- AAC_ACCESS_CREATE|AAC_ACCESS_WRITE|AAC_ACCESS_DELETE-->
+											<TYPE_BITMASK>0xb</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_KEY">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKCCS\SERVICES\MFEHIDK\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKCCS\SERVICES\MFEVTP\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKCCS\SERVICES\MFEWFPK\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKCCS\SERVICES\MFETDI2K\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<!-- AAC_ACCESS_CREATE|AAC_ACCESS_DELETE|AAC_ACCESS_RESTORE_KEY|AAC_ACCESS_REPLACE_KEY-->
+											<TYPE_BITMASK>0x309</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+							</AacRule>
+							<!-- protect mms and vtp processes and threads from injection and termination -->
+							<AacRule RuleGuid="{3F44CC6C-6475-4ea6-9371-1C4A41207D56}" GroupTag="mfemms" ReactionType="AAC_REACTION_BLOCK" ReportEvent="true" IsEnabled="true">
+								<Description>Protect SystemCore Processes</Description>
+								<AacSubRule Role="AAC_ROLE_INITIATOR">
+									<AacMatchObject ObjectType="AAC_OBJECT_PROCESS">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_EXCLUDE" IsRange="false">
+											<TYPE_STRING>$SYSTEM32ROOT\CSRSS.EXE</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_EXCLUDE" IsRange="false">
+											<TYPE_STRING>$SYSTEM32ROOT\SERVICES.EXE</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_EXCLUDE" IsRange="false">
+											<TYPE_STRING>$SYSTEM32ROOT\LSASS.EXE</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_EXCLUDE" IsRange="false">
+											<TYPE_STRING>%windir%\SYSWOW64\LSASS.EXE</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_EXCLUDE" IsRange="false">
+											<TYPE_STRING>SYSTEM</TYPE_STRING>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_PROCESS">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>$COREPATH\MFEMMS.EXE</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>$VTPPATH</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<!-- AAC_ACCESS_WRITE|AAC_ACCESS_DELETE-->
+											<TYPE_BITMASK>0xa</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_THREAD">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>$COREPATH\MFEMMS.EXE</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>$VTPPATH</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<!-- AAC_ACCESS_WRITE|AAC_ACCESS_DELETE-->
+											<TYPE_BITMASK>0xa</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+							</AacRule>
+							<!-- protect mfevtps from self-injection -->
+							<AacRule RuleGuid="{8C451A14-D815-41e7-BF21-C84B6905407F}" GroupTag="mfemms" ReactionType="AAC_REACTION_BLOCK" ReportEvent="true" IsEnabled="true">
+								<Description>Sanitize MFEVTP Service Process</Description>
+								<AacSubRule Role="AAC_ROLE_INITIATOR">
+									<AacMatchObject ObjectType="AAC_OBJECT_PROCESS">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>$VTPPATH</TYPE_STRING>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<!-- On XP/2003, don't use AAC_MATCH_PRODUCT_NAME (bug 1067189) -->
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_SECTION">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>*</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_EXCLUDE" IsRange="false">
+											<TYPE_STRING>$COREPATH\*.DLL</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_EXCLUDE" IsRange="false">
+											<TYPE_STRING>$SYSTEM32ROOT\*.DLL</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_EXCLUDE" IsRange="false">
+											<TYPE_STRING>%WINDIR%\WINSXS\**.DLL</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OS_VERSION" MatchOp="AAC_OP_INCLUDE" IsRange="true">
+											<TYPE_INT32>5000</TYPE_INT32>
+											<TYPE_INT32>5299</TYPE_INT32>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<!-- AAC_ACCESS_CREATE-->
+											<TYPE_BITMASK>0x1</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<!-- On Vista+, use AAC_MATCH_PRODUCT_NAME -->
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_SECTION">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>*</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_EXCLUDE" IsRange="false">
+											<TYPE_STRING>$COREPATH\*.DLL</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_EXCLUDE" IsRange="false">
+											<TYPE_STRING>$SYSTEM32ROOT\*.DLL</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_EXCLUDE" IsRange="false">
+											<TYPE_STRING>%WINDIR%\WINSXS\**.DLL</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_PRODUCT_NAME" MatchOp="AAC_OP_EXCLUDE" IsRange="false">
+											<TYPE_STRING>MICROSOFT*</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_PRODUCT_NAME" MatchOp="AAC_OP_EXCLUDE" IsRange="false">
+											<TYPE_STRING>WINDOWS*</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_PRODUCT_NAME" MatchOp="AAC_OP_EXCLUDE" IsRange="false">
+											<TYPE_STRING>SYSCORE</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_PRODUCT_NAME" MatchOp="AAC_OP_EXCLUDE" IsRange="false">
+											<TYPE_STRING>APPLICATION VERIFIER</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OS_VERSION" MatchOp="AAC_OP_INCLUDE" IsRange="true">
+											<TYPE_INT32>6000</TYPE_INT32>
+											<TYPE_INT32>10999</TYPE_INT32>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<!-- AAC_ACCESS_CREATE-->
+											<TYPE_BITMASK>0x1</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+							</AacRule>
+							<!-- protect mfemms from self-injection -->
+							<AacRule RuleGuid="{8D451A14-D815-41e7-BF21-C84B6905407F}" GroupTag="mfemms" ReactionType="AAC_REACTION_BLOCK" ReportEvent="true" IsEnabled="true">
+								<Description>Sanitize MFEMMS Process</Description>
+								<AacSubRule Role="AAC_ROLE_INITIATOR">
+									<AacMatchObject ObjectType="AAC_OBJECT_PROCESS">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>$COREPATH\MFEMMS.EXE</TYPE_STRING>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_SECTION">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>*</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_EXCLUDE" IsRange="false">
+											<TYPE_STRING>$COREPATH\*.DLL</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_EXCLUDE" IsRange="false">
+											<TYPE_STRING>$SYSTEM32ROOT\*.DLL</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_EXCLUDE" IsRange="false">
+											<TYPE_STRING>%WINDIR%\WINSXS\**.DLL</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_EXCLUDE" IsRange="false">
+											<TYPE_STRING>*.EXE</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_PRODUCT_NAME" MatchOp="AAC_OP_EXCLUDE" IsRange="false">
+											<TYPE_STRING>MICROSOFT*</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_PRODUCT_NAME" MatchOp="AAC_OP_EXCLUDE" IsRange="false">
+											<TYPE_STRING>WINDOWS*</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_PRODUCT_NAME" MatchOp="AAC_OP_EXCLUDE" IsRange="false">
+											<TYPE_STRING>SYSCORE</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_PRODUCT_NAME" MatchOp="AAC_OP_EXCLUDE" IsRange="false">
+											<TYPE_STRING>MCAFEE*</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_PRODUCT_NAME" MatchOp="AAC_OP_EXCLUDE" IsRange="false">
+											<TYPE_STRING>APPLICATION VERIFIER</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_VTP_TRUST" MatchOp="AAC_OP_EXCLUDE" IsRange="false">
+											<TYPE_INT8>1</TYPE_INT8>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<!-- AAC_ACCESS_CREATE-->
+											<TYPE_BITMASK>0x1</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+							</AacRule>
+							<!-- Protect MMS named pipes -->
+							<AacRule RuleGuid="{063D9855-C9C8-46F3-AB89-E9A715523C54}" GroupTag="mfemms" ReactionType="AAC_REACTION_BLOCK" ReportEvent="true" IsEnabled="true">
+								<Description>Protect MMS Named Pipes</Description>
+								<AacSubRule Role="AAC_ROLE_INITIATOR">
+									<AacMatchObject ObjectType="AAC_OBJECT_PROCESS">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_VTP_TRUST" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_INT8>0</TYPE_INT8>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_FILE">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>\\.\pipe\*_mfemms_listenerpipe</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>\\.\pipe\mmsserver</TYPE_STRING>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+							</AacRule>
+							<!-- use the protected launch plugin to ensure the launch of MMS and VTP -->
+							<AacRule RuleGuid="{C88CC20A-F3EF-45E5-8A86-6BCD628FAD23}" GroupTag="mfemms" ReactionType="AAC_REACTION_ASK_KERNEL" PluginGuid="0F182D87-79D7-4796-B422-7F8BB54BDFD9" ReportEvent="false" IsEnabled="true">
+								<Description>Protect the launch of mfemms.exe and mfevtps.exe</Description>
+								<AacSubRule Role="AAC_ROLE_INITIATOR">
+									<AacMatchObject ObjectType="AAC_OBJECT_PROCESS">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>$VTPPATH</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>$COREPATH\MFEMMS.EXE</TYPE_STRING>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_SECTION">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_BITMASK>0x400</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+							</AacRule>
+							<!-- auto protect/sanitize MFEProtect resourced processes -->
+							<AacRule RuleGuid="{0626BBDD-5764-41ce-85F1-8D32FE7F8AA6}" GroupTag="mfemms" ReactionType="AAC_REACTION_BLOCK" ReportEvent="true" IsEnabled="true">
+								<Description>Protect MFEProtect and MFEInstall resourced Processes</Description>
+								<AacSubRule Role="AAC_ROLE_INITIATOR">
+									<AacMatchObject ObjectType="AAC_OBJECT_PROCESS">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_EXCLUDE" IsRange="false">
+											<TYPE_STRING>$SYSTEM32ROOT\CSRSS.EXE</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_EXCLUDE" IsRange="false">
+											<TYPE_STRING>$SYSTEM32ROOT\SERVICES.EXE</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_EXCLUDE" IsRange="false">
+											<TYPE_STRING>$SYSTEM32ROOT\LSASS.EXE</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_EXCLUDE" IsRange="false">
+											<TYPE_STRING>%windir%\SYSWOW64\LSASS.EXE</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_EXCLUDE" IsRange="false">
+											<TYPE_STRING>SYSTEM</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_EXCLUDE" IsRange="false">
+											<TYPE_STRING>$SYSTEM32ROOT\WERFAULT.EXE</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_EXCLUDE" IsRange="false">
+											<TYPE_STRING>%windir%\SYSWOW64\WERFAULT.EXE</TYPE_STRING>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_PROCESS">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>MFE*</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_VTP_TRUST" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_INT8>1</TYPE_INT8>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_VERSION_RESOURCE" MatchOp="AAC_OP_INCLUDE" IsRange="false" MatchName="Comments">
+											<TYPE_NAME_VALUE_STRING>MFEPROTECT</TYPE_NAME_VALUE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_VERSION_RESOURCE" MatchOp="AAC_OP_INCLUDE" IsRange="false" MatchName="Comments">
+											<TYPE_NAME_VALUE_STRING>MFEINSTALL</TYPE_NAME_VALUE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<!-- AAC_ACCESS_WRITE|AAC_ACCESS_DELETE-->
+											<TYPE_BITMASK>0xa</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_THREAD">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>MFE*</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_VTP_TRUST" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_INT8>1</TYPE_INT8>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_VERSION_RESOURCE" MatchOp="AAC_OP_INCLUDE" IsRange="false" MatchName="Comments">
+											<TYPE_NAME_VALUE_STRING>MFEPROTECT</TYPE_NAME_VALUE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_VERSION_RESOURCE" MatchOp="AAC_OP_INCLUDE" IsRange="false" MatchName="Comments">
+											<TYPE_NAME_VALUE_STRING>MFEINSTALL</TYPE_NAME_VALUE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<!-- AAC_ACCESS_WRITE|AAC_ACCESS_DELETE-->
+											<TYPE_BITMASK>0xa</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+							</AacRule>
+							<AacRule RuleGuid="{CA947F3F-E87D-4d5f-B3C5-E7D8A47C3DB8}" GroupTag="mfemms" ReactionType="AAC_REACTION_BLOCK" ReportEvent="true" IsEnabled="true">
+								<Description>Sanitize MFEProtect resourced Processes</Description>
+								<AacSubRule Role="AAC_ROLE_INITIATOR">
+									<AacMatchObject ObjectType="AAC_OBJECT_PROCESS">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>MFE*</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_VTP_TRUST" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_INT8>1</TYPE_INT8>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_VERSION_RESOURCE" MatchOp="AAC_OP_INCLUDE" IsRange="false" MatchName="Comments">
+											<TYPE_NAME_VALUE_STRING>MFEPROTECT</TYPE_NAME_VALUE_STRING>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_SECTION">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>*</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_VTP_TRUST" MatchOp="AAC_OP_EXCLUDE" IsRange="false">
+											<TYPE_INT8>1</TYPE_INT8>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<!-- AAC_ACCESS_CREATE-->
+											<TYPE_BITMASK>0x1</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+							</AacRule>
+							<AacRule RuleGuid="{A2E83B5B-70A4-4d74-8E1D-87F5E4C28AF8}" GroupTag="mfemms" ReactionType="AAC_REACTION_BLOCK" ReportEvent="true" IsEnabled="true">
+								<Description>Sanitize MFEInstall resourced Processes</Description>
+								<AacSubRule Role="AAC_ROLE_INITIATOR">
+									<AacMatchObject ObjectType="AAC_OBJECT_PROCESS">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>MFE*</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_VTP_TRUST" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_INT8>1</TYPE_INT8>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_VERSION_RESOURCE" MatchOp="AAC_OP_INCLUDE" IsRange="false" MatchName="Comments">
+											<TYPE_NAME_VALUE_STRING>MFEINSTALL</TYPE_NAME_VALUE_STRING>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_SECTION">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>*</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_CERT_NAME_CHAINED" MatchOp="AAC_OP_EXCLUDE" IsRange="false">
+											<TYPE_STRING>*</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<!-- AAC_ACCESS_CREATE-->
+											<TYPE_BITMASK>0x1</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+							</AacRule>
+							<!-- protect tools from self-injection -->
+							<AacRule RuleGuid="{4E934643-37E5-492b-AE55-ACD631978A79}" GroupTag="mfemms" ReactionType="AAC_REACTION_BLOCK" ReportEvent="true" IsEnabled="true">
+								<Description>Sanitize Tool Processes</Description>
+								<AacSubRule Role="AAC_ROLE_INITIATOR">
+									<AacMatchObject ObjectType="AAC_OBJECT_PROCESS">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>$COREPATH\MMSINFO.EXE</TYPE_STRING>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_SECTION">
+										<AacMatchData MatchType="AAC_MATCH_VTP_TRUST" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_INT8>0</TYPE_INT8>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_BITMASK>0x1</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+							</AacRule>
+							<!-- Allow OS Upgrades, Sysprep, Windows Update, and System Restore access to protected certificate stores, registry areas, and system files -->
+							<AacRule RuleGuid="{AFDD1B68-7CCE-4e6b-966C-C5C3F490877E}" GroupTag="mfemms" ReactionType="AAC_REACTION_EXCEPTIONAL_ALLOW" ReportEvent="false" IsEnabled="true">
+								<Description>Allow OS Upgrades, Sysprep, Windows Update, and System Restore access to protected certificate stores, registry areas, and system files</Description>
+								<AacSubRule Role="AAC_ROLE_INITIATOR">
+									<AacMatchObject ObjectType="AAC_OBJECT_PROCESS">
+										<!-- Include these processes -->
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>%SYSTEMDRIVE%\$WINDOWS.~BT\SOURCES\SETUPPLATFORM.EXE</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>%SYSTEMROOT%\SYSTEM32\SETUPCL.EXE</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>%SYSTEMROOT%\SYSTEM32\SYSPREP\SYSPREP.EXE</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>%SYSTEMROOT%\SYSTEM32\SYSTEMPROPERTIESPROTECTION.EXE</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>%SYSTEMROOT%\SYSTEM32\SRTASKS.EXE</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>%SYSTEMROOT%\SYSTEM32\WININIT.EXE</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_PRODUCT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>MICROSOFT*</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_VTP_TRUST" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_INT8>1</TYPE_INT8>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_KEY">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKLM\SOFTWARE\MICROSOFT\SYSTEMCERTIFICATES\MCAFEE TRUST\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKLM\SOFTWARE\MICROSOFT\SYSTEMCERTIFICATES\ISG TRUST\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKLMS\MCAFEE\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKCCS\SERVICES\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKCCS\CONTROL\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKLM\SOFTWARE\MICROSOFT\WINDOWS NT\CURRENTVERSION\IMAGE FILE EXECUTION OPTIONS</TYPE_STRING>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_VALUE">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKLM\SOFTWARE\MICROSOFT\SYSTEMCERTIFICATES\MCAFEE TRUST\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKLM\SOFTWARE\MICROSOFT\SYSTEMCERTIFICATES\ISG TRUST\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKLM\SOFTWARE\WOW6432NODE\MICROSOFT\SYSTEMCERTIFICATES\MCAFEE TRUST\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKLM\SOFTWARE\WOW6432NODE\MICROSOFT\SYSTEMCERTIFICATES\ISG TRUST\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKLMS\MCAFEE\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKCCS\SERVICES\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKCCS\CONTROL\**</TYPE_STRING>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_FILE">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>$COMMONPROGRAMFILES\MCAFEE\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>$COMMONPROGRAMFILES_X86\MCAFEE\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>%PROGRAMFILES%\MCAFEE\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>%PROGRAMFILES(X86)%\MCAFEE\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>%PROGRAMDATA%\MCAFEE\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>%WINDIR%\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_BITMASK>0x11201b</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+							</AacRule>
+							<!-- Allow OS POQ utility access to registry areas, and files -->
+							<AacRule RuleGuid="{BAD1DEA1-7CCE-4e6b-966C-C5C3F490877E}" GroupTag="mfemms" ReactionType="AAC_REACTION_EXCEPTIONAL_ALLOW" ReportEvent="false" IsEnabled="true">
+								<Description>Allow OS POQ utility access to registry areas, and files</Description>
+								<AacSubRule Role="AAC_ROLE_INITIATOR">
+									<AacMatchObject ObjectType="AAC_OBJECT_PROCESS">
+										<!-- Include these processes -->
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>%SYSTEMROOT%\SYSTEM32\POQEXEC.EXE</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_PRODUCT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>MICROSOFT*</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_VTP_TRUST" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_INT8>1</TYPE_INT8>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_KEY">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_BITMASK>0x510038B</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_VALUE">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_BITMASK>0x510038B</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_FILE">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_BITMASK>0x775201B</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+							</AacRule>
+							<AacRule RuleGuid="{42C18A55-7A14-452e-9AFE-8003261BC5D6}" GroupTag="mfemms" ReactionType="AAC_REACTION_BLOCK" ReportEvent="false" IsEnabled="true">
+								<Description>Prevent Image File Execution Options from being renamed and then renamed back</Description>
+								<AacSubRule Role="AAC_ROLE_INITIATOR">
+									<AacMatchObject ObjectType="AAC_OBJECT_PROCESS">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>**</TYPE_STRING>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_KEY">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKLM\SOFTWARE\MICROSOFT\WINDOWS NT\CURRENTVERSION\IMAGE FILE EXECUTION OPTIONS</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<!-- AAC_ACCESS_RENAME | AAC_ACCESS_DELETE -->
+											<TYPE_BITMASK>0x01000008</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+							</AacRule>
+						</AacPolicy>
+						<!-- this provides the AAC monitoring policy to invoke the protected launch plugin for ioctl filtering   
+ 
+  
+ 
+					PluginGuid   - the protectedlaunch GUID  
+ 
+					PluginParams - the IoctlFilter device GUID  
+ 
+  
+ 
+					-->
+						<AacPolicy PolicyGuid="E09D8F47-5459-4C70-89F8-B3959CEDF6E0" IsSticky="true">
+							<Description>$VSCOREVERSION</Description>
+							<AacRule RuleGuid="{887D2E89-0D86-4DA8-903C-8C1E6BA9675E}" GroupTag="AAC Protected Launch" ReactionType="AAC_REACTION_ASK_KERNEL" PluginGuid="0F182D87-79D7-4796-B422-7F8BB54BDFD9" PluginParams="42423837383136442d364538312d346637662d383541422d37454146314446373234364300" ReportEvent="true" IsEnabled="true">
+								<Description>Monitor ProcessExplorer Ioctls</Description>
+								<AacSubRule Role="AAC_ROLE_INITIATOR">
+									<AacMatchObject ObjectType="AAC_OBJECT_PROCESS">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>SYSTEM</TYPE_STRING>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_SECTION">
+										<AacMatchData MatchType="AAC_MATCH_DESCRIPTION" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>Process Explorer</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<!-- AAC_ACCESS_EXECUTE-->
+											<TYPE_BITMASK>0x10</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+							</AacRule>
+							<AacRule RuleGuid="{36254A41-6FFB-414A-AE85-9509D62B5B0E}" GroupTag="AAC Protected Launch" ReactionType="AAC_REACTION_ASK_KERNEL" PluginGuid="0F182D87-79D7-4796-B422-7F8BB54BDFD9" PluginParams="37353744383041452d343644442d343966302d413131302d30363530433744454231423600" ReportEvent="true" IsEnabled="true">
+								<Description>Monitor KProcessHacker2 Ioctls</Description>
+								<AacSubRule Role="AAC_ROLE_INITIATOR">
+									<AacMatchObject ObjectType="AAC_OBJECT_PROCESS">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>SYSTEM</TYPE_STRING>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_SECTION">
+										<AacMatchData MatchType="AAC_MATCH_DESCRIPTION" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>KPROCESSHACKER</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<!-- AAC_ACCESS_EXECUTE-->
+											<TYPE_BITMASK>0x10</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+							</AacRule>
+							<AacRule RuleGuid="{58BC34F1-A024-4054-A75A-F3166A780C6E}" GroupTag="AAC Protected Launch" ReactionType="AAC_REACTION_ASK_KERNEL" PluginGuid="0F182D87-79D7-4796-B422-7F8BB54BDFD9" PluginParams="30334530393841342d463046362d343644362d423835382d41393445433430383938413600" ReportEvent="true" IsEnabled="true">
+								<Description>Monitor KProcessHacker3 Ioctls</Description>
+								<AacSubRule Role="AAC_ROLE_INITIATOR">
+									<AacMatchObject ObjectType="AAC_OBJECT_PROCESS">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>SYSTEM</TYPE_STRING>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_SECTION">
+										<AacMatchData MatchType="AAC_MATCH_DESCRIPTION" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>KPROCESSHACKER</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<!-- AAC_ACCESS_EXECUTE-->
+											<TYPE_BITMASK>0x10</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+							</AacRule>
+						</AacPolicy>
+					</PointProduct>
+				</PointProductList>
+				<!-- configure the protected launch plugin for ioctl filtering -->
+				<ProtectedLaunch Version="$VSCOREVERSION">
+					<!-- sysinternals procexp -->
+					<IoctlFilter DeviceName="\Device\ProcExp*" IoctlFilterGuid="BB87816D-6E81-4f7f-85AB-7EAF1DF7246C">
+						<!-- close handle in process -->
+						<Ioctl Code="0x83350004" AacObjectType="AAC_OBJECT_PROCESS">
+							<Offset Pointers="0" Bytes="0" TypeAtOffset="UINT32" OffsetType="PL_IOCTL_OFFSET_TYPE_ID"/>
+						</Ioctl>
+					</IoctlFilter>
+					<!-- kprocess hacker2 -->
+					<IoctlFilter DeviceName="\Device\KProcessHacker2" IoctlFilterGuid="757D80AE-46DD-49f0-A110-0650C7DEB1B6">
+						<!-- open process (numerous bad things) -->
+						<Ioctl Code="0x999920cb" AacObjectType="AAC_OBJECT_PROCESS">
+							<Offset Pointers="2" Bytes="0" TypeAtOffset="POINTER" OffsetType="PL_IOCTL_OFFSET_TYPE_OFFSET">
+								<Offset Pointers="0" Bytes="0" TypeAtOffset="POINTER" OffsetType="PL_IOCTL_OFFSET_TYPE_ID"/>
+							</Offset>
+						</Ioctl>
+						<!-- open thread (numerous bad things) -->
+						<Ioctl Code="0x99992193" AacObjectType="AAC_OBJECT_THREAD">
+							<Offset Pointers="2" Bytes="0" TypeAtOffset="POINTER" OffsetType="PL_IOCTL_OFFSET_TYPE_OFFSET">
+								<Offset Pointers="1" Bytes="0" TypeAtOffset="POINTER" OffsetType="PL_IOCTL_OFFSET_TYPE_ID"/>
+							</Offset>
+						</Ioctl>
+					</IoctlFilter>
+					<!-- kprocess hacker3 -->
+					<IoctlFilter DeviceName="\Device\KProcessHacker3" IoctlFilterGuid="03E098A4-F0F6-46D6-B858-A94EC40898A6">
+						<!-- open process (numerous bad things) -->
+						<Ioctl Code="0x999920cb" AacObjectType="AAC_OBJECT_PROCESS">
+							<Offset Pointers="2" Bytes="0" TypeAtOffset="POINTER" OffsetType="PL_IOCTL_OFFSET_TYPE_OFFSET">
+								<Offset Pointers="0" Bytes="0" TypeAtOffset="POINTER" OffsetType="PL_IOCTL_OFFSET_TYPE_ID"/>
+							</Offset>
+						</Ioctl>
+						<!-- open thread (numerous bad things) -->
+						<Ioctl Code="0x99992193" AacObjectType="AAC_OBJECT_THREAD">
+							<Offset Pointers="2" Bytes="0" TypeAtOffset="POINTER" OffsetType="PL_IOCTL_OFFSET_TYPE_OFFSET">
+								<Offset Pointers="1" Bytes="0" TypeAtOffset="POINTER" OffsetType="PL_IOCTL_OFFSET_TYPE_ID"/>
+							</Offset>
+						</Ioctl>
+						<!-- terminate process -->
+						<Ioctl Code="0x999920df" AacObjectType="AAC_OBJECT_PROCESS">
+							<Offset Pointers="0" Bytes="0" TypeAtOffset="POINTER" OffsetType="PL_IOCTL_OFFSET_TYPE_HANDLE"/>
+						</Ioctl>
+					</IoctlFilter>
+				</ProtectedLaunch>
+			</Feature>
+			<Feature tag="aac" required="yes" GUID="{65CF3D67-B283-4477-83C6-181CEFAC7443}" winver="5100-">
+				<!-- The following are root and CA certs that are sometimes missing from customer  
+ 
+	systems, causing issues with WinVerifyTrust. Privilege is not actually used,  
+ 
+	but the parsing code in mfehidin.exe is looking for PRIVILEGE_IOCTL. -->
+				<Certificates>
+					<Certificate Name="root">
+						<Privilege>PRIVILEGE_IOCTL</Privilege>
+						<Issuer>VeriSign Class 3 Public Primary Certification Authority - G5</Issuer>
+						<Subject>VeriSign Class 3 Public Primary Certification Authority - G5</Subject>
+						<Data>MIIE0zCCA7ugAwIBAgIQGNrRniZ96LtKIVjNzGs7SjANBgkqhkiG9w0BAQUFADCB  
+ 
+			yjELMAkGA1UEBhMCVVMxFzAVBgNVBAoTDlZlcmlTaWduLCBJbmMuMR8wHQYDVQQL  
+ 
+			ExZWZXJpU2lnbiBUcnVzdCBOZXR3b3JrMTowOAYDVQQLEzEoYykgMjAwNiBWZXJp  
+ 
+			U2lnbiwgSW5jLiAtIEZvciBhdXRob3JpemVkIHVzZSBvbmx5MUUwQwYDVQQDEzxW  
+ 
+			ZXJpU2lnbiBDbGFzcyAzIFB1YmxpYyBQcmltYXJ5IENlcnRpZmljYXRpb24gQXV0  
+ 
+			aG9yaXR5IC0gRzUwHhcNMDYxMTA4MDAwMDAwWhcNMzYwNzE2MjM1OTU5WjCByjEL  
+ 
+			MAkGA1UEBhMCVVMxFzAVBgNVBAoTDlZlcmlTaWduLCBJbmMuMR8wHQYDVQQLExZW  
+ 
+			ZXJpU2lnbiBUcnVzdCBOZXR3b3JrMTowOAYDVQQLEzEoYykgMjAwNiBWZXJpU2ln  
+ 
+			biwgSW5jLiAtIEZvciBhdXRob3JpemVkIHVzZSBvbmx5MUUwQwYDVQQDEzxWZXJp  
+ 
+			U2lnbiBDbGFzcyAzIFB1YmxpYyBQcmltYXJ5IENlcnRpZmljYXRpb24gQXV0aG9y  
+ 
+			aXR5IC0gRzUwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCvJAgIKXo1  
+ 
+			nmAMqudLO07cfLw8RRy7K+D+KQL5VwijZIUVJ/XxrcgxiV0i6CqqpkKzj/i5Vbex  
+ 
+			t0uz/o9+B1fs70PbZmIVYc9gDaTY3vjgw2IIPVQT60nKWVSFJuUrjxuf6/WhkcIz  
+ 
+			SdhDY2pSS9KP6HBRTdGJaXvHcPaz3BJ023tdS1bTlr8Vd6Gw9KIl8q8ckmcY5fQG  
+ 
+			BO+QueQA5N06tRn/Arr0PO7gi+s3i+z016zy9vA9r911kTMZHRxAy3QkGSGT2RT+  
+ 
+			rCpSx4/VBEnkjWNHiDxpg8v+R70rfk/Fla4OndTRQ8Bnc+MUCH7lP59zuDMKz10/  
+ 
+			NIeWiu5T6CUVAgMBAAGjgbIwga8wDwYDVR0TAQH/BAUwAwEB/zAOBgNVHQ8BAf8E  
+ 
+			BAMCAQYwbQYIKwYBBQUHAQwEYTBfoV2gWzBZMFcwVRYJaW1hZ2UvZ2lmMCEwHzAH  
+ 
+			BgUrDgMCGgQUj+XTGoasjY5rw8+AatRIGCx7GS4wJRYjaHR0cDovL2xvZ28udmVy  
+ 
+			aXNpZ24uY29tL3ZzbG9nby5naWYwHQYDVR0OBBYEFH/TZafC3ey78DAJ80M5+gKv  
+ 
+			MzEzMA0GCSqGSIb3DQEBBQUAA4IBAQCTJEowX2LP2BqYLz3q3JktvXf2pXkiOOzE  
+ 
+			p6B4Eq1iDkVwZMXnl2YtmAl+X6/WzChl8gGqCBpH3vn5fJJaCGkgDdk+bW48DW7Y  
+ 
+			5gaRQBi5+MHt39tBquCWIMnNZBU4gcmU7qKEKQsTb47bDN0lAtukixlE0kF6BWlK  
+ 
+			WE9gyn6CagsCqiUXObXbf+eEZSqVir2G3l6BFoMtEMze/aiCKm0oHw0LxOXnGiYZ  
+ 
+			4fQRbxC1lfznQgUy286dUV4otp6F01vvpX1FQHKOtw5rDgb7MzVIcbidJ4vEZV8N  
+ 
+			hnacRHr2lVz2XTIIM6RUthg/aFzyQkqFOFSDX9HoLPKsEdao7WNq==</Data>
+					</Certificate>
+					<Certificate Name="ca">
+						<Privilege>PRIVILEGE_IOCTL</Privilege>
+						<Issuer>VeriSign Class 3 Public Primary Certification Authority - G5</Issuer>
+						<Subject>VeriSign Class 3 Code Signing 2010 CA</Subject>
+						<Data>MIIGCjCCBPKgAwIBAgIQUgDlqiVW/BqG7ZbJ1EszxzANBgkqhkiG9w0BAQUFADCB  
+ 
+			yjELMAkGA1UEBhMCVVMxFzAVBgNVBAoTDlZlcmlTaWduLCBJbmMuMR8wHQYDVQQL  
+ 
+			ExZWZXJpU2lnbiBUcnVzdCBOZXR3b3JrMTowOAYDVQQLEzEoYykgMjAwNiBWZXJp  
+ 
+			U2lnbiwgSW5jLiAtIEZvciBhdXRob3JpemVkIHVzZSBvbmx5MUUwQwYDVQQDEzxW  
+ 
+			ZXJpU2lnbiBDbGFzcyAzIFB1YmxpYyBQcmltYXJ5IENlcnRpZmljYXRpb24gQXV0  
+ 
+			aG9yaXR5IC0gRzUwHhcNMTAwMjA4MDAwMDAwWhcNMjAwMjA3MjM1OTU5WjCBtDEL  
+ 
+			MAkGA1UEBhMCVVMxFzAVBgNVBAoTDlZlcmlTaWduLCBJbmMuMR8wHQYDVQQLExZW  
+ 
+			ZXJpU2lnbiBUcnVzdCBOZXR3b3JrMTswOQYDVQQLEzJUZXJtcyBvZiB1c2UgYXQg  
+ 
+			aHR0cHM6Ly93d3cudmVyaXNpZ24uY29tL3JwYSAoYykxMDEuMCwGA1UEAxMlVmVy  
+ 
+			aVNpZ24gQ2xhc3MgMyBDb2RlIFNpZ25pbmcgMjAxMCBDQTCCASIwDQYJKoZIhvcN  
+ 
+			AQEBBQADggEPADCCAQoCggEBAPUjS16l14q7MunUV/fv5Mcmfq0ZmP6onX2U9jZr  
+ 
+			ENd1gTB/BGh/yyt1Hs0dCIzfaZSnN6Oce4DgmeHuN01fzjsU7obU0PUnNbwlCzin  
+ 
+			jGOdF6MIpauw+81qYoJM1SHaG9nx44Q7iipPhVuQAU/Jp3YQfycDfL6ufn3B3fkF  
+ 
+			vBtInGnnwKQ8PEEAPt+W5cXklHHWVQHHACZKQDy1oSapDKdtgI6QJXvPvz8c6y+W  
+ 
+			+uWHd8a1VrJ6O1QwUxvfYjT/HtH0WpMoheVMF05+W/2kk5l/383vpHXv7xX2R+f4  
+ 
+			GXLYLjQaprSnTH69u08MPVfxMNamNo7WgHbXGS6lzX40LYkCAwEAAaOCAf4wggH6  
+ 
+			MBIGA1UdEwEB/wQIMAYBAf8CAQAwcAYDVR0gBGkwZzBlBgtghkgBhvhFAQcXAzBW  
+ 
+			MCgGCCsGAQUFBwIBFhxodHRwczovL3d3dy52ZXJpc2lnbi5jb20vY3BzMCoGCCsG  
+ 
+			AQUFBwICMB4aHGh0dHBzOi8vd3d3LnZlcmlzaWduLmNvbS9ycGEwDgYDVR0PAQH/  
+ 
+			BAQDAgEGMG0GCCsGAQUFBwEMBGEwX6FdoFswWTBXMFUWCWltYWdlL2dpZjAhMB8w  
+ 
+			BwYFKw4DAhoEFI/l0xqGrI2Oa8PPgGrUSBgsexkuMCUWI2h0dHA6Ly9sb2dvLnZl  
+ 
+			cmlzaWduLmNvbS92c2xvZ28uZ2lmMDQGA1UdHwQtMCswKaAnoCWGI2h0dHA6Ly9j  
+ 
+			cmwudmVyaXNpZ24uY29tL3BjYTMtZzUuY3JsMDQGCCsGAQUFBwEBBCgwJjAkBggr  
+ 
+			BgEFBQcwAYYYaHR0cDovL29jc3AudmVyaXNpZ24uY29tMB0GA1UdJQQWMBQGCCsG  
+ 
+			AQUFBwMCBggrBgEFBQcDAzAoBgNVHREEITAfpB0wGzEZMBcGA1UEAxMQVmVyaVNp  
+ 
+			Z25NUEtJLTItODAdBgNVHQ4EFgQUz5mp6nsm9EvJjo/X8AUm7+PSp50wHwYDVR0j  
+ 
+			BBgwFoAUf9Nlp8Ld7LvwMAnzQzn6Aq8zMTMwDQYJKoZIhvcNAQEFBQADggEBAFYi  
+ 
+			5jSkxGHLSLkBrVaoZA/ZjJHEu8wM5a16oCJ/30c4Si1s0X9xGnzscKmx8E/kDwxT  
+ 
+			+hVe/nSYSSSFgSYckRRHsExjjLuhNNTGRegNhSZzA9CpjGRt3HGS5kUFYBVZUTn8  
+ 
+			WBRr/tSk7XlrCAxBcuc3IgYJviPpP0SaHulhncyxkFz8PdKNrEI9ZTbUtD1AKI+b  
+ 
+			EM8jJsxLIMuQH12MTDTKPNjlN9ZvpSC9NOsm2a4N58Wa96G0IZEzb4boWLslfHQO  
+ 
+			WP51G2M/zjF8m48blp7FU3aEW5ytkfqs7ZO6XcghU8KCU2OvEg1QhxEbPVRSloos  
+ 
+			nD2SGgiaBS7Hk6VIkdM=</Data>
+					</Certificate>
+					<Certificate Name="root">
+						<Privilege>PRIVILEGE_IOCTL</Privilege>
+						<Issuer>COMODO RSA Certification Authority</Issuer>
+						<Subject>COMODO RSA Certification Authority</Subject>
+						<Data>MIIF2DCCA8CgAwIBAgIQTKr5yttjb+Af907YWwOGnTANBgkqhkiG9w0BAQwFADCB  
+ 
+			hTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3RlcjEQMA4G  
+ 
+			A1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQxKzApBgNV  
+ 
+			BAMTIkNPTU9ETyBSU0EgQ2VydGlmaWNhdGlvbiBBdXRob3JpdHkwHhcNMTAwMTE5  
+ 
+			MDAwMDAwWhcNMzgwMTE4MjM1OTU5WjCBhTELMAkGA1UEBhMCR0IxGzAZBgNVBAgT  
+ 
+			EkdyZWF0ZXIgTWFuY2hlc3RlcjEQMA4GA1UEBxMHU2FsZm9yZDEaMBgGA1UEChMR  
+ 
+			Q09NT0RPIENBIExpbWl0ZWQxKzApBgNVBAMTIkNPTU9ETyBSU0EgQ2VydGlmaWNh  
+ 
+			dGlvbiBBdXRob3JpdHkwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIKAoICAQCR  
+ 
+			6FSS0gpWsawNJN3Fz0RndJkrN6N9I3AAcbxT38T6KhKPS38QVr2fcHK3YX/JSw8X  
+ 
+			pz3jsARh7v8Rl8f0hj4K+j5c+ZPmNHrZFGvnnLOFoIJ6dq9xkNfs/Q36nGz637CC  
+ 
+			9BR++b7Epi9Pf5l/tfxnQ3K9DADWietrLNPtj5gcFKt+5eNu/Nio5JIk2kNrYrhV  
+ 
+			/erBvGy2i/MOjZrkm2xpmfh4SDBF1a3hDTxFYPwyllEnvGfDyi62a+pGx8cgoLEf  
+ 
+			Zd5ICLqkTqnyg0Y3hOvozIFIQ2dOciqbXL1MGyiKXCJ7tKuY2e7gUYPDCUZObT6Z  
+ 
+			+pUX2nwzV0E8jVHtC7ZcryxjGt9XyD+86V3Em69FmeKjWiS0uqlWPc9vqv9JWL7w  
+ 
+			qP/0uK3pN/u6uPQLOvnoQ0IeidiEyxPx2bvhiWC4jChWrBQdnArncevPDt09qZah  
+ 
+			SL0896+1DSJMwBGB7FY79tOi4lu3sgQiUpWAk2nojkxl8ZEDLXB0AuqLZxUpaVIC  
+ 
+			u9ffUGpVRr+goyhhf3DQw6KqLCGqR84onAZFdr+CGCe01a60y1Dma/RMhnEw6abf  
+ 
+			Fobg2P9A3fvQQoh/ozM6LlweQRGBY84YcWsr7KaKtzFcOmpH4MN5WdYgGq/yapiq  
+ 
+			crxXStJLnbsQ/LBMQeXtHT1eKJ2czL+zUdqnR+WEUwIDAQABo0IwQDAdBgNVHQ4E  
+ 
+			FgQUu69+Aj36pvE8hI6t7jiY7NkyMtQwDgYDVR0PAQH/BAQDAgEGMA8GA1UdEwEB  
+ 
+			/wQFMAMBAf8wDQYJKoZIhvcNAQEMBQADggIBAArx1UaEt65Ru2yyTUEUAJNMnMvl  
+ 
+			wFTPoCWOAvn9sKIN9SCYPBMtrFaisNZ+EZLpLrqeLppysb0ZRGxhNaKatBYSaVqM  
+ 
+			4dc+pBroLwP0rmEdEBsqpIt6xf4FpuHA1sj+nq6PK7o9mfjYcwlYRm6mnPTXJ9OV  
+ 
+			2jeDchzTc+CiR5kDOF3VSXkAKRzH7JsgHAckaVd4sjn8OoSgtZx8jb8uk2Intzna  
+ 
+			FxiuvTwJaP+EmzzV1gsD41eeFPfR60/IvYcjt7ZJQ3mFXLrrkguhxuhoqEwWsRqZ  
+ 
+			CuhTLJK7oQkYdQxlqHvLI7cawiiFwxv/0Cti76R7CZGYZ4wUAc1oBmpjIXUDgIiK  
+ 
+			boHGhfKppC3n9KUkEEeDys30jXlYsQab5xoq2Z0B15R97QNKyvDb6KkBPvVWmcke  
+ 
+			jkk9u+UJueBPSZI9FoJAzMxZxuY67RIuaTxslbH9qh17f4a+Hg4yRvv7E491f0yL  
+ 
+			S0Zj/gA0QHDBw7mh3aZw4gSzQbzpgJHqZJx64SIDqZxubw5lT2yHh17zbqD5daWb  
+ 
+			QOhTsiedSrnAdyGN/4fy3ryM7xfft0kL0fJuMAsaDk527RH89elWsn2/x20Kk4yl  
+ 
+			0MC2Hb46TpSi125sC8KKfPog88Tk5c0NqMuRkrF8hey1FGlmDoLnzc7ILaZRfyHB  
+ 
+			NVOFBkpdn627G190</Data>
+					</Certificate>
+					<Certificate Name="ca">
+						<Privilege>PRIVILEGE_IOCTL</Privilege>
+						<Issuer>COMODO RSA Certification Authority</Issuer>
+						<Subject>COMODO RSA Code Signing CA</Subject>
+						<Data>MIIF4DCCA8igAwIBAgIQLnyHzA6TSlL+lP0ct800rzANBgkqhkiG9w0BAQwFADCB  
+ 
+			hTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3RlcjEQMA4G  
+ 
+			A1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQxKzApBgNV  
+ 
+			BAMTIkNPTU9ETyBSU0EgQ2VydGlmaWNhdGlvbiBBdXRob3JpdHkwHhcNMTMwNTA5  
+ 
+			MDAwMDAwWhcNMjgwNTA4MjM1OTU5WjB9MQswCQYDVQQGEwJHQjEbMBkGA1UECBMS  
+ 
+			R3JlYXRlciBNYW5jaGVzdGVyMRAwDgYDVQQHEwdTYWxmb3JkMRowGAYDVQQKExFD  
+ 
+			T01PRE8gQ0EgTGltaXRlZDEjMCEGA1UEAxMaQ09NT0RPIFJTQSBDb2RlIFNpZ25p  
+ 
+			bmcgQ0EwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCmmJBjd5E0f4rR  
+ 
+			3elnMRHrzB79MR2zuWJXP5O8W+OfHiQyESdrvFGRp8+eniWzX4GoGA8dHiAwDvth  
+ 
+			e4YJs+P9omidHCydv3Lj5HWg5TUjjsmK7hoMZMfYQqF7tVIDSzqwjiNLS2PgIpQ3  
+ 
+			e9V5kAoUGFEs5v7BEvAcP2FhCoyi3PbDMKrNKBh1SMF5WgjNu4xVjPfUdpA6M0ZQ  
+ 
+			c5hc9IVKaw+A3V7Wvf2pL8Al9fl4141fEMJEVTyQPDFGy3CuB6kK46/BAW+QGiPi  
+ 
+			XzjbxghdR7ODQfAuADcUuRKqeZJSzYcPe9hiKaR+ML0btYxytEjy4+gh+V5MYnmL  
+ 
+			Agaff9ULAgMBAAGjggFRMIIBTTAfBgNVHSMEGDAWgBS7r34CPfqm8TyEjq3uOJjs  
+ 
+			2TIy1DAdBgNVHQ4EFgQUKZFg/4pN+uv5pmq4z/nmS71JzhIwDgYDVR0PAQH/BAQD  
+ 
+			AgGGMBIGA1UdEwEB/wQIMAYBAf8CAQAwEwYDVR0lBAwwCgYIKwYBBQUHAwMwEQYD  
+ 
+			VR0gBAowCDAGBgRVHSAAMEwGA1UdHwRFMEMwQaA/oD2GO2h0dHA6Ly9jcmwuY29t  
+ 
+			b2RvY2EuY29tL0NPTU9ET1JTQUNlcnRpZmljYXRpb25BdXRob3JpdHkuY3JsMHEG  
+ 
+			CCsGAQUFBwEBBGUwYzA7BggrBgEFBQcwAoYvaHR0cDovL2NydC5jb21vZG9jYS5j  
+ 
+			b20vQ09NT0RPUlNBQWRkVHJ1c3RDQS5jcnQwJAYIKwYBBQUHMAGGGGh0dHA6Ly9v  
+ 
+			Y3NwLmNvbW9kb2NhLmNvbTANBgkqhkiG9w0BAQwFAAOCAgEAAj8COcPu+Mo7id4M  
+ 
+			bU2x8U6ST6/COCwEzMVjEasJY6+rotcCP8xvGcM91hoIlP8l2KmIpysQGuCbsQci  
+ 
+			GlEcOtTh6Qm/5iR0rx57FjFuI+9UUS1SAuJ1CAVM8bdR4VEAxof2bO4QRHZXavHf  
+ 
+			WGshqknUfDdOvf+2dVRAGDZXZxHNTwLk/vPa/HUX2+y392UJI0kfQ1eD6n4gd2HI  
+ 
+			TfK7ZU2o94VFB696aSdlkClAi997OlE5jKgfcHmtbUIgos8MbAOMTM1zB5TnWo46  
+ 
+			BLqioXwfy2M6FafUFRunUkcyqfS/ZEfRqh9TTjIwc8Jvt3iCnVz/RrtrIh2IC/gb  
+ 
+			qjSm/Iz13X9ljIwxVzHQNuxHoc/Li6jvHBhYxQZ3ykubUa9MCEp6j+KjUuKOjswm  
+ 
+			5LLY5TjCqO3GgZw1a6lYYUoKl7RLQrZVnb6Z53BtWfhtKgx/GWBfDJqIbDCsUgmQ  
+ 
+			Fhv/K53b0CDKieoofjKOGd97SDMe12X4rsn4gxSTdn1k0I7OvjV9/3IxTZ+evR5s  
+ 
+			L6iPDAZQ+4wns3bJ9ObXwzTijIchhmH+v1V04SF3AwpobLvkyanmz1kl63zsRQ55  
+ 
+			ZmjoIs2475iFTZYRPAmK0H+8KCgT+2rKVI2SXM3CZZgGns5IW9S1N5NGQXwH3c/6  
+ 
+			Q++6Z2H/fUnguzB9XIDj5hY5S6c=</Data>
+					</Certificate>
+					<Certificate Name="ca">
+						<Privilege>PRIVILEGE_IOCTL</Privilege>
+						<Issuer>VeriSign Class 3 Public Primary Certification Authority - G5</Issuer>
+						<Subject>Symantec Class 3 SHA256 Code Signing CA</Subject>
+						<Data>MIIFWTCCBEGgAwIBAgIQPXjX+XZJYLJhffTwHsqGKjANBgkqhkiG9w0BAQsFADCB  
+ 
+			yjELMAkGA1UEBhMCVVMxFzAVBgNVBAoTDlZlcmlTaWduLCBJbmMuMR8wHQYDVQQL  
+ 
+			ExZWZXJpU2lnbiBUcnVzdCBOZXR3b3JrMTowOAYDVQQLEzEoYykgMjAwNiBWZXJp  
+ 
+			U2lnbiwgSW5jLiAtIEZvciBhdXRob3JpemVkIHVzZSBvbmx5MUUwQwYDVQQDEzxW  
+ 
+			ZXJpU2lnbiBDbGFzcyAzIFB1YmxpYyBQcmltYXJ5IENlcnRpZmljYXRpb24gQXV0  
+ 
+			aG9yaXR5IC0gRzUwHhcNMTMxMjEwMDAwMDAwWhcNMjMxMjA5MjM1OTU5WjB/MQsw  
+ 
+			CQYDVQQGEwJVUzEdMBsGA1UEChMUU3ltYW50ZWMgQ29ycG9yYXRpb24xHzAdBgNV  
+ 
+			BAsTFlN5bWFudGVjIFRydXN0IE5ldHdvcmsxMDAuBgNVBAMTJ1N5bWFudGVjIENs  
+ 
+			YXNzIDMgU0hBMjU2IENvZGUgU2lnbmluZyBDQTCCASIwDQYJKoZIhvcNAQEBBQAD  
+ 
+			ggEPADCCAQoCggEBAJeDHgAWryyx0gjE12iTUWAecfbiR7TbWE0jYmq0v1obUfej  
+ 
+			DRh3aLvYNqsvIVDanvPnXydOC8KXyAlwk6naXA1OpA2RoLTsFM6RclQuzqPbROlS  
+ 
+			Gz9BPMpK5KrA6DmrU8wh0MzPf5vmwsxYaoIV7j02zxzFlwckjvF7vjEtPW7ctZlC  
+ 
+			n0thlV8ccO4XfduL5WGJeMdoG68ReBqYrsRVR1PZszLWoQ5GQMWXkorRU6eZW4U1  
+ 
+			V9Pqk2JhIArHMHckEU1ig7a6e2iCMe5lyt/51Y2yNdyMK29qclxghJzyDJRewFZS  
+ 
+			AEjM0/ilfd4v1xPkOKiE1Ua4E4bCG53qWjjdm9sCAwEAAaOCAYMwggF/MC8GCCsG  
+ 
+			AQUFBwEBBCMwITAfBggrBgEFBQcwAYYTaHR0cDovL3MyLnN5bWNiLmNvbTASBgNV  
+ 
+			HRMBAf8ECDAGAQH/AgEAMGwGA1UdIARlMGMwYQYLYIZIAYb4RQEHFwMwUjAmBggr  
+ 
+			BgEFBQcCARYaaHR0cDovL3d3dy5zeW1hdXRoLmNvbS9jcHMwKAYIKwYBBQUHAgIw  
+ 
+			HBoaaHR0cDovL3d3dy5zeW1hdXRoLmNvbS9ycGEwMAYDVR0fBCkwJzAloCOgIYYf  
+ 
+			aHR0cDovL3MxLnN5bWNiLmNvbS9wY2EzLWc1LmNybDAdBgNVHSUEFjAUBggrBgEF  
+ 
+			BQcDAgYIKwYBBQUHAwMwDgYDVR0PAQH/BAQDAgEGMCkGA1UdEQQiMCCkHjAcMRow  
+ 
+			GAYDVQQDExFTeW1hbnRlY1BLSS0xLTU2NzAdBgNVHQ4EFgQUljtT8Hkzl699g+8u  
+ 
+			K8zKt4YecmYwHwYDVR0jBBgwFoAUf9Nlp8Ld7LvwMAnzQzn6Aq8zMTMwDQYJKoZI  
+ 
+			hvcNAQELBQADggEBABOFGh5pqTf3oL2kr34dYVP+nYxeDKZ1HngXI9397BoDVTn7  
+ 
+			cZXHZVqnjjDSRFph23Bv2iEFwi5zuknx0ZP+XcnNXgPgiZ4/dB7X9ziLqdbPuzUv  
+ 
+			M1ioklbRyE07guZ5hBb8KLCxR/Mdoj7uh9mmf6RWpT+thC4p3ny8qKqjPQQB6rqT  
+ 
+			og5QIikXTIfkOhFf1qQliZsFay+0yQFMJ3sLrBkFIqBgFT/ayftNTI/7cmd3/SeU  
+ 
+			x7o1DohJ/o39KK9KEr0Ns5cF3kQMFfo2KwPcwVAB8aERXRTl4r0nS1S+K4ReD6bD  
+ 
+			dAUK75fDiSKxH3fzvc1D1PFMqT+1i4SvZPLQFCE=</Data>
+					</Certificate>
+				</Certificates>
+				<!-- Install ETW event provider on Vista RTM and later -->
+				<Process wait="true" action="onInstall" location="$SYSTEM32ROOT" winver="6000-" allowfail="true">wevtutil.exe um aacetw.man</Process>
+				<Process wait="true" action="onInstall" location="$SYSTEM32ROOT" winver="6000-" allowfail="true">wevtutil.exe im aacetw.man</Process>
+				<Process wait="true" action="onUpgrade" location="$SYSTEM32ROOT" winver="6000-" allowfail="true">wevtutil.exe um aacetw.man</Process>
+				<Process wait="true" action="onUpgrade" location="$SYSTEM32ROOT" winver="6000-" allowfail="true">wevtutil.exe im aacetw.man</Process>
+				<Driver bootload="3" vtpoptions="0x100000" safeboot="network">
+					<FileName sha256="2c49b0742dd3ddf13590de3851763b29fa15cf2abd240d9ba257bb4710acd1ec">mfeaack.sys</FileName>
+					<Inf>mfeaack.inf</Inf>
+					<Cat>mfeaack.cat</Cat>
+				</Driver>
+				<Driver bootload="3" vtpoptions="0x100000" safeboot="network" winver="5100-">
+					<FileName sha256="624d28235a6031bbe6afcaf70b1f13ba4467ae7ec5ab2790b512f5ec65338ac5">mfeplk.sys</FileName>
+					<Inf>mfeplk.inf</Inf>
+					<Cat>mfeplk.cat</Cat>
+				</Driver>
+				<!-- avf driver -->
+				<Driver bootload="2" vtpoptions="0x140000" safeboot="network">
+					<FileName sha256="bf0fd135ed682ee30e4ac695b883f24af7aba92b2c2a24895d3d96932b4298ac">mfeavfk.sys</FileName>
+					<Inf>mfeavfk.inf</Inf>
+					<Cat>mfeavfk.cat</Cat>
+				</Driver>
+				<Core>
+					<FileName sha256="c525f3ea495fa20d3e7c88e200f894421c49ffd318ffdd07f0369ae50cafb65a">mfehida.dll</FileName>
+					<FileName sha256="83b98479cc9cd4a614a94cc3a8b33e23a327ab066f9f927012b03dd1874f8c35">mfevtpa.dll</FileName>
+					<FileName sha256="7dd5c3017ae9531fe490684b964208c5afae6be0b24eee3f025951c576648129">mfeavfa.dll</FileName>
+					<FileName sha256="4f796ba06efa87c42ef0257d3bd07c0070ed42f1909e480d367b75119f00d947">vtpinfo.exe</FileName>
+					<FileName sha256="efa0d56193ae66cbc885b9a097cdbc81ec8b1422e0d6cbfc9103923f3373e750">cacheinfo.exe</FileName>
+					<FileName sha256="f607d2388ce60d1aeffdd24a3399b4b8f1575f37e61312f8d9d8cababb54a72b">mfeaaca.dll</FileName>
+					<FileName sha256="c4e0e9ce11736f3dec3ed84a7e29422ee1e936309a993b4cddce72462079734c">aacinfo.exe</FileName>
+					<FileName winver="5100-" sha256="aad2fe78f1a538f26453b18672eacce98a1f0ab87834ea1869f538b6c4478b7f">mfepla.dll</FileName>
+					<FileName sha256="d41d2d75ec696ff10a1ebba2161d129adecfa1a11d7814a8c47b890bdd25c234">mfecana.dll</FileName>
+					<FileName sha256="ed549e4927d10cbca369b2d31ffa3debe91c8aae8b38688f7c49f1309e53148c">mfecanary.exe</FileName>
+					<FileName sha256="e021a41fb988e5bde4027056402929034b56e0ef62b945ac2e5b065df72c2947">mfeapfa.dll</FileName>
+					<!-- Install this 32-bit file on 64-bit machines -->
+					<Directory platform="x64" location="$COREPATH_X86">
+						<FileName source="$SOURCEPATH_X86" sign_source="..\release" sha256="5b44b0e4cd30e75eb7ad200e7283df8ec74df5a9d5b3ba8ffbd1e024f15f80d0">mfeaaca.dll</FileName>
+						<FileName source="$SOURCEPATH_X86" sign_source="..\release" sha256="0d0c906ab1deb91fc6933168e34faccfee83361c584d5cf94427e485f94e5d7d">mfeavfa.dll</FileName>
+						<FileName source="$SOURCEPATH_X86" sign_source="..\release" sha256="c7faefbb03996ff133448f07d876bf805ca6a602986d7953f80c38b61fa0370c">mfehida.dll</FileName>
+						<FileName source="$SOURCEPATH_X86" sign_source="..\release" sha256="cd4646efe90a3f9e3b9320343c7c7389ca5041cca5f4fd1ee0821440b49f94d5">mfevtpa.dll</FileName>
+						<FileName source="$SOURCEPATH_X86" sign_source="..\release" sha256="c63863b7e0436faa1cbd2fe18e0b01d6585dfd13c6c9b04c55b6e093a4a57677">mfecana.dll</FileName>
+						<FileName source="$SOURCEPATH_X86" sign_source="..\release" sha256="c622f4d27c98e784c08ba4f0a09d8ff60ce964bd0725135561f0340a232819a4">mfecanary.exe</FileName>
+						<FileName source="$SOURCEPATH_X86" sign_source="..\release" sha256="99d46cc275094f369439876e3008812c14c3b11427ccd650628fc2f8d032e75d">mfeapfa.dll</FileName>
+					</Directory>
+				</Core>
+				<!-- Registry key for canary processes -->
+				<Registry key="HKLM\software\mcafee\SystemCore\Canary"/>
+				<PointProductList>
+					<PointProduct ProductGuid="$MANIFESTID" Name="SystemCore">
+						<AacPolicy PolicyGuid="65CF3D67-B283-4477-83C6-181CEFAC7443" IsSticky="true">
+							<Description>$VSCOREVERSION</Description>
+							<AacRule RuleGuid="{14D0B28F-C252-48b5-B740-98D536893144}" ReactionType="AAC_REACTION_BLOCK" ReportEvent="true" IsEnabled="true" GroupTag="mfemms">
+								<Description>Protect AAC driver</Description>
+								<AacSubRule Role="AAC_ROLE_INITIATOR">
+									<AacMatchObject ObjectType="AAC_OBJECT_PROCESS">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_EXCLUDE">
+											<TYPE_STRING>$SYSTEM32ROOT\SERVICES.EXE</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_EXCLUDE">
+											<TYPE_STRING>SYSTEM</TYPE_STRING>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_FILE">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>$SYSTEM32ROOT\DRIVERS\MFEAACK.SYS</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>$SYSTEM32ROOT\DRIVERS\MFEAVFK.SYS</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>$SYSTEM32ROOT\DRIVERS\MFEPLK.SYS</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_BITMASK>0x1000b</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_VALUE">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKCCS\SERVICES\MFEAACK\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKCCS\SERVICES\MFEAVFK\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKCCS\SERVICES\MFEPLK\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_BITMASK>0xb</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_KEY">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKCCS\SERVICES\MFEAACK\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKCCS\SERVICES\MFEAVFK\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKCCS\SERVICES\MFEPLK\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_BITMASK>0x309</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+							</AacRule>
+							<!-- protect tools from self-injection -->
+							<AacRule RuleGuid="{4E934645-37E5-492b-AE55-ACD631978A79}" GroupTag="mfemms" ReactionType="AAC_REACTION_BLOCK" ReportEvent="true" IsEnabled="true">
+								<Description>Sanitize Tool Processes</Description>
+								<AacSubRule Role="AAC_ROLE_INITIATOR">
+									<AacMatchObject ObjectType="AAC_OBJECT_PROCESS">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>$COREPATH\AACINFO.EXE</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>$COREPATH\CACHEINFO.EXE</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>$COREPATH\VTPINFO.EXE</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>$COREPATH\CSSCAN.EXE</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>$COREPATH\MCSHIELD.EXE</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>$COREPATH\MFEANN.EXE</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>$COREPATH\DAINSTALL.EXE</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>$COREPATH\ENTVUTIL.EXE</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>$COREPATH\ELAMTOOL.EXE</TYPE_STRING>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_SECTION">
+										<AacMatchData MatchType="AAC_MATCH_VTP_TRUST" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_INT8>0</TYPE_INT8>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_BITMASK>0x1</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+							</AacRule>
+						</AacPolicy>
+					</PointProduct>
+				</PointProductList>
+			</Feature>
+			<Feature tag="DiskFilter" required="yes" GUID="{C5D10DAA-D978-4B8D-B5C5-D036B726B8AD}" winver="5100-">
+				<Driver winver="5100-5999">
+					<FileName sha256="a23191c1f802da109ab8f469efc616b9efb649a80756c7cd838595eb5d25c2cd">mfedisk.sys</FileName>
+					<Inf>mfedisk.inf</Inf>
+					<Cat>mfedisk.cat</Cat>
+				</Driver>
+				<Driver winver="6000-">
+					<FileName sha256="a23191c1f802da109ab8f469efc616b9efb649a80756c7cd838595eb5d25c2cd">mfedisk.sys</FileName>
+					<Inf>mfedisk.inf</Inf>
+					<Cat>mfedisk.cat</Cat>
+				</Driver>
+				<PointProductList>
+					<PointProduct ProductGuid="$MANIFESTID" Name="SystemCore">
+						<AacPolicy PolicyGuid="C5D10DAA-D978-4B8D-B5C5-D036B726B8AD" IsSticky="true">
+							<Description>$VSCOREVERSION</Description>
+							<AacRule RuleGuid="{7D730499-0EA6-4938-ACF2-9E698C3BB98D}" ReactionType="AAC_REACTION_BLOCK" ReportEvent="true" IsEnabled="true" GroupTag="mfemms">
+								<Description>Protect mfedisk driver</Description>
+								<AacSubRule Role="AAC_ROLE_INITIATOR">
+									<AacMatchObject ObjectType="AAC_OBJECT_PROCESS">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_EXCLUDE">
+											<TYPE_STRING>$SYSTEM32ROOT\SERVICES.EXE</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_EXCLUDE">
+											<TYPE_STRING>SYSTEM</TYPE_STRING>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_FILE">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>$SYSTEM32ROOT\DRIVERS\MFEDISK.SYS</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_BITMASK>0x1000b</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_KEY">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKCCS\SERVICES\MFEDISK\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_BITMASK>0x309</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_VALUE">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKCCS\SERVICES\MFEDISK\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_BITMASK>0xb</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+							</AacRule>
+						</AacPolicy>
+					</PointProduct>
+				</PointProductList>
+			</Feature>
+			<Feature tag="firecore" required="yes" GUID="{615BE029-30AB-468E-9872-255537380B1D}">
+				<Driver bootload="true" safeboot="network">
+					<FileName sha256="735d1c184853f119d29077653884bac2bc9d5a080633ad1afe80e7d46ab9fd4d">mfefirek.sys</FileName>
+					<Inf>mfefirek.inf</Inf>
+					<Cat>mfefirek.cat</Cat>
+				</Driver>
+				<!-- avf driver -->
+				<Driver bootload="2" vtpoptions="0x140000">
+					<FileName sha256="bf0fd135ed682ee30e4ac695b883f24af7aba92b2c2a24895d3d96932b4298ac">mfeavfk.sys</FileName>
+					<Inf>mfeavfk.inf</Inf>
+					<Cat>mfeavfk.cat</Cat>
+				</Driver>
+				<Core>
+					<FileName sha256="c525f3ea495fa20d3e7c88e200f894421c49ffd318ffdd07f0369ae50cafb65a">mfehida.dll</FileName>
+					<FileName sha256="83b98479cc9cd4a614a94cc3a8b33e23a327ab066f9f927012b03dd1874f8c35">mfevtpa.dll</FileName>
+					<FileName sha256="4f796ba06efa87c42ef0257d3bd07c0070ed42f1909e480d367b75119f00d947">vtpinfo.exe</FileName>
+					<FileName sha256="efa0d56193ae66cbc885b9a097cdbc81ec8b1422e0d6cbfc9103923f3373e750">cacheinfo.exe</FileName>
+					<FileName sha256="47d01e955b99f69e708d21ff4e8c5e0c88ac0c085005be469420f0ed7ab80110">mfefwctl.dll</FileName>
+					<FileName sha256="5e8566972d40fa3df11202eacadf2e9c0c71649195dd004e3621c72d165f9755">fwinfo.exe</FileName>
+					<!-- Install this 32-bit file on 64-bit machines -->
+					<Directory platform="x64" location="$COREPATH_X86">
+						<FileName source="$SOURCEPATH_X86" sign_source="..\release" sha256="28cbbf6467d7e9345e77e8d673ecc895952cff97580f4f7a0729ad0e5b1df127">mfefwctl.dll</FileName>
+					</Directory>
+					<!-- avf driver -->
+					<FileName sha256="7dd5c3017ae9531fe490684b964208c5afae6be0b24eee3f025951c576648129">mfeavfa.dll</FileName>
+					<FileName sha256="c525f3ea495fa20d3e7c88e200f894421c49ffd318ffdd07f0369ae50cafb65a">mfehida.dll</FileName>
+					<Directory platform="x64" location="$COREPATH_X86">
+						<FileName source="$SOURCEPATH_X86" sign_source="..\release" sha256="0d0c906ab1deb91fc6933168e34faccfee83361c584d5cf94427e485f94e5d7d">mfeavfa.dll</FileName>
+						<FileName source="$SOURCEPATH_X86" sign_source="..\release" sha256="c7faefbb03996ff133448f07d876bf805ca6a602986d7953f80c38b61fa0370c">mfehida.dll</FileName>
+					</Directory>
+				</Core>
+				<!-- -->
+				<Service location="$COREPATH" install_as="win_or_proxy" control="start_stop_restart" safeboot="network">
+					<FileName sha256="365157d8f9554815ceba1c7fc789e857c34ee16db0fd8ebfbb0ed0c30ba4dd42">mfefire.exe</FileName>
+					<ServiceName>mfefire</ServiceName>
+					<DisplayName>McAfee Firewall Core Service</DisplayName>
+					<Description>Provides firewall services to McAfee products</Description>
+					<DependOnService>mfevtp</DependOnService>
+					<LockDownEnabled>1</LockDownEnabled>
+					<Start>3</Start>
+					<FailureRestart>
+						<ResetPeriod>5184000</ResetPeriod>
+						<RestartCount>2</RestartCount>
+						<RestartDelay>60</RestartDelay>
+					</FailureRestart>
+				</Service>
+				<MMSService winver="5100-" location="$COREPATH">
+					<Name>mfefire</Name>
+					<StartupProfile>SERVICE_START_EARLY</StartupProfile>
+					<ServiceType>SERVICE_WIN32_OWN_PROCESS</ServiceType>
+					<MMSServiceType>SERVICE_TYPE_MMS</MMSServiceType>
+					<FileName sha256="365157d8f9554815ceba1c7fc789e857c34ee16db0fd8ebfbb0ed0c30ba4dd42">mfefire.exe</FileName>
+					<BinaryPath>mfefire.exe -mms</BinaryPath>
+					<ServiceArgVectors></ServiceArgVectors>
+					<NumServiceArgs>0</NumServiceArgs>
+					<PowerProfile>POWERPROFILE_NORMAL</PowerProfile>
+					<FailureRestart>
+						<!-- Values are in seconds-->
+						<ResetPeriod>1800</ResetPeriod>
+						<RestartCount>5</RestartCount>
+						<RestartDelay>5</RestartDelay>
+					</FailureRestart>
+					<DependOnService>
+						<ServiceName>mfevtp</ServiceName>
+					</DependOnService>
+					<GroupAccount>LocalSystem</GroupAccount>
+					<DisplayName>McAfee Firewall Core Service</DisplayName>
+					<Description>Provides firewall services to McAfee products</Description>
+				</MMSService>
+				<PointProductList>
+					<PointProduct ProductGuid="$MANIFESTID" Name="SystemCore">
+						<AacPolicy PolicyGuid="615BE029-30AB-468E-9872-255537380B1D" IsSticky="true">
+							<Description>$VSCOREVERSION</Description>
+							<AacRule RuleGuid="{D5AE6262-FC81-4757-A87F-DC0AD905E0E8}" GroupTag="mfemms" ReactionType="AAC_REACTION_EXCEPTIONAL_ALLOW" ReportEvent="false" IsEnabled="true">
+								<Description>Exclude Legacy mfehidin From Protect FireCore driver</Description>
+								<AacSubRule Role="AAC_ROLE_INITIATOR">
+									<AacMatchObject ObjectType="AAC_OBJECT_PROCESS">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>%SYSTEMDRIVE%\**\MFEHIDIN.EXE</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_PRODUCT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>SYSCORE*</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_VTP_TRUST" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_INT8>1</TYPE_INT8>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_VALUE">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKCCS\SERVICES\MFEFIRE\*</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKCCS\SERVICES\MFEFIREK\*</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKCCS\SERVICES\MFEAVFK\*</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<!-- AAC_ACCESS_CREATE|AAC_ACCESS_WRITE|AAC_ACCESS_DELETE-->
+											<TYPE_BITMASK>0xb</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+							</AacRule>
+							<AacRule RuleGuid="{BED3D32B-212B-42dd-86E4-BA45E1DF3653}" ReactionType="AAC_REACTION_BLOCK" ReportEvent="true" IsEnabled="true" GroupTag="mfemms">
+								<Description>Protect FireCore drivers</Description>
+								<AacSubRule Role="AAC_ROLE_INITIATOR">
+									<AacMatchObject ObjectType="AAC_OBJECT_PROCESS">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_EXCLUDE">
+											<TYPE_STRING>$SYSTEM32ROOT\SERVICES.EXE</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_EXCLUDE">
+											<TYPE_STRING>SYSTEM</TYPE_STRING>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<!-- protect mfefirek driver files  -->
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_FILE">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>$SYSTEM32ROOT\\DRIVERS\\MFEAVFK.SYS</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>$SYSTEM32ROOT\\DRIVERS\\MFEFIREK.SYS</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_BITMASK>0x1000b</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<!-- protect mfefirek/mfefire service registry  -->
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_VALUE">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKCCS\SERVICES\MFEAVFK\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKCCS\SERVICES\MFEFIREK\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKCCS\SERVICES\MFEFIRE\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_BITMASK>0xb</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_KEY">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKCCS\SERVICES\MFEAVFK\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKCCS\SERVICES\MFEFIRE\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKCCS\SERVICES\MFEFIREK\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_BITMASK>0x309</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<!-- protect mfefire from debugging and shimming -->
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_KEY">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKLM\SOFTWARE\MICROSOFT\WINDOWS NT\CURRENTVERSION\APPCOMPATFLAGS\CUSTOM\MFEFIRE.EXE</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKLM\SOFTWARE\MICROSOFT\WINDOWS NT\CURRENTVERSION\IMAGE FILE EXECUTION OPTIONS\MFEFIRE.EXE\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_BITMASK>0x1</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+							</AacRule>
+							<!-- protect mfefire processe and threads from injection and termination -->
+							<AacRule RuleGuid="{61AD55B7-58B1-43ff-8FD2-C80EE1876F03}" GroupTag="mfemms" ReactionType="AAC_REACTION_BLOCK" ReportEvent="true" IsEnabled="true">
+								<Description>Protect FireCore Processes</Description>
+								<AacSubRule Role="AAC_ROLE_INITIATOR">
+									<AacMatchObject ObjectType="AAC_OBJECT_PROCESS">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_EXCLUDE" IsRange="false">
+											<TYPE_STRING>$SYSTEM32ROOT\CSRSS.EXE</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_EXCLUDE" IsRange="false">
+											<TYPE_STRING>$SYSTEM32ROOT\LSASS.EXE</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_EXCLUDE" IsRange="false">
+											<TYPE_STRING>%windir%\SYSWOW64\LSASS.EXE</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_EXCLUDE" IsRange="false">
+											<TYPE_STRING>SYSTEM</TYPE_STRING>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_PROCESS">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>$COREPATH\MFEFIRE.EXE</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_BITMASK>0xa</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_THREAD">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>$COREPATH\MFEFIRE.EXE</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_BITMASK>0xa</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+							</AacRule>
+							<!-- protect mfefire from self-injection -->
+							<AacRule RuleGuid="{4E934641-37E5-492b-AE55-ACD631978A79}" GroupTag="mfemms" ReactionType="AAC_REACTION_BLOCK" ReportEvent="true" IsEnabled="true">
+								<Description>Sanitize FireCore Processes</Description>
+								<AacSubRule Role="AAC_ROLE_INITIATOR">
+									<AacMatchObject ObjectType="AAC_OBJECT_PROCESS">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>$COREPATH\MFEFIRE.EXE</TYPE_STRING>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_SECTION">
+										<AacMatchData MatchType="AAC_MATCH_VTP_TRUST" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_INT8>0</TYPE_INT8>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_BITMASK>0x1</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+							</AacRule>
+							<!-- protect tools from self-injection -->
+							<AacRule RuleGuid="{4E934644-37E5-492b-AE55-ACD631978A79}" GroupTag="mfemms" ReactionType="AAC_REACTION_BLOCK" ReportEvent="true" IsEnabled="true">
+								<Description>Sanitize Tool Processes</Description>
+								<AacSubRule Role="AAC_ROLE_INITIATOR">
+									<AacMatchObject ObjectType="AAC_OBJECT_PROCESS">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>$COREPATH\FWINFO.EXE</TYPE_STRING>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_SECTION">
+										<AacMatchData MatchType="AAC_MATCH_VTP_TRUST" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_INT8>0</TYPE_INT8>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_BITMASK>0x1</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+							</AacRule>
+						</AacPolicy>
+					</PointProduct>
+				</PointProductList>
+			</Feature>
+			<Feature required="no" tag="ELAM" GUID="{C6A18CBE-A632-4C75-AB1F-7E6ECF3E610F}">
+				<Driver winver="6200-">
+					<FileName sha256="7f5ed86108f9c0ed2f8c0cf81f0219aa238138ba815f7607a1c6540b5d68c26e">mfeelamk.sys</FileName>
+					<Start>0</Start>
+					<Group>Early-Launch</Group>
+					<Inf>mfeelamk.inf</Inf>
+					<Cat>mfeelamk.cat</Cat>
+				</Driver>
+				<Core>
+					<FileName sha256="c525f3ea495fa20d3e7c88e200f894421c49ffd318ffdd07f0369ae50cafb65a">mfehida.dll</FileName>
+					<FileName sha256="38745a6e13947b6604c0e12990b03e82c3f91f228642d5ea5400c798e302fb93">mfeelama.dll</FileName>
+				</Core>
+				<PointProductList>
+					<Variables>
+						<RegVal Name="ELAMBACKUP" RegKeyPath="HKLM\System\CurrentControlSet\Control\EarlyLaunch" RegValue="BackupPath"/>
+					</Variables>
+					<PointProduct ProductGuid="$MANIFESTID" Name="SystemCore">
+						<AacPolicy PolicyGuid="C6A18CBE-A632-4C75-AB1F-7E6ECF3E610F" IsSticky="true">
+							<Description>$VSCOREVERSION</Description>
+							<AacRule RuleGuid="{53829591-24D3-46cb-8776-FDACA586E6AA}" GroupTag="mfemms" ReactionType="AAC_REACTION_EXCEPTIONAL_ALLOW" ReportEvent="false" IsEnabled="true">
+								<Description>Exclude Legacy mfehidin From Protect ELAM driver</Description>
+								<AacSubRule Role="AAC_ROLE_INITIATOR">
+									<AacMatchObject ObjectType="AAC_OBJECT_PROCESS">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>%SYSTEMDRIVE%\**\MFEHIDIN.EXE</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_PRODUCT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>SYSCORE*</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_VTP_TRUST" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_INT8>1</TYPE_INT8>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_VALUE">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKCCS\SERVICES\MFEELAMK\*</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OS_VERSION" MatchOp="AAC_OP_INCLUDE" IsRange="true">
+											<TYPE_INT32>6020</TYPE_INT32>
+											<TYPE_INT32>10999</TYPE_INT32>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<!-- AAC_ACCESS_CREATE|AAC_ACCESS_WRITE|AAC_ACCESS_DELETE-->
+											<TYPE_BITMASK>0xb</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+							</AacRule>
+							<AacRule RuleGuid="{30CB7148-32A7-45be-9302-8E044583B212}" ReactionType="AAC_REACTION_BLOCK" ReportEvent="true" IsEnabled="true" GroupTag="mfemms">
+								<Description>Protect ELAM driver</Description>
+								<AacSubRule Role="AAC_ROLE_INITIATOR">
+									<AacMatchObject ObjectType="AAC_OBJECT_PROCESS">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_EXCLUDE">
+											<TYPE_STRING>$SYSTEM32ROOT\SERVICES.EXE</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_EXCLUDE">
+											<TYPE_STRING>SYSTEM</TYPE_STRING>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_FILE">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>$SYSTEM32ROOT\DRIVERS\MFEELAMK.SYS</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OS_VERSION" MatchOp="AAC_OP_INCLUDE" IsRange="true">
+											<TYPE_INT32>6020</TYPE_INT32>
+											<TYPE_INT32>10999</TYPE_INT32>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_BITMASK>0x1000b</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_FILE">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE">
+											<TYPE_STRING>%ELAMBACKUP%\MFEELAMK.SYS</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OS_VERSION" MatchOp="AAC_OP_INCLUDE" IsRange="true">
+											<TYPE_INT32>6020</TYPE_INT32>
+											<TYPE_INT32>10999</TYPE_INT32>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_BITMASK>0x1000b</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_VALUE">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKCCS\SERVICES\MFEELAMK\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKLM\ELAM\McAfee\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OS_VERSION" MatchOp="AAC_OP_INCLUDE" IsRange="true">
+											<TYPE_INT32>6020</TYPE_INT32>
+											<TYPE_INT32>10999</TYPE_INT32>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_BITMASK>0xb</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_KEY">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKCCS\SERVICES\MFEELAMK\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OS_VERSION" MatchOp="AAC_OP_INCLUDE" IsRange="true">
+											<TYPE_INT32>6020</TYPE_INT32>
+											<TYPE_INT32>10999</TYPE_INT32>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_BITMASK>0x309</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+								</AacSubRule>
+								<AacSubRule Role="AAC_ROLE_TARGET">
+									<AacMatchObject ObjectType="AAC_OBJECT_KEY">
+										<AacMatchData MatchType="AAC_MATCH_OBJECT_NAME" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_STRING>HKLM\ELAM\McAfee\**</TYPE_STRING>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_OS_VERSION" MatchOp="AAC_OP_INCLUDE" IsRange="true">
+											<TYPE_INT32>6020</TYPE_INT32>
+											<TYPE_INT32>10999</TYPE_INT32>
+										</AacMatchData>
+										<AacMatchData MatchType="AAC_MATCH_ACCESS_MASK" MatchOp="AAC_OP_INCLUDE" IsRange="false">
+											<TYPE_BITMASK>0x309</TYPE_BITMASK>
+										</AacMatchData>
+									</AacMatchObject>
+									<!-- FIXME need to include the ELAM backup path out of the registry -->
+								</AacSubRule>
+							</AacRule>
+						</AacPolicy>
+					</PointProduct>
+				</PointProductList>
+			</Feature>
+		</CoreInstall2>
+	</CoreInstall>
+	<Signature><SignedInfo><Reference><DigestValue sha256="25b421ddcca2b4bb3e8587fea4a0a644fe2ff717c5ba7c057504f2f4835fc30b">7ef6a33974335172a96547d5f36385ff</DigestValue></Reference></SignedInfo><SignatureValue><![CDATA[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]]></SignatureValue></Signature></Package>

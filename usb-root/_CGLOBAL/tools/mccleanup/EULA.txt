@@ -1,0 +1,11 @@
+End User License Agreement
+
+NOTICE TO ALL USERS, PLEASE READ THIS CONTRACT CAREFULLY.  BY CLICKING THE AGREE BUTTON, YOU (EITHER AN INDIVIDUAL OR A SINGLE ENTITY) AGREE THAT THIS AGREEMENT IS ENFORCABLE LIKE ANY WRITTEN CONTRACT SIGNED BY YOU.  IF YOU DO NOT AGREE, CLICK DISAGREE AND DO NOT USE THIS SOFTWARE.
+
+1. You understand that uninstalling McAfee software could leave your computer unprotected against security threats. Security threats include but are not limited to: viruses, spyware, adware, intruders and spam.
+
+2. McAfee is not responsible for any damages that could occur, intellectual, physical or otherwise, as a result of uninstalling this software.
+
+3. You understand that running the uninstallation could remove your subscription information, and that if you wish to reinstall McAfee software, this information should be backed up or written down.
+
+4. McAfee is not liable for replacing lost subscription information.

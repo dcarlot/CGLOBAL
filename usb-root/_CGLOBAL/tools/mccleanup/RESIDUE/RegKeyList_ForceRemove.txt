@@ -1,0 +1,2 @@
+HKEY_LOCAL_MACHINE\system\currentControlSet\Control\Safeboot\Network\mcapexe
+HKEY_LOCAL_MACHINE\system\currentControlSet\Control\Safeboot\Network\mcMPFSvc

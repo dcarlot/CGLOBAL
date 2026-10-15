@@ -1,0 +1,10 @@
+%COMMONDESKTOP%\McAfee Personal Firewall Plus.lnk
+%DESKTOP%\McAfee Personal Firewall Plus.lnk
+
+%COMMONPROGRAMS%\McAfee\McAfee Personal Firewall Plus.lnk
+%PROGRAMS%\McAfee\McAfee Personal Firewall Plus.lnk
+
+%WINDIR%\System32\MPFirewall.sys
+%WINDIR%\System32\MPFAPI.dll
+%WINDIR%\System32\Status.mpf
+%WINDIR%\System32\drivers\MPFirewall.sys

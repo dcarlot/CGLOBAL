@@ -1,0 +1,3 @@
+%PROGRAMFILESCOMMON%\McAfee\Auth\authFF.inf
+%PROGRAMFILESCOMMON%\McAfee\Auth\npAuthFF.dll
+
