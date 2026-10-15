@@ -1,4 +1,4 @@
-﻿#Requires -Version 5.1
+#Requires -Version 5.1
 #Requires -RunAsAdministrator
 
 <#
@@ -254,39 +254,72 @@ function Remove-McAfeeAppx {
 # ============================================================
 
 function Stop-McAfeeProcessesAndServices {
-    Write-Log "Arrêt des processus McAfee..." "INFO"
+    Write-Log "Arrêt des services McAfee (priorité)..." "INFO"
 
-    Get-Process -ErrorAction SilentlyContinue |
-        Where-Object { $_.ProcessName -match '(?i)^McAfee|^mf|^mfe' } |
-        ForEach-Object {
-            try {
-                Write-Log "Arrêt : $($_.ProcessName)" "INFO"
-                Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
-            }
-            catch { }
-        }
-
-    Start-Sleep -Seconds 2
-
-    Write-Log "Arrêt des services McAfee..." "INFO"
-
+    # Arrêter les services EN PREMIER (plus fiable)
     Get-Service -ErrorAction SilentlyContinue |
         Where-Object { $_.DisplayName -match '(?i)McAfee' -or $_.Name -match '(?i)^McAfee|^mfe' } |
         ForEach-Object {
             try {
-                Write-Log "Désactivation : $($_.Name)" "INFO"
+                Write-Log "Arrêt service : $($_.Name)" "INFO"
+                # Désactiver d'abord pour éviter le redémarrage
                 Set-Service -Name $_.Name -StartupType Disabled -ErrorAction SilentlyContinue
                 if ($_.Status -eq 'Running') {
                     Stop-Service -Name $_.Name -Force -ErrorAction Stop
+                    Write-Log "  → Service arrêté" "OK"
                 }
             }
             catch {
+                # Fallback avec sc.exe
                 & sc.exe stop $_.Name 2>&1 | Out-Null
                 & sc.exe config $_.Name start= disabled 2>&1 | Out-Null
+                Write-Log "  → Service désactivé via sc.exe" "OK"
             }
         }
 
-    Start-Sleep -Seconds 2
+    Start-Sleep -Seconds 3
+
+    Write-Log "Arrêt des processus McAfee..." "INFO"
+
+    # Arrêter tous les processus McAfee de manière agressive
+    $MaxRetries = 3
+    for ($Retry = 1; $Retry -le $MaxRetries; $Retry++) {
+        $McAfeeProcesses = Get-Process -ErrorAction SilentlyContinue |
+            Where-Object { $_.ProcessName -match '(?i)McAfee|^mf|^mfe|WebAdvisor|TrueKey|SafeConnect' }
+
+        if ($McAfeeProcesses.Count -eq 0) {
+            Write-Log "Tous les processus McAfee arrêtés" "OK"
+            break
+        }
+
+        Write-Log "Tentative $Retry/$MaxRetries : $($McAfeeProcesses.Count) processus restants" "INFO"
+
+        foreach ($Proc in $McAfeeProcesses) {
+            try {
+                Write-Log "  Kill : $($Proc.ProcessName) (PID $($Proc.Id))" "INFO"
+                Stop-Process -Id $Proc.Id -Force -ErrorAction Stop
+            }
+            catch {
+                # Fallback avec taskkill
+                & taskkill /F /PID $Proc.Id 2>&1 | Out-Null
+            }
+        }
+
+        Start-Sleep -Seconds 2
+    }
+
+    # Vérification finale
+    $Remaining = Get-Process -ErrorAction SilentlyContinue |
+        Where-Object { $_.ProcessName -match '(?i)McAfee|^mf|^mfe|WebAdvisor|TrueKey|SafeConnect' }
+
+    if ($Remaining.Count -gt 0) {
+        Write-Log "ATTENTION : $($Remaining.Count) processus McAfee toujours actifs" "WARN"
+        foreach ($Proc in $Remaining) {
+            Write-Log "  → $($Proc.ProcessName) (PID $($Proc.Id))" "WARN"
+        }
+    }
+
+    Start-Sleep -Seconds 3
 }
 
 # ============================================================
@@ -323,11 +356,11 @@ function Invoke-McCleanup {
         # Vérification du code retour
         if ($Process.ExitCode -eq 0) {
             Write-Log "mccleanup terminé avec succès (code 0)" "OK"
+            return $true
         } else {
-            Write-Log "mccleanup terminé avec le code $($Process.ExitCode)" "WARN"
+            Write-Log "mccleanup a échoué avec le code $($Process.ExitCode)" "ERROR"
+            return $false
         }
-
-        return $true
     }
     catch {
         Write-Log "Erreur mccleanup : $($_.Exception.Message)" "ERROR"
@@ -356,7 +389,7 @@ function Remove-McAfeeManually {
             catch { }
         }
 
-    # 2. Dossiers
+    # 2. Dossiers (avec retries et prise de possession)
     Write-Log "Suppression des dossiers..." "INFO"
     $Folders = @(
         "$env:ProgramFiles\McAfee",
@@ -364,17 +397,58 @@ function Remove-McAfeeManually {
         "$env:ProgramData\McAfee",
         "$env:LOCALAPPDATA\McAfee",
         "$env:APPDATA\McAfee",
-        "$env:ProgramFiles\Common Files\McAfee"
+        "$env:ProgramFiles\Common Files\McAfee",
+        "C:\Program Files\McAfee",
+        "C:\Program Files (x86)\McAfee",
+        "C:\ProgramData\McAfee"
     )
 
     foreach ($Folder in $Folders) {
         if (Test-Path $Folder) {
+            $Deleted = $false
+
+            # Tentative 1 : suppression normale
             try {
                 Remove-Item -Path $Folder -Recurse -Force -ErrorAction Stop
                 Write-Log "Dossier supprimé : $Folder" "OK"
+                $Deleted = $true
             }
             catch {
-                Write-Log "Impossible de supprimer : $Folder" "WARN"
+                Write-Log "Tentative 1 échouée pour $Folder, prise de possession..." "WARN"
+            }
+
+            # Tentative 2 : prise de possession + suppression
+            if (-not $Deleted) {
+                try {
+                    # Prendre possession du dossier
+                    & takeown /F $Folder /R /D Y 2>&1 | Out-Null
+                    & icacls $Folder /grant administrators:F /T /Q 2>&1 | Out-Null
+
+                    # Supprimer
+                    Remove-Item -Path $Folder -Recurse -Force -ErrorAction Stop
+                    Write-Log "Dossier supprimé après prise de possession : $Folder" "OK"
+                    $Deleted = $true
+                }
+                catch {
+                    Write-Log "Tentative 2 échouée pour $Folder" "WARN"
+                }
+            }
+
+            # Tentative 3 : suppression au prochain redémarrage
+            if (-not $Deleted) {
+                try {
+                    # Marquer pour suppression au redémarrage
+                    $PendingDeleteKey = "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager"
+                    $ExistingValue = (Get-ItemProperty -Path $PendingDeleteKey -Name "PendingFileRenameOperations" -ErrorAction SilentlyContinue).PendingFileRenameOperations
+                    if ($null -eq $ExistingValue) { $ExistingValue = @() }
+                    $ExistingValue += "\??\$Folder"
+                    $ExistingValue += ""
+                    Set-ItemProperty -Path $PendingDeleteKey -Name "PendingFileRenameOperations" -Value $ExistingValue -Type MultiString
+                    Write-Log "Dossier marqué pour suppression au redémarrage : $Folder" "WARN"
+                }
+                catch {
+                    Write-Log "Impossible de marquer $Folder pour suppression" "ERROR"
+                }
             }
         }
     }
@@ -463,14 +537,23 @@ try {
     if ($McCleanupResult) {
         Write-Log "mccleanup exécuté avec succès" "OK"
     } else {
-        Write-Log "mccleanup a échoué ou est indisponible" "WARN"
+        Write-Log "mccleanup a échoué ou est indisponible" "ERROR"
+        Write-Log "Passage à la suppression manuelle forcée" "WARN"
     }
 
     Start-Sleep -Seconds 3
 
-    # 4. Vérification
+    # 4. Vérification intermédiaire
     $Remaining = Get-McAfeeRemainingCount
-    if ($Remaining -eq 0) {
+
+    # Vérifier aussi les processus et services actifs
+    $ActiveProcesses = Get-Process -ErrorAction SilentlyContinue |
+        Where-Object { $_.ProcessName -match '(?i)McAfee|^mf|^mfe|WebAdvisor|TrueKey|SafeConnect' }
+
+    $ActiveServices = Get-Service -ErrorAction SilentlyContinue |
+        Where-Object { ($_.DisplayName -match '(?i)McAfee' -or $_.Name -match '(?i)^McAfee|^mfe') -and $_.Status -eq 'Running' }
+
+    if ($Remaining -eq 0 -and $ActiveProcesses.Count -eq 0 -and $ActiveServices.Count -eq 0) {
         Write-Log "mccleanup a supprimé tous les composants McAfee" "OK"
         Write-Log "Un redémarrage est recommandé pour finaliser (pilotes)" "WARN"
         Write-Log "=== DÉSINSTALLATION MCAFEE TERMINÉE ===" "OK"
@@ -478,6 +561,16 @@ try {
     }
 
     Write-Log "$Remaining produit(s) restent après mccleanup" "WARN"
+    if ($ActiveProcesses.Count -gt 0) {
+        Write-Log "$($ActiveProcesses.Count) processus McAfee encore actifs" "WARN"
+    }
+    if ($ActiveServices.Count -gt 0) {
+        Write-Log "$($ActiveServices.Count) services McAfee encore actifs" "WARN"
+    }
+
+    # 4b. Deuxième arrêt des processus (au cas où mccleanup en a relancé)
+    Write-Log "Deuxième arrêt des processus McAfee..." "INFO"
+    Stop-McAfeeProcessesAndServices
 
     # 5. Suppression manuelle forcée
     $ManualResult = Remove-McAfeeManually
@@ -489,18 +582,43 @@ try {
 
     Start-Sleep -Seconds 2
 
-    # 6. Vérification finale
+    # 6. Vérification finale (registre + processus + services)
     $Final = Get-McAfeeRemainingCount
-    if ($Final -eq 0) {
+
+    # Vérifier aussi les processus actifs
+    $ActiveProcesses = Get-Process -ErrorAction SilentlyContinue |
+        Where-Object { $_.ProcessName -match '(?i)McAfee|^mf|^mfe|WebAdvisor|TrueKey|SafeConnect' }
+
+    # Vérifier aussi les services actifs
+    $ActiveServices = Get-Service -ErrorAction SilentlyContinue |
+        Where-Object { ($_.DisplayName -match '(?i)McAfee' -or $_.Name -match '(?i)^McAfee|^mfe') -and $_.Status -eq 'Running' }
+
+    if ($Final -eq 0 -and $ActiveProcesses.Count -eq 0 -and $ActiveServices.Count -eq 0) {
         Write-Log "Tous les composants McAfee ont été supprimés" "OK"
         Write-Log "=== DÉSINSTALLATION MCAFEE TERMINÉE ===" "OK"
+        Write-Log "Un redémarrage est recommandé pour finaliser (pilotes)" "WARN"
+        exit 0
     }
     else {
-        Write-Log "$Final produit(s) restent" "WARN"
+        if ($Final -gt 0) {
+            Write-Log "$Final produit(s) restent dans le registre" "WARN"
+        }
+        if ($ActiveProcesses.Count -gt 0) {
+            Write-Log "$($ActiveProcesses.Count) processus McAfee encore actifs" "WARN"
+            foreach ($Proc in $ActiveProcesses) {
+                Write-Log "  → $($Proc.ProcessName)" "WARN"
+            }
+        }
+        if ($ActiveServices.Count -gt 0) {
+            Write-Log "$($ActiveServices.Count) services McAfee encore actifs" "WARN"
+            foreach ($Svc in $ActiveServices) {
+                Write-Log "  → $($Svc.Name)" "WARN"
+            }
+        }
+        Write-Log "=== DÉSINSTALLATION MCAFEE INCOMPLETE ===" "ERROR"
+        Write-Log "Un redémarrage est OBLIGATOIRE pour finaliser" "ERROR"
+        exit 1
     }
-    Write-Log "Un redémarrage est recommandé pour finaliser" "WARN"
-
-    exit 0
 }
 catch {
     Write-Log "ERREUR CRITIQUE : $($_.Exception.Message)" "ERROR"
