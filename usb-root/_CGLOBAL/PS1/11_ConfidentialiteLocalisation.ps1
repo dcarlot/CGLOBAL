@@ -3,38 +3,9 @@
 
 $ErrorActionPreference = 'Stop'
 
-$LogFolder = "C:\_CGLOBAL\Logs"
-$LogFile   = "$LogFolder\Log11_ConfidentialiteLocalisation.txt"
-
-if (-not (Test-Path $LogFolder)) {
-    New-Item -Path $LogFolder -ItemType Directory -Force | Out-Null
-}
-
-function Write-Log {
-
-    param(
-        [string]$Message,
-
-        [ValidateSet('INFO','OK','WARN','ERROR')]
-        [string]$Level = 'INFO'
-    )
-
-    $Line = "[{0}] [{1,-5}] {2}" -f `
-        (Get-Date -Format "HH:mm:ss"), `
-        $Level, `
-        $Message
-
-    Add-Content -Path $LogFile -Value $Line -Encoding UTF8
-
-    $Color = @{
-        INFO  = 'Cyan'
-        OK    = 'Green'
-        WARN  = 'Yellow'
-        ERROR = 'Red'
-    }
-
-    Write-Host $Line -ForegroundColor $Color[$Level]
-}
+Import-Module "C:\_CGLOBAL\PS1\CGLOBAL.Common.psm1" -Force
+$LogFile = Get-CGlobalLogFile -ScriptPath $MyInvocation.MyCommand.Path
+Initialize-CGlobalLog -LogFile $LogFile
 
 try {
 
@@ -60,23 +31,24 @@ try {
 
     #
     # Autoriser le remplacement de la localisation
+    # (CORRIGE : test direct sur la clé, plus de variable $OverrideKeyExists non définie)
     #
     $OverrideKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\CPSS\Store\UserLocationOverridePrivacySetting"
+    $OverrideKeyExists = Test-Path $OverrideKey
 
-    if (-not (Test-Path $OverrideKey)) {
+    if (-not $OverrideKeyExists) {
         Write-Log "Clé UserLocationOverridePrivacySetting absente : paramètre ignoré" "WARN"
     }
-	else {
+    else {
+        New-ItemProperty `
+            -Path $OverrideKey `
+            -Name "Value" `
+            -Value 0 `
+            -PropertyType DWord `
+            -Force | Out-Null
 
-    New-ItemProperty `
-        -Path $OverrideKey `
-        -Name "Value" `
-        -Value 0 `
-        -PropertyType DWord `
-        -Force | Out-Null
-
-    Write-Log "Remplacement de la localisation désactivé" "OK"
-	}
+        Write-Log "Remplacement de la localisation désactivé" "OK"
+    }
 
     #
     # Vérification
@@ -87,24 +59,21 @@ try {
             -Name ShowGlobalPrompts
     ).ShowGlobalPrompts
 
-	if ($OverrideKeyExists) {
-    $OverrideValue = (
-        Get-ItemProperty `
-            -Path $OverrideKey `
-            -Name Value
-    ).Value
-	}
-
     if ($ShowGlobalPrompts -ne 0) {
         throw "Vérification ShowGlobalPrompts échouée"
     }
 
-	if ($OverrideKeyExists) {
-		if ($OverrideValue -ne 0) {
-			throw "Vérification UserLocationOverridePrivacySetting échouée"
-		}
-	}
+    if ($OverrideKeyExists) {
+        $OverrideValue = (
+            Get-ItemProperty `
+                -Path $OverrideKey `
+                -Name Value
+        ).Value
 
+        if ($OverrideValue -ne 0) {
+            throw "Vérification UserLocationOverridePrivacySetting échouée"
+        }
+    }
 
     Write-Log "Vérification OK" "OK"
     Write-Log "Configuration terminée" "OK"

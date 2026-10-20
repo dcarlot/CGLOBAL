@@ -204,158 +204,171 @@ try {
     Write-Log "Compte local sans mot de passe détecté" "WARN"
 
     # ------------------------------------------------------------------
-    # POPUP : Demande de confirmation
+    # CORRIGE : Support du mode Prevalidé / Silencieux
     # ------------------------------------------------------------------
+    $ExecutionMode = Get-CGlobalExecutionMode
+    $Choice = $null
+    $PrevalidatedBlob = $null
 
-    $Choice = Show-CGlobalPopup `
-        -Message "Le compte local '$CurrentUserName' n'a pas de mot de passe.`n`nSouhaitez-vous définir un mot de passe ?" `
-        -Title "Mot de passe requis" `
-        -Buttons "YesNo" `
-        -Icon "Exclamation"
+    if ($ExecutionMode -ne 'Interactif') {
+        $Choice = [string](Get-CGlobalDecision -Key 'LocalPasswordAction' -Default 'No')
+        $PrevalidatedBlob = [string](Get-CGlobalDecision -Key 'LocalPasswordBlob' -Default '')
+        Write-Log "Mode $ExecutionMode : décision prévalidée LocalPasswordAction = $Choice" "INFO"
+    }
+
+    if ($null -eq $Choice) {
+        # Mode Interactif : popup classique
+        $Choice = [string](Show-CGlobalPopup `
+            -Message "Le compte local '$CurrentUserName' n'a pas de mot de passe.`n`nSouhaitez-vous définir un mot de passe ?" `
+            -Title "Mot de passe requis" `
+            -Buttons "YesNo" `
+            -Icon "Exclamation")
+    }
 
     if ($Choice -ne "Yes") {
-        Write-Log "Création du mot de passe refusée par l'utilisateur" "WARN"
+        Write-Log "Création du mot de passe refusée" "WARN"
         exit 0
     }
 
     # ------------------------------------------------------------------
-    # POPUP : Saisie du mot de passe (boucle jusqu'à validation)
+    # Récupération du mot de passe
     # ------------------------------------------------------------------
+    if ($ExecutionMode -ne 'Interactif') {
 
-    $PasswordValid = $false
+        # Mode Prévalidé / Silencieux : utiliser le blob prévalidé
+        if ([string]::IsNullOrWhiteSpace($PrevalidatedBlob)) {
+            Write-Log "Mode $ExecutionMode : aucun blob de mot de passe prévalidé, abandon" "ERROR"
+            exit 1
+        }
 
-    do {
-        $PasswordForm = New-Object System.Windows.Forms.Form
-        $PasswordForm.Text = "Définition du mot de passe"
-        $PasswordForm.Width = 450
-        $PasswordForm.Height = 280
-        $PasswordForm.StartPosition = "CenterScreen"
-        $PasswordForm.TopMost = $true
-        $PasswordForm.FormBorderStyle = "FixedDialog"
-        $PasswordForm.MaximizeBox = $false
-        $PasswordForm.MinimizeBox = $false
-        $PasswordForm.AutoScaleMode = [System.Windows.Forms.AutoScaleMode]::Dpi
+        try {
+            $SecurePassword = ConvertTo-SecureString -String $PrevalidatedBlob
+            Write-Log "Blob de mot de passe prévalidé récupéré" "INFO"
+        }
+        catch {
+            Write-Log "Blob de mot de passe prévalidé invalide : $($_.Exception.Message)" "ERROR"
+            exit 1
+        }
+    }
+    else {
 
-        $Label1 = New-Object System.Windows.Forms.Label
-        $Label1.Text = "Entrez le mot de passe :"
-        $Label1.Location = New-Object System.Drawing.Point(20, 20)
-        $Label1.Width = 400
-        $Label1.Height = 20
-        $PasswordForm.Controls.Add($Label1)
+        # Mode Interactif : boucle de saisie
+        $PasswordValid = $false
 
-        $TextBox1 = New-Object System.Windows.Forms.TextBox
-        $TextBox1.Location = New-Object System.Drawing.Point(20, 45)
-        $TextBox1.Width = 400
-        $TextBox1.PasswordChar = "*"
-        $TextBox1.UseSystemPasswordChar = $true
-        $PasswordForm.Controls.Add($TextBox1)
+        do {
+            $PasswordForm = New-Object System.Windows.Forms.Form
+            $PasswordForm.Text = "Définition du mot de passe"
+            $PasswordForm.Width = 450
+            $PasswordForm.Height = 280
+            $PasswordForm.StartPosition = "CenterScreen"
+            $PasswordForm.TopMost = $true
+            $PasswordForm.FormBorderStyle = "FixedDialog"
+            $PasswordForm.MaximizeBox = $false
+            $PasswordForm.MinimizeBox = $false
+            $PasswordForm.AutoScaleMode = [System.Windows.Forms.AutoScaleMode]::Dpi
 
-        $Label2 = New-Object System.Windows.Forms.Label
-        $Label2.Text = "Confirmez le mot de passe :"
-        $Label2.Location = New-Object System.Drawing.Point(20, 85)
-        $Label2.Width = 400
-        $Label2.Height = 20
-        $PasswordForm.Controls.Add($Label2)
+            $Label1 = New-Object System.Windows.Forms.Label
+            $Label1.Text = "Entrez le mot de passe :"
+            $Label1.Location = New-Object System.Drawing.Point(20, 20)
+            $Label1.Width = 400
+            $Label1.Height = 20
+            $PasswordForm.Controls.Add($Label1)
 
-        $TextBox2 = New-Object System.Windows.Forms.TextBox
-        $TextBox2.Location = New-Object System.Drawing.Point(20, 110)
-        $TextBox2.Width = 400
-        $TextBox2.PasswordChar = "*"
-        $TextBox2.UseSystemPasswordChar = $true
-        $PasswordForm.Controls.Add($TextBox2)
+            $TextBox1 = New-Object System.Windows.Forms.TextBox
+            $TextBox1.Location = New-Object System.Drawing.Point(20, 45)
+            $TextBox1.Width = 400
+            $TextBox1.PasswordChar = "*"
+            $TextBox1.UseSystemPasswordChar = $true
+            $PasswordForm.Controls.Add($TextBox1)
 
-        $BtnValider = New-Object System.Windows.Forms.Button
-        $BtnValider.Text = "Valider"
-        $BtnValider.Location = New-Object System.Drawing.Point(120, 160)
-        $BtnValider.Width = 90
-        $BtnValider.DialogResult = [System.Windows.Forms.DialogResult]::OK
-        $PasswordForm.Controls.Add($BtnValider)
+            $Label2 = New-Object System.Windows.Forms.Label
+            $Label2.Text = "Confirmez le mot de passe :"
+            $Label2.Location = New-Object System.Drawing.Point(20, 85)
+            $Label2.Width = 400
+            $Label2.Height = 20
+            $PasswordForm.Controls.Add($Label2)
 
-        $BtnAnnuler = New-Object System.Windows.Forms.Button
-        $BtnAnnuler.Text = "Annuler"
-        $BtnAnnuler.Location = New-Object System.Drawing.Point(230, 160)
-        $BtnAnnuler.Width = 90
-        $BtnAnnuler.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
-        $PasswordForm.Controls.Add($BtnAnnuler)
+            $TextBox2 = New-Object System.Windows.Forms.TextBox
+            $TextBox2.Location = New-Object System.Drawing.Point(20, 110)
+            $TextBox2.Width = 400
+            $TextBox2.PasswordChar = "*"
+            $TextBox2.UseSystemPasswordChar = $true
+            $PasswordForm.Controls.Add($TextBox2)
 
-        $PasswordForm.AcceptButton = $BtnValider
-        $PasswordForm.CancelButton = $BtnAnnuler
+            $BtnValider = New-Object System.Windows.Forms.Button
+            $BtnValider.Text = "Valider"
+            $BtnValider.Location = New-Object System.Drawing.Point(120, 160)
+            $BtnValider.Width = 90
+            $BtnValider.DialogResult = [System.Windows.Forms.DialogResult]::OK
+            $PasswordForm.Controls.Add($BtnValider)
 
-        $Result = $PasswordForm.ShowDialog()
+            $BtnAnnuler = New-Object System.Windows.Forms.Button
+            $BtnAnnuler.Text = "Annuler"
+            $BtnAnnuler.Location = New-Object System.Drawing.Point(230, 160)
+            $BtnAnnuler.Width = 90
+            $BtnAnnuler.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
+            $PasswordForm.Controls.Add($BtnAnnuler)
 
-        if ($Result -ne [System.Windows.Forms.DialogResult]::OK) {
-            Write-Log "Saisie du mot de passe annulée" "WARN"
+            $PasswordForm.AcceptButton = $BtnValider
+            $PasswordForm.CancelButton = $BtnAnnuler
+
+            $Result = $PasswordForm.ShowDialog()
+
+            if ($Result -ne [System.Windows.Forms.DialogResult]::OK) {
+                Write-Log "Saisie du mot de passe annulée" "WARN"
+                $PasswordForm.Dispose()
+                exit 0
+            }
+
+            $Password1 = $TextBox1.Text
+            $Password2 = $TextBox2.Text
+
             $PasswordForm.Dispose()
-            exit 0
-        }
 
-        $Password1 = $TextBox1.Text
-        $Password2 = $TextBox2.Text
+            if ([string]::IsNullOrWhiteSpace($Password1)) {
+                Write-Log "Mot de passe vide refusé" "WARN"
+                Show-CGlobalPopup `
+                    -Message "Le mot de passe ne peut pas être vide.`n`nVeuillez saisir un mot de passe valide." `
+                    -Title "Mot de passe invalide" `
+                    -Buttons "OK" `
+                    -Icon "Exclamation"
+                continue
+            }
 
-        $PasswordForm.Dispose()
+            if ($Password1 -ne $Password2) {
+                Show-CGlobalPopup `
+                    -Message "Les mots de passe ne correspondent pas." `
+                    -Title "Erreur" `
+                    -Buttons "OK" `
+                    -Icon "Exclamation"
+                continue
+            }
 
-        # ------------------------------------------------------------------
-        # Vérification : mot de passe vide refusé (retour en boucle)
-        # ------------------------------------------------------------------
-        if ([string]::IsNullOrWhiteSpace($Password1)) {
-            Write-Log "Mot de passe vide refusé" "WARN"
-            Show-CGlobalPopup `
-                -Message "Le mot de passe ne peut pas être vide.`n`nVeuillez saisir un mot de passe valide." `
-                -Title "Mot de passe invalide" `
-                -Buttons "OK" `
-                -Icon "Exclamation"
-            continue
-        }
+            $PasswordValid = $true
 
-        # ------------------------------------------------------------------
-        # Vérification : correspondance des deux saisies
-        # ------------------------------------------------------------------
-        if ($Password1 -ne $Password2) {
-            $ErrorForm = New-Object System.Windows.Forms.Form
-            $ErrorForm.Text = "Erreur"
-            $ErrorForm.Width = 350
-            $ErrorForm.Height = 150
-            $ErrorForm.StartPosition = "CenterScreen"
-            $ErrorForm.TopMost = $true
-            $ErrorForm.FormBorderStyle = "FixedDialog"
-            $ErrorForm.MaximizeBox = $false
-            $ErrorForm.MinimizeBox = $false
-            $ErrorForm.AutoScaleMode = [System.Windows.Forms.AutoScaleMode]::Dpi
+        } while (-not $PasswordValid)
 
-            $ErrorLabel = New-Object System.Windows.Forms.Label
-            $ErrorLabel.Text = "Les mots de passe ne correspondent pas."
-            $ErrorLabel.Location = New-Object System.Drawing.Point(20, 20)
-            $ErrorLabel.Width = 300
-            $ErrorForm.Controls.Add($ErrorLabel)
+        $SecurePassword = ConvertTo-SecureString -String $Password1 -AsPlainText -Force
+    }
 
-            $ErrorButton = New-Object System.Windows.Forms.Button
-            $ErrorButton.Text = "OK"
-            $ErrorButton.Location = New-Object System.Drawing.Point(130, 80)
-            $ErrorButton.DialogResult = [System.Windows.Forms.DialogResult]::OK
-            $ErrorForm.AcceptButton = $ErrorButton
-            $ErrorForm.Controls.Add($ErrorButton)
-
-            $ErrorForm.ShowDialog()
-            $ErrorForm.Dispose()
-            continue
-        }
-
-        $PasswordValid = $true
-
-    } while (-not $PasswordValid)
-
-    # Convertir en SecureString
-    $SecurePassword = ConvertTo-SecureString -String $Password1 -AsPlainText -Force
-
+    # ------------------------------------------------------------------
+    # Application du mot de passe
+    # ------------------------------------------------------------------
     Set-LocalUser -Name $CurrentUserName -Password $SecurePassword
 
     Write-Log "Mot de passe défini avec succès" "OK"
 
-    Show-CGlobalPopup `
-        -Message "Mot de passe appliqué avec succès." `
-        -Title "Succès" `
-        -Buttons "OK" `
-        -Icon "Information"
+    # Popup de succès uniquement en mode Interactif
+    if ($ExecutionMode -eq 'Interactif') {
+        Show-CGlobalPopup `
+            -Message "Mot de passe appliqué avec succès." `
+            -Title "Succès" `
+            -Buttons "OK" `
+            -Icon "Information"
+    }
+    else {
+        Write-Log "Mot de passe appliqué (mode $ExecutionMode, pas de popup)" "OK"
+    }
 }
 catch {
 
