@@ -8,7 +8,18 @@ $LogFile = Get-CGlobalLogFile -ScriptPath $MyInvocation.MyCommand.Path
 Initialize-CGlobalLog -LogFile $LogFile
 
 try {
-    Write-Log "=== MASQUAGE DES WIDGETS ===" "INFO"
+    $ExecutionMode = Get-CGlobalExecutionMode
+    Write-Log "=== MASQUAGE DES WIDGETS (mode $ExecutionMode) ===" "INFO"
+
+    if ($ExecutionMode -eq 'Silencieux') {
+        Write-Log "Mode Silencieux : désinstallation des Widgets sans interaction" "INFO"
+    }
+    elseif ($ExecutionMode -eq 'Prévalidé') {
+        Write-Log "Mode Prévalidé : désinstallation des Widgets (pas de popup)" "INFO"
+    }
+    else {
+        Write-Log "Mode Interactif : désinstallation des Widgets" "INFO"
+    }
 
     # ------------------------------------------------------------------
     # 1. ARRÊT DU PROCESSUS WIDGETS
